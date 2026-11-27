@@ -272,7 +272,7 @@ public class ModeThemedPage : ContentPage, IModeThemePage
                 return;
             }
             string resource = surface == "Card" ? (secondary ? "ModeCardText2" : "ModeCardText1") :
-                size < 13 && !heading ? "ModeText3" : secondary ? "ModeText2" : "ModeText1";
+                size < 13 && !heading ? "ModePageText3" : secondary ? "ModePageText2" : "ModePageText1";
             // MAUI 8 manual setters outrank dynamic resources. Release the local value first.
             text.ClearValue(property);
             text.SetDynamicResource(property, resource);

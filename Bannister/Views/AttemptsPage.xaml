@@ -6,7 +6,7 @@
         <VerticalStackLayout Padding="20" Spacing="20">
             
             <!-- Header -->
-            <Label Text="Dragon-Slaying Attempts" FontSize="24" FontAttributes="Bold" TextColor="{DynamicResource ModeCardTextStrong}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardTextStrong" />
+            <Label Text="Dragon-Slaying Attempts" FontSize="24" FontAttributes="Bold" TextColor="{DynamicResource ModeCardText1}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText1" />
             
             <Label Text="Track your attempts to slay each dragon. Each dragon shows its latest attempt." FontSize="14" TextColor="{DynamicResource ModeCardText2}" HorizontalOptions="Center" HorizontalTextAlignment="Center" MaximumWidthRequest="500" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
             
@@ -22,18 +22,18 @@
                             <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
                                 
                                 <!-- Dragon Title -->
-                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding DragonTitle}" FontSize="16" FontAttributes="Bold" TextColor="{DynamicResource ModeCardTextStrong}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardTextStrong" />
+                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding DragonTitle}" FontSize="16" FontAttributes="Bold" TextColor="{DynamicResource ModeCardText1}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText1" />
                                 
                                 <!-- Status Badge -->
                                 <Frame Grid.Row="0" Grid.Column="1" Padding="8,4" CornerRadius="12" BackgroundColor="{Binding StatusColor}" HasShadow="False">
-                                    <Label Text="{Binding StatusText}" TextColor="{DynamicResource ModeOnColorText}" FontSize="12" FontAttributes="Bold" theme:ThemeColorExtensions.NamedColorProperties="TextColor=OnColorText" />
+                                    <Label Text="{Binding StatusText}" TextColor="{DynamicResource ModeButtonPrimaryText}" FontSize="12" FontAttributes="Bold" theme:ThemeColorExtensions.NamedColorProperties="TextColor=ButtonPrimaryText" />
                                 </Frame>
                                 
                                 <!-- Attempt Info -->
                                 <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding InfoText}" FontSize="14" TextColor="{DynamicResource ModeCardText2}" Margin="0,4,0,0" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
                                 
                                 <!-- Game -->
-                                <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Game, StringFormat='Game: {0}'}" FontSize="12" TextColor="{DynamicResource ModeDisabledText}" Margin="0,4,0,0" theme:ThemeColorExtensions.NamedColorProperties="TextColor=DisabledText" />
+                                <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Game, StringFormat='Game: {0}'}" FontSize="12" TextColor="{DynamicResource ModeCardText3}" Margin="0,4,0,0" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText3" />
                             </Grid>
                         </Frame>
                     </DataTemplate>
@@ -41,8 +41,8 @@
                 
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Padding="40" Spacing="10">
-                        <Label Text="No attempts yet." FontSize="16" TextColor="{DynamicResource ModeText1}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text1" />
-                        <Label Text="Create a dragon first, then start your first attempt!" FontSize="14" TextColor="{DynamicResource ModeText1}" HorizontalOptions="Center" HorizontalTextAlignment="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text1" />
+                        <Label Text="No attempts yet." FontSize="16" TextColor="{DynamicResource ModePageText1}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText1" />
+                        <Label Text="Create a dragon first, then start your first attempt!" FontSize="14" TextColor="{DynamicResource ModePageText1}" HorizontalOptions="Center" HorizontalTextAlignment="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText1" />
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
             </CollectionView>

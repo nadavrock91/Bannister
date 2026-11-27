@@ -68,7 +68,7 @@ public partial class ActivityGamePage
             HeightRequest = 36,
             FontSize = 12,
             HorizontalOptions = LayoutOptions.Fill
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         btnLastCalculated.Clicked += async (_, _) => await GoToLastCalculatedAsync();
         Grid.SetRow(btnLastCalculated, 0);
         outerGrid.Children.Add(btnLastCalculated);
@@ -90,7 +90,7 @@ public partial class ActivityGamePage
             Text = "◀",
             WidthRequest = 40,
             CornerRadius = 8
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnPrevPage.Clicked += OnPrevCategoryClicked;
         Grid.SetColumn(btnPrevPage, 0);
         navGrid.Children.Add(btnPrevPage);
@@ -111,7 +111,7 @@ public partial class ActivityGamePage
             Text = "▶",
             WidthRequest = 40,
             CornerRadius = 8
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnNextPage.Clicked += OnNextCategoryClicked;
         Grid.SetColumn(btnNextPage, 2);
         navGrid.Children.Add(btnNextPage);
@@ -134,7 +134,7 @@ public partial class ActivityGamePage
         categoryPicker = (new Picker
         { 
             Title = "Jump to Category"
-        }).ThemeColor(Picker.TextColorProperty, ThemeKey.CardTextStrong).ThemeColor(Picker.TitleColorProperty, ThemeKey.CardText3);
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.CardText1).ThemeColor(Picker.TitleColorProperty, ThemeKey.CardText3);
         categoryPicker.SelectedIndexChanged += OnCategoryChanged;
         Grid.SetColumn(categoryPicker, 0);
         pickerGrid.Children.Add(categoryPicker);
@@ -289,7 +289,7 @@ public partial class ActivityGamePage
                     FontSize = 16,
                     FontAttributes = FontAttributes.Bold,
                     HorizontalOptions = LayoutOptions.Center
-                }).ThemeColor(Label.TextColorProperty, currentSection == "Activities That Don't Display Every Day" ? ThemeKey.ErrorText : ThemeKey.HighlightIndigoStrongText, ThemeKey.PageText1, classifyPageText: true);
+                }).ThemeColor(Label.TextColorProperty, currentSection == "Activities That Don't Display Every Day" ? ThemeKey.ErrorText : ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
                 headerFrame.Content = headerLabel;
                 mainStack.Children.Add(headerFrame);
             }
@@ -355,7 +355,7 @@ public partial class ActivityGamePage
             BackgroundColor = Colors.Transparent,
             IsVisible = false,
             InputTransparent = true
-        }).ThemeColor(Border.StrokeProperty, ThemeKey.SuccessLightText);
+        }).ThemeColor(Border.StrokeProperty, ThemeKey.SuccessButtonBackground);
         selectionBorder.SetBinding(Border.IsVisibleProperty, "IsSelected");
 
         var grid = new Grid { InputTransparent = false };
@@ -372,7 +372,7 @@ public partial class ActivityGamePage
         {
             var blackBackground = (new BoxView
             {
-            }).ThemeColor(BoxView.ColorProperty, ThemeKey.BrandMediaBackground);
+            }).ThemeColor(BoxView.ColorProperty, ThemeKey.MediaBackground);
             grid.Children.Add(blackBackground);
         }
 
@@ -396,7 +396,7 @@ public partial class ActivityGamePage
             LineBreakMode = LineBreakMode.TailTruncation,
             MaxLines = 2,
             IsVisible = !activity.Activity.IsImageOnly
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.OverlayStrong).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true);
         nameLabel.SetBinding(Label.TextProperty, "Name");
         grid.Children.Add(nameLabel);
 
@@ -411,13 +411,13 @@ public partial class ActivityGamePage
                 HorizontalOptions = LayoutOptions.End,
                 VerticalOptions = LayoutOptions.Start,
                 Margin = new Thickness(4, 4, 42, 4)
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText);
             zeroBadge.Content = (new Label
             {
                 Text = "ZERO",
                 FontSize = 10,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true);
             grid.Children.Add(zeroBadge);
         }
 
@@ -430,7 +430,7 @@ public partial class ActivityGamePage
             CornerRadius = 8,
             BorderColor = Colors.Transparent,
             Margin = 4
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TimelineSalmon);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TimelineAccent);
         
         // Show if multiplier > 1 (we'll update this when temporary is set)
         multiplierFrame.SetBinding(IsVisibleProperty, "ShowMultiplier");
@@ -439,7 +439,7 @@ public partial class ActivityGamePage
         {
             FontSize = 10,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true);
         multiplierLabel.SetBinding(Label.TextProperty, new Binding("Multiplier", stringFormat: "x{0}"));
         multiplierFrame.Content = multiplierLabel;
         
@@ -466,7 +466,7 @@ public partial class ActivityGamePage
         {
             FontSize = 10,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true);
         expLabel.SetBinding(Label.TextProperty, new Binding("ExpGain", stringFormat: "+{0}"));
         expFrame.Content = expLabel;
         
@@ -496,7 +496,7 @@ public partial class ActivityGamePage
             {
                 FontSize = 10,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true);
             streakLabel.SetBinding(Label.TextProperty, "StreakDisplay");
             streakFrame.Content = streakLabel;
             
@@ -533,7 +533,7 @@ public partial class ActivityGamePage
             {
                 FontSize = 10,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true);
             displayStreakLabel.SetBinding(Label.TextProperty, "DisplayDayStreakDisplay");
             displayStreakFrame.Content = displayStreakLabel;
             
@@ -564,13 +564,13 @@ public partial class ActivityGamePage
                 CornerRadius = 8,
                 BorderColor = Colors.Transparent,
                 Margin = new Thickness(4, 28, 40, 4) // Below multiplier, left of menu
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleButtonBackground);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText);
             
             var timesLabel = (new Label
             {
                 FontSize = 10,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true);
             timesLabel.SetBinding(Label.TextProperty, "TimesCompletedDisplay");
             timesFrame.Content = timesLabel;
             
@@ -595,14 +595,14 @@ public partial class ActivityGamePage
                 CornerRadius = 8,
                 BorderColor = Colors.Transparent,
                 Margin = new Thickness(4, 4, 40, 36) // Above name label, left of menu/+ buttons
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrownLightButtonBackground);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton);
             
             var notesLabel = (new Label
             {
                 Text = "📝",
                 FontSize = 10,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true);
             notesFrame.Content = notesLabel;
             
             // Add tooltip behavior - tap to view full notes
@@ -632,7 +632,7 @@ public partial class ActivityGamePage
         {
             FontSize = 10,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true);
         daysLabel.SetBinding(Label.TextProperty, new Binding("DaysSinceClickDisplay"));
         daysBadgeFrame.Content = daysLabel;
         
@@ -674,7 +674,7 @@ public partial class ActivityGamePage
             CornerRadius = 15,
             Padding = 0,
             Margin = new Thickness(4, 40, 4, 4)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         menuButton.Clicked += async (s, e) => {
             await ShowContextMenu(activity);
         };
@@ -693,7 +693,7 @@ public partial class ActivityGamePage
             CornerRadius = 17,
             Padding = 0,
             Margin = new Thickness(4, 75, 4, 4)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         
         selectionButton.SetBinding(Button.TextProperty, new Binding("IsSelected", 
             converter: new SelectionButtonTextConverter()));
@@ -728,15 +728,15 @@ public partial class ActivityGamePage
 
         if (days == 0)
         {
-            return ThemeKey.SuccessLightText; // Green - today
+            return ThemeKey.SuccessButtonBackground; // Green - today
         }
         else if (days <= 2)
         {
-            return ThemeKey.LimeButtonBackground; // Light green - recent
+            return ThemeKey.SuccessButtonBackground; // Light green - recent
         }
         else if (days <= 7)
         {
-            return ThemeKey.WarningAccentText; // Orange - getting stale
+            return ThemeKey.WarningText; // Orange - getting stale
         }
         else
         {

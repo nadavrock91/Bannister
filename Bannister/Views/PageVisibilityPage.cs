@@ -38,7 +38,7 @@ public class PageVisibilityPage : Bannister.Views.ModeThemedPage
             Text = "Page Visibility",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label
         {
             Text = "Choose which pages appear on the home screen. " +
@@ -88,7 +88,7 @@ public class PageVisibilityPage : Bannister.Views.ModeThemedPage
                 Text = setting.ButtonId,
                 FontSize = 14,
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(Label.TextColorProperty, isSettingsBtn ? ThemeKey.CardText3 : ThemeKey.CardTextStrong, ThemeKey.PageText2, classifyPageText: true), 0, 0);
+            }).ThemeColor(Label.TextColorProperty, isSettingsBtn ? ThemeKey.CardText3 : ThemeKey.CardText1, ThemeKey.PageText2, classifyPageText: true), 0, 0);
 
             var toggle = new Switch
             {

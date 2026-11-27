@@ -58,12 +58,12 @@ public class DragonsHubPage : Bannister.Views.ModeThemedPage
             Text = "🐉 Dragons",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
         headerStack.Children.Add((new Label
         {
             Text = "Track your quests to slay dragons (reach Level 100)",
             FontSize = 14
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellow, ThemeKey.PageText1, classifyPageText: true));
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
 
@@ -80,7 +80,7 @@ public class DragonsHubPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true);
         ((Grid)((Frame)activeFrame).Content).Children.Add(_activeCountLabel);
         Grid.SetColumn(_activeCountLabel, 1);
         mainStack.Children.Add(activeFrame);
@@ -98,7 +98,7 @@ public class DragonsHubPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true);
         ((Grid)((Frame)slainFrame).Content).Children.Add(_slainCountLabel);
         Grid.SetColumn(_slainCountLabel, 1);
         mainStack.Children.Add(slainFrame);
@@ -116,7 +116,7 @@ public class DragonsHubPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true);
         ((Grid)((Frame)irrelevantFrame).Content).Children.Add(_irrelevantCountLabel);
         Grid.SetColumn(_irrelevantCountLabel, 1);
         mainStack.Children.Add(irrelevantFrame);
@@ -130,7 +130,7 @@ public class DragonsHubPage : Bannister.Views.ModeThemedPage
             CornerRadius = 12,
             HeightRequest = 50,
             Margin = new Thickness(0, 20, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addDragonBtn.Clicked += OnAddDragonClicked;
         mainStack.Children.Add(addDragonBtn);
 
@@ -163,12 +163,12 @@ public class DragonsHubPage : Bannister.Views.ModeThemedPage
             Text = title,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
         textStack.Children.Add((new Label
         {
             Text = subtitle,
             FontSize = 12
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellow, ThemeKey.PageText3, classifyPageText: true));
         Grid.SetColumn(textStack, 0);
         grid.Children.Add(textStack);
 

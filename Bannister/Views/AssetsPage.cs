@@ -61,7 +61,7 @@ public class AssetsPage : Bannister.Views.ModeThemedPage
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessStrongText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true);
         header.Add(_summaryLabel, 0, 0);
 
         var addBtn = (new Button
@@ -72,7 +72,7 @@ public class AssetsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             Padding = new Thickness(14, 0),
             IsVisible = !_money.IsReadOnly
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += async (s, e) => await AddAssetAsync();
         header.Add(addBtn, 1, 0);
 
@@ -174,8 +174,8 @@ public class AssetsPage : Bannister.Views.ModeThemedPage
         }
 
         var dataGrid = DataGridView.Create(headers, displayRows)
-            .WithHeaderStyle(AppColors.Get(ThemeKey.SuccessText), AppColors.Get(ThemeKey.OnColorText))
-            .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightLime))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.SuccessText), AppColors.Get(ThemeKey.ButtonPrimaryText))
+            .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightTeal))
             .WithColumnWidths(60, 220)
             .WithCellPadding(6)
             .WithFontSize(12, 12)

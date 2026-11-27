@@ -53,7 +53,7 @@ public class DevWorkflowEditorView : ContentView
             Text = _source == null ? "New Workflow" : "Edit Workflow",
             FontSize = _compact ? 21 : 25,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, _compact ? ThemeKey.DeepVioletText : ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, _compact ? ThemeKey.HighlightVioletText : ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         _name = new Entry
         {
             Placeholder = "Workflow name",
@@ -67,14 +67,14 @@ public class DevWorkflowEditorView : ContentView
             _content.Children.Add(BuildStepRow(_steps[i], i));
         _content.Children.Add(BuildStepForm());
 
-        var save = Button("Save", ThemeKey.SuccessDarkButtonBackground);
+        var save = Button("Save", ThemeKey.SuccessButtonBackground);
         save.Clicked += async (_, _) => await SaveAsync();
-        var cancel = Button("Cancel", ThemeKey.NeutralMutedButton);
+        var cancel = Button("Cancel", ThemeKey.NeutralDarkButton);
         cancel.Clicked += async (_, _) => { if (Cancelled != null) await Cancelled.Invoke(); };
         var actions = new HorizontalStackLayout { Spacing = 7, Children = { save, cancel } };
         if (_source != null)
         {
-            var delete = Button("Delete Workflow", ThemeKey.ErrorDarkButtonBackground);
+            var delete = Button("Delete Workflow", ThemeKey.ErrorButtonBackground);
             delete.Clicked += async (_, _) => await DeleteAsync();
             actions.Children.Add(delete);
         }
@@ -96,7 +96,7 @@ public class DevWorkflowEditorView : ContentView
         });
         var buttons = new HorizontalStackLayout { Spacing = 4 };
         var edit = Small("Edit"); edit.Clicked += (_, _) => { _editingStep = step; BuildUI(); };
-        var delete = Small("Delete", ThemeKey.ErrorDarkButtonBackground); delete.Clicked += (_, _) => { _steps.Remove(step); if (_editingStep == step) _editingStep = null; BuildUI(); };
+        var delete = Small("Delete", ThemeKey.ErrorButtonBackground); delete.Clicked += (_, _) => { _steps.Remove(step); if (_editingStep == step) _editingStep = null; BuildUI(); };
         var up = Small("↑"); up.IsEnabled = index > 0; up.Clicked += (_, _) => { Move(index, index - 1); };
         var down = Small("↓"); down.IsEnabled = index < _steps.Count - 1; down.Clicked += (_, _) => { Move(index, index + 1); };
         buttons.Children.Add(edit); buttons.Children.Add(delete); buttons.Children.Add(up); buttons.Children.Add(down);
@@ -253,6 +253,6 @@ public class DevWorkflowEditorView : ContentView
     };
 
     private static Frame Card(View content) => (new Frame(){ Content = content, Padding = 10, CornerRadius = 9, HasShadow = false }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
-    private static Button Button(string text, ThemeKey color) => (new Button(){ Text = text, FontSize = 12, CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(10, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.OnColorText);
-    private static Button Small(string text, ThemeKey color = ThemeKey.NeutralMutedButton) => (new Button(){ Text = text, FontSize = 10, CornerRadius = 5, HeightRequest = 30, Padding = new Thickness(7, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.OnColorText);
+    private static Button Button(string text, ThemeKey color) => (new Button(){ Text = text, FontSize = 12, CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(10, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
+    private static Button Small(string text, ThemeKey color = ThemeKey.NeutralDarkButton) => (new Button(){ Text = text, FontSize = 10, CornerRadius = 5, HeightRequest = 30, Padding = new Thickness(7, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 }

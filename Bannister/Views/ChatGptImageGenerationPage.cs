@@ -132,7 +132,7 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
             Text = "Generate Image",
             CornerRadius = 8,
             HeightRequest = 48
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightPinkText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightPinkText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _generateButton.Clicked += async (_, _) => await GenerateImageAsync();
 
         _generationIndicator = (new ActivityIndicator
@@ -179,7 +179,7 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
         _queueCostLabel = (new Label
         {
             FontSize = 12,
@@ -200,7 +200,7 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
             Text = "Start Queue",
             CornerRadius = 8,
             HeightRequest = 44
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _startQueueButton.Clicked += async (_, _) => await RunQueueAsync();
         _cancelQueueButton = (new Button
         {
@@ -262,7 +262,7 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
             HeightRequest = 42,
             IsEnabled = false,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _renameRunButton.Clicked += OnRunRenameClicked;
         _renameCancelButton = (new Button
         {
@@ -270,7 +270,7 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 36,
             IsVisible = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _renameCancelButton.Clicked += (_, _) => _renameCts?.Cancel();
 
         _normalContent = new ScrollView
@@ -286,7 +286,7 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
                         Text = "ChatGPT Image Generation",
                         FontSize = 26,
                         FontAttributes = FontAttributes.Bold
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                     (new Label
                     {
                         Text = "Generate images using OpenAI's image API.",
@@ -315,7 +315,7 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
                         Text = "Batch from Pasted Prompts",
                         FontSize = 18,
                         FontAttributes = FontAttributes.Bold
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                     _batchPasteFrame,
                     _queueFrame,
                     _batchGalleryStack,
@@ -371,7 +371,7 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
                             FontSize = 24,
                             FontAttributes = FontAttributes.Bold,
                             HorizontalTextAlignment = TextAlignment.Center
-                        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                         (new Label
                         {
                             Text = "ChatGPT Image Generation is available only when Owner Mode is unlocked.",
@@ -521,7 +521,7 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
                         Text = "Bulk Image Rename via Vision",
                         FontSize = 16,
                         FontAttributes = FontAttributes.Bold
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                     (new Label
                     {
                         Text = "Pick a folder. The vision API names each top-level image, renames successful files, and moves them into a 'renamed' subfolder. Unnamed files remain in the source folder for retries.",
@@ -553,7 +553,7 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
         else if (!string.IsNullOrWhiteSpace(sourcePath))
         {
             _keyStatusLabel.Text = "⚠ Key file moved or missing — re-select";
-            _keyStatusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText1);
+            _keyStatusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1);
             _configureKeyButton.Text = "Configure Key File";
             _clearKeyButton.IsVisible = false;
         }

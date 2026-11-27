@@ -174,7 +174,7 @@ public class DisplayDaysSelector
             Text = "💡 Leave all weekdays unchecked to show every day. Weekdays and day-of-month can be used together.",
             FontSize = 11,
             FontAttributes = FontAttributes.Italic
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleButtonBackground, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText3, classifyPageText: true));
     }
     
     private CheckBox CreateDayCheckbox(string label, int column, Grid grid)

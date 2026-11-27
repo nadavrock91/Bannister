@@ -112,11 +112,11 @@ public class Countdown
     [Ignore]
     public Color StatusColor => Status switch
     {
-        "Active" => IsExpired ? AppColors.Get(ThemeKey.WarningAccentText) : AppColors.Get(ThemeKey.SuccessLightText),
+        "Active" => IsExpired ? AppColors.Get(ThemeKey.WarningText) : AppColors.Get(ThemeKey.SuccessButtonBackground),
         "Overdue" => AppColors.Get(ThemeKey.ErrorButtonBackground),
-        "Correct" => AppColors.Get(ThemeKey.SuccessLightText),
+        "Correct" => AppColors.Get(ThemeKey.SuccessButtonBackground),
         "Wrong" => AppColors.Get(ThemeKey.ErrorButtonBackground),
-        "Postponed" => AppColors.Get(ThemeKey.WarningAccentText),
+        "Postponed" => AppColors.Get(ThemeKey.WarningText),
         "Cancelled" => AppColors.Get(ThemeKey.DisabledButtonBackground),
         _ => AppColors.Get(ThemeKey.CardText2)
     };

@@ -76,7 +76,7 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             Padding = new Thickness(8, 4)
-        }).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnCancel.Clicked += OnCancelClicked;
         topBar.Add(btnCancel, 0, 0);
 
@@ -87,7 +87,7 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true);
         topBar.Add(titleLabel, 1, 0);
 
         mainGrid.Add(topBar, 0, 0);
@@ -96,7 +96,7 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
         _searchBar = (new SearchBar
         {
             Placeholder = "Search activities..."
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(SearchBar.CancelButtonColorProperty, ThemeKey.SecondaryAccentText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(SearchBar.CancelButtonColorProperty, ThemeKey.HighlightIndigoText);
         _searchBar.TextChanged += OnSearchTextChanged;
         mainGrid.Add(_searchBar, 0, 1);
 
@@ -126,7 +126,7 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
                 : "Activities with ⚠️ have been waiting longest",
             FontSize = 14,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true);
         contentStack.Children.Add(headerFrame);
 
         // Filters
@@ -318,7 +318,7 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
             return;
         }
 
-        _activityList.Children.Add((new ActivityIndicator { IsRunning = true }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.SecondaryAccentText));
+        _activityList.Children.Add((new ActivityIndicator { IsRunning = true }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.HighlightIndigoText));
 
         try
         {
@@ -374,7 +374,7 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
                 Text = $"Error loading activities: {ex.Message}",
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 20)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorPureText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true));
         }
     }
 
@@ -390,7 +390,7 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
         else if (hasTargetInfo && activity.HabitTargetPostponeCount >= 2)
             bgColor = ThemeKey.WarningBackground;
         else if (hasTargetInfo && activity.DaysSinceHabitTargetSet >= 30)
-            bgColor = ThemeKey.HighlightYellowSoft;
+            bgColor = ThemeKey.HighlightYellow;
         else if (hasTargetDate)
             bgColor = ThemeKey.SuccessBackground;
         else
@@ -507,7 +507,7 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.End
-        }).ThemeColor(Label.TextColorProperty, activity.ExpGain >= 0 ? ThemeKey.SuccessLightText : ThemeKey.ErrorButtonBackground, ThemeKey.PageText1, classifyPageText: true), 1, 0);
+        }).ThemeColor(Label.TextColorProperty, activity.ExpGain >= 0 ? ThemeKey.SuccessButtonBackground : ThemeKey.ErrorButtonBackground, ThemeKey.PageText1, classifyPageText: true), 1, 0);
 
         // Row 1: Game name
         grid.Add((new Label
@@ -524,7 +524,7 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
             if (hasTargetInfo)
             {
                 var daysSince = activity.DaysSinceHabitTargetSet;
-                var daysColor = daysSince >= 30 ? ThemeKey.ErrorStrongText : daysSince >= 14 ? ThemeKey.WarningStrongText : ThemeKey.CardText2;
+                var daysColor = daysSince >= 30 ? ThemeKey.ErrorText : daysSince >= 14 ? ThemeKey.WarningText : ThemeKey.CardText2;
                 infoStack.Children.Add((new Label
                 {
                     Text = $"🕐 {daysSince}d waiting",
@@ -535,7 +535,7 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
 
             if (activity.HabitTargetPostponeCount > 0)
             {
-                var postponeColor = activity.HabitTargetPostponeCount >= 3 ? ThemeKey.ErrorStrongText : activity.HabitTargetPostponeCount >= 2 ? ThemeKey.WarningStrongText : ThemeKey.CardText2;
+                var postponeColor = activity.HabitTargetPostponeCount >= 3 ? ThemeKey.ErrorText : activity.HabitTargetPostponeCount >= 2 ? ThemeKey.WarningText : ThemeKey.CardText2;
                 infoStack.Children.Add((new Label
                 {
                     Text = $"🔄 {activity.HabitTargetPostponeCount}x postponed",
@@ -550,7 +550,7 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
                 {
                     Text = $"📅 Target: {activity.HabitTargetDate!.Value:MMM dd}",
                     FontSize = 11
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessBrightText, ThemeKey.PageText3, classifyPageText: true));
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true));
             }
 
             Grid.SetColumnSpan(infoStack, 2);

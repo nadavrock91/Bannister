@@ -135,7 +135,7 @@ Use only filenames from the sampled list above. Do not invent filenames.
             CornerRadius = 8,
             HeightRequest = 42,
             IsEnabled = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _copyStageBButton.Clicked += OnCopyStageBPromptClicked;
 
         _pasteRecommendationsButton = (new Button
@@ -160,7 +160,7 @@ Use only filenames from the sampled list above. Do not invent filenames.
                     Text = " Story-Based Asset Discovery",
                     FontSize = 22,
                     FontAttributes = FontAttributes.Bold
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                 (new Label
                 {
                     Text = "Three-stage flow: paste your story, get a category budget from the LLM, sample assets per category, get final recommendations.",
@@ -185,7 +185,7 @@ Use only filenames from the sampled list above. Do not invent filenames.
             Text = " Copy Stage A prompt to clipboard",
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         copyButton.Clicked += OnCopyStageAPromptClicked;
 
         var templateExpander = BuildTemplateExpander(
@@ -610,7 +610,7 @@ Use only filenames from the sampled list above. Do not invent filenames.
             Text = parseButtonText,
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var buttonsRow = new Grid
         {

@@ -31,7 +31,7 @@ public class CustomGamesListPage : Bannister.Views.ModeThemedPage
             Text = "+ New Custom Game",
             CornerRadius = 8,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.AccentVioletDeep);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         addButton.Clicked += async (_, _) => await Navigation.PushAsync(new CustomGameEditPage(_auth, _customGames));
 
         Content = new ScrollView
@@ -42,7 +42,7 @@ public class CustomGamesListPage : Bannister.Views.ModeThemedPage
                 Spacing = 12,
                 Children =
                 {
-                    (new Label { Text = "Custom Games", FontSize = 28, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                    (new Label { Text = "Custom Games", FontSize = 28, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                     (new Label { Text = "Create custom mini-games and track top scores.", FontSize = 14, Margin = new Thickness(0, -6, 0, 8) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                     addButton,
                     _emptyLabel,
@@ -80,7 +80,7 @@ public class CustomGamesListPage : Bannister.Views.ModeThemedPage
             HasShadow = false
         }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
-        var title = (new Label { Text = game.Name, FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
+        var title = (new Label { Text = game.Name, FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         var details = (new Label
         {
             Text = $"{GetEndSummary(game)}   Scores: {summary.FinishedInstanceCount}   Top: {(summary.TopScore?.ToString() ?? "-")}",

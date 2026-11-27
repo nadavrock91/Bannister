@@ -31,7 +31,7 @@ public class ActivityContextMenuPopup : Popup
             FontAttributes = FontAttributes.Bold,
             LineBreakMode = LineBreakMode.WordWrap,
             Padding = new Thickness(20, 16, 20, 10)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface));
 
         stack.Children.Add((new BoxView
         {
@@ -47,7 +47,7 @@ public class ActivityContextMenuPopup : Popup
                 FontSize = 14,
                 Padding = new Thickness(20, 14),
                 LineBreakMode = LineBreakMode.WordWrap
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
             var tap = new TapGestureRecognizer();
             string capturedOpt = opt;

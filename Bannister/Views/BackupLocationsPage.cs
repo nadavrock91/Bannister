@@ -98,7 +98,7 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
         {
             Text = "Track which files are stored in which locations. Files are organised by category.",
             FontSize = 13
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText1, classifyPageText: true));
 
         // Action buttons row
         var actionRow = new HorizontalStackLayout { Spacing = 10 };
@@ -121,7 +121,7 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 40,
             FontSize = 13,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addFileBtn.Clicked += async (s, e) => await OnAddFileAsync();
         actionRow.Children.Add(addFileBtn);
 
@@ -132,7 +132,7 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 40,
             FontSize = 13,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleStrongText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         rcloneBtn.Clicked += async (s, e) => await OnRcloneBuilderAsync();
         actionRow.Children.Add(rcloneBtn);
 
@@ -147,7 +147,7 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
             WidthRequest = 90,
             Padding = new Thickness(6, 0),
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Button.BorderColorProperty, ThemeKey.OnColorText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BorderColorProperty, ThemeKey.ButtonPrimaryText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _modeBtn.Clicked += async (_, _) =>
         {
             _privacyMode.CycleMode(_auth.CurrentUsername);
@@ -165,7 +165,7 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
                 Text = "⚙️ Start by adding your storage locations (e.g. Backblaze, PC, OneDrive) using 'Manage Locations'.",
                 FontSize = 13,
                 Margin = new Thickness(0, 8)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true));
         }
 
         if (_files.Count == 0)
@@ -176,7 +176,7 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
                 FontSize = 13,
                 HorizontalOptions = LayoutOptions.Center,
                 Margin = new Thickness(0, 24)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledBlueGrey, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledButtonBackground, ThemeKey.PageText1, classifyPageText: true));
             return;
         }
 
@@ -224,7 +224,7 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HasShadow = false,
             Margin = new Thickness(0, 2)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isInconsistent ? ThemeKey.WarningLightButtonBackground : ThemeKey.Separator);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isInconsistent ? ThemeKey.WarningButtonBackground : ThemeKey.Separator);
 
         var cardStack = new VerticalStackLayout { Spacing = 6 };
 
@@ -318,7 +318,7 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 30,
             Padding = new Thickness(0),
             CornerRadius = 4
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralStrongButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         visBtn.Clicked += async (_, _) =>
         {
             string? choice = await DisplayActionSheet(
@@ -373,7 +373,7 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
                 Text = file.Notes,
                 FontSize = 11,
                 FontAttributes = FontAttributes.Italic
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText3, classifyPageText: true));
 
         // Sub-items
         foreach (var item in subItems.Where(i => i.ParentItemId == null))
@@ -442,7 +442,7 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             HasShadow = false,
             Margin = new Thickness(depth * 16, 2, 0, 2)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, mismatch ? ThemeKey.WarningLightButtonBackground : ThemeKey.Separator);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, mismatch ? ThemeKey.WarningButtonBackground : ThemeKey.Separator);
 
         var stack = new VerticalStackLayout { Spacing = 4 };
 
@@ -556,7 +556,7 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
                 Text = item.Notes,
                 FontSize = 11,
                 FontAttributes = FontAttributes.Italic
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText3, classifyPageText: true));
 
         // Render children recursively
         foreach (var child in allChildren)

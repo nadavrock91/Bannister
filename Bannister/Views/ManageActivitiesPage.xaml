@@ -50,20 +50,20 @@
                                     <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" />
                                     <Label Text="{Binding Category}" FontSize="12" TextColor="{DynamicResource ModeCardText2}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
                                     <HorizontalStackLayout Spacing="10">
-                                        <Label Text="{Binding ExpGain, StringFormat='EXP: {0}'}" FontSize="12" TextColor="{DynamicResource ModeSecondaryAccentText}" FontAttributes="Bold" theme:ThemeColorExtensions.NamedColorProperties="TextColor=SecondaryAccentText" />
-                                        <Label Text="{Binding MeaningfulUntilLevel, StringFormat='Cutoff: {0}'}" FontSize="12" TextColor="{DynamicResource ModeDisabledText}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=DisabledText" />
-                                        <Label Text="{Binding Multiplier, StringFormat='x{0}'}" FontSize="12" TextColor="{DynamicResource ModeTimelineSalmon}" FontAttributes="Bold" IsVisible="{Binding ShowMultiplier}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=TimelineSalmon" />
+                                        <Label Text="{Binding ExpGain, StringFormat='EXP: {0}'}" FontSize="12" TextColor="{DynamicResource ModeHighlightIndigoText}" FontAttributes="Bold" theme:ThemeColorExtensions.NamedColorProperties="TextColor=HighlightIndigoText" />
+                                        <Label Text="{Binding MeaningfulUntilLevel, StringFormat='Cutoff: {0}'}" FontSize="12" TextColor="{DynamicResource ModeCardText3}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText3" />
+                                        <Label Text="{Binding Multiplier, StringFormat='x{0}'}" FontSize="12" TextColor="{DynamicResource ModeTimelineAccent}" FontAttributes="Bold" IsVisible="{Binding ShowMultiplier}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=TimelineAccent" />
                                     </HorizontalStackLayout>
                                 </VerticalStackLayout>
 
                                 <!-- Edit Button -->
-                                <Button Grid.Column="2" Text="✏️" FontSize="18" WidthRequest="50" HeightRequest="50" CornerRadius="25" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" Clicked="OnEditClicked" CommandParameter="{Binding .}" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=OnColorText" />
+                                <Button Grid.Column="2" Text="✏️" FontSize="18" WidthRequest="50" HeightRequest="50" CornerRadius="25" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeButtonPrimaryText}" Clicked="OnEditClicked" CommandParameter="{Binding .}" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=ButtonPrimaryText" />
 
                                 <!-- Duplicate Button -->
-                                <Button Grid.Column="3" Text="📋" FontSize="18" WidthRequest="50" HeightRequest="50" CornerRadius="25" BackgroundColor="{DynamicResource ModeSuccessButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" Clicked="OnDuplicateClicked" CommandParameter="{Binding .}" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SuccessButtonBackground,TextColor=OnColorText" />
+                                <Button Grid.Column="3" Text="📋" FontSize="18" WidthRequest="50" HeightRequest="50" CornerRadius="25" BackgroundColor="{DynamicResource ModeSuccessButtonBackground}" TextColor="{DynamicResource ModeButtonPrimaryText}" Clicked="OnDuplicateClicked" CommandParameter="{Binding .}" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SuccessButtonBackground,TextColor=ButtonPrimaryText" />
 
                                 <!-- Delete Button -->
-                                <Button Grid.Column="4" Text="🗑️" FontSize="18" WidthRequest="50" HeightRequest="50" CornerRadius="25" BackgroundColor="{DynamicResource ModeErrorButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" Clicked="OnDeleteClicked" CommandParameter="{Binding .}" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=ErrorButtonBackground,TextColor=OnColorText" />
+                                <Button Grid.Column="4" Text="🗑️" FontSize="18" WidthRequest="50" HeightRequest="50" CornerRadius="25" BackgroundColor="{DynamicResource ModeErrorButtonBackground}" TextColor="{DynamicResource ModeButtonPrimaryText}" Clicked="OnDeleteClicked" CommandParameter="{Binding .}" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=ErrorButtonBackground,TextColor=ButtonPrimaryText" />
                             </Grid>
                         </Frame>
                     </DataTemplate>
@@ -75,13 +75,13 @@
         <Frame Grid.Row="2" Padding="15" CornerRadius="12" BackgroundColor="{DynamicResource ModeCardBackground}" HasShadow="True" BorderColor="Transparent" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=CardBackground">
             <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="10">
                 
-                <Button Grid.Column="0" Text="Bulk Edit Selected" Clicked="OnBulkEditClicked" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=OnColorText" />
+                <Button Grid.Column="0" Text="Bulk Edit Selected" Clicked="OnBulkEditClicked" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=ButtonPrimaryText" />
 
-                <Button Grid.Column="1" Text="Delete Selected" Clicked="OnDeleteSelectedClicked" BackgroundColor="{DynamicResource ModeErrorButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=ErrorButtonBackground,TextColor=OnColorText" />
+                <Button Grid.Column="1" Text="Delete Selected" Clicked="OnDeleteSelectedClicked" BackgroundColor="{DynamicResource ModeErrorButtonBackground}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=ErrorButtonBackground,TextColor=ButtonPrimaryText" />
 
-                <Button Grid.Column="2" Text="Export to CSV" Clicked="OnExportClicked" BackgroundColor="{DynamicResource ModeHighlightAquaButton}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=HighlightAquaButton,TextColor=OnColorText" />
+                <Button Grid.Column="2" Text="Export to CSV" Clicked="OnExportClicked" BackgroundColor="{DynamicResource ModeHighlightTealText}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=HighlightTealText,TextColor=ButtonPrimaryText" />
 
-                <Button Grid.Column="3" Text="Close" Clicked="OnCloseClicked" BackgroundColor="{DynamicResource ModeDisabledButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=DisabledButtonBackground,TextColor=OnColorText" />
+                <Button Grid.Column="3" Text="Close" Clicked="OnCloseClicked" BackgroundColor="{DynamicResource ModeDisabledButtonBackground}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=DisabledButtonBackground,TextColor=ButtonPrimaryText" />
             </Grid>
         </Frame>
     </Grid>

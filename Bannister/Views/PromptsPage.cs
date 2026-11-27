@@ -231,7 +231,7 @@ public class PromptsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 44,
             Padding = new Thickness(20, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _generateBtn.Clicked += OnGenerateClicked;
         generateRow.Children.Add(_generateBtn);
 
@@ -242,7 +242,7 @@ public class PromptsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 44,
             Padding = new Thickness(12, 0),
             IsEnabled = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _copyTextBtn.Clicked += OnCopyTextClicked;
         generateRow.Children.Add(_copyTextBtn);
 
@@ -253,7 +253,7 @@ public class PromptsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 44,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addPromptBtn.Clicked += async (s, e) => await AddNewPromptAsync();
         generateRow.Children.Add(addPromptBtn);
 
@@ -264,7 +264,7 @@ public class PromptsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 44,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addPackBtn.Clicked += async (s, e) => await CreateNewPackAsync();
         generateRow.Children.Add(addPackBtn);
 
@@ -275,7 +275,7 @@ public class PromptsPage : Bannister.Views.ModeThemedPage
             WidthRequest = 44,
             HeightRequest = 44,
             CornerRadius = 8
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         settingsBtn.Clicked += OnSettingsClicked;
         generateRow.Children.Add(settingsBtn);
 
@@ -302,7 +302,7 @@ public class PromptsPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         resultsHeaderRow.Children.Add(_resultsCountLabel);
 
         resultsHeaderRow.Margin = new Thickness(0, 8, 0, 0);
@@ -620,7 +620,7 @@ public class PromptsPage : Bannister.Views.ModeThemedPage
     private Frame BuildPromptCard(PromptItem prompt, int index)
     {
         // Color based on group (hash the group name for consistent color)
-        var groupColors = new[] { ThemeKey.RowSelected, ThemeKey.SuccessBackground, ThemeKey.WarningBackground, ThemeKey.AccentPurpleBackground, ThemeKey.HighlightTeal, ThemeKey.HighlightPink };
+        var groupColors = new[] { ThemeKey.RowSelected, ThemeKey.SuccessBackground, ThemeKey.WarningBackground, ThemeKey.HighlightViolet, ThemeKey.HighlightTeal, ThemeKey.HighlightPink };
         int colorIndex = Math.Abs(prompt.GroupName.GetHashCode()) % groupColors.Length;
         
         var frame = (new Frame
@@ -628,7 +628,7 @@ public class PromptsPage : Bannister.Views.ModeThemedPage
             Padding = 12,
             CornerRadius = 8,
             HasShadow = false
-        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, prompt.Priority > 0 ? ThemeKey.WarningAccentText : ThemeKey.Separator)
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, prompt.Priority > 0 ? ThemeKey.WarningText : ThemeKey.Separator)
             .ThemeColor(VisualElement.BackgroundColorProperty, groupColors[colorIndex]);
 
         var grid = new Grid
@@ -651,7 +651,7 @@ public class PromptsPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         indexStack.Children.Add(indexLabel);
 
         if (prompt.Priority > 0)
@@ -662,7 +662,7 @@ public class PromptsPage : Bannister.Views.ModeThemedPage
                 FontSize = 9,
                 FontAttributes = FontAttributes.Bold,
                 HorizontalOptions = LayoutOptions.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true);
             indexStack.Children.Add(priorityLabel);
         }
 
@@ -698,7 +698,7 @@ public class PromptsPage : Bannister.Views.ModeThemedPage
             Text = new string('★', prompt.Rating) + new string('☆', 5 - prompt.Rating),
             FontSize = 12,
             HorizontalOptions = LayoutOptions.End
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightAmberButton, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningButtonBackground, ThemeKey.PageText3, classifyPageText: true);
         rightStack.Children.Add(ratingLabel);
 
         // Settings button for prob/priority

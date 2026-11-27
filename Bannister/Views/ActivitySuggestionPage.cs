@@ -29,7 +29,7 @@ public class ActivitySuggestionPage : Bannister.Views.ModeThemedPage
             Text = "Suggested Activities",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label
         {
             Text = "Choose any activities you want to add to this game.",
@@ -55,7 +55,7 @@ public class ActivitySuggestionPage : Bannister.Views.ModeThemedPage
                 Text = suggestion.Name,
                 FontSize = 15,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
             text.Children.Add((new Label
             {
                 Text = suggestion.Description,
@@ -83,7 +83,7 @@ public class ActivitySuggestionPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 44,
             Margin = new Thickness(0, 8, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         continueButton.Clicked += async (_, _) =>
         {
             _tcs.TrySetResult(_suggestions

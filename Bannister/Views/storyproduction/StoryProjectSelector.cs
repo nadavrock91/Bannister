@@ -71,10 +71,10 @@ public class StoryProjectSelector
         ProjectCategoryPicker.SelectedIndexChanged += OnProjectCategoryFilterChanged;
         ProjectCategoryBtn = MakeButton("Set Category", ThemeKey.HighlightTeal, ThemeKey.HighlightTealText, false);
         SeriesBtn = MakeButton("Set Series", ThemeKey.WarningBackground, ThemeKey.WarningText, false);
-        WritingProcessFilterBtn = MakeButton("Process: All", ThemeKey.AccentPurpleBackground, ThemeKey.AccentPurpleText, true);
+        WritingProcessFilterBtn = MakeButton("Process: All", ThemeKey.HighlightViolet, ThemeKey.HighlightVioletText, true);
         WritingProcessFilterBtn.FontSize = 13;
         WritingProcessFilterBtn.Clicked += OnWritingProcessFilterClicked;
-        WritingProcessBtn = MakeButton("Set Process", ThemeKey.AccentPurpleBackground, ThemeKey.AccentPurpleText, false);
+        WritingProcessBtn = MakeButton("Set Process", ThemeKey.HighlightViolet, ThemeKey.HighlightVioletText, false);
 
         DraftLabel = (new Label { Text = "Draft Version", FontSize = 14, FontAttributes = FontAttributes.Bold, IsVisible = false }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true);
         DraftPicker = (new Picker { Title = "Select draft...", HorizontalOptions = LayoutOptions.Start, WidthRequest = 150, IsVisible = false }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
@@ -82,7 +82,7 @@ public class StoryProjectSelector
         RenameDraftBtn = MakeButton("\u270F\uFE0F", ThemeKey.WarningBackground, ThemeKey.WarningText, false);
         SetLatestBtn = MakeButton("\u2B50 Set Latest", ThemeKey.HighlightYellow, ThemeKey.HighlightYellowText, false);
         DeleteDraftBtn = MakeButton("\U0001F5D1\uFE0F", ThemeKey.ErrorBackground, ThemeKey.ErrorText, false);
-        CompareToBtn = MakeButton("Compare To...", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoStrongText, false);
+        CompareToBtn = MakeButton("Compare To...", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoText, false);
         CurrentDraftLabel = (new Label { FontSize = 12, IsVisible = false }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         ProjectMetaLabel = (new Label { FontSize = 12, IsVisible = false }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
     }
@@ -278,7 +278,7 @@ public class StoryProjectSelector
         var overlay = (new Grid { }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
         var card = (new Frame { CornerRadius = 12, Padding = 0, HasShadow = true, MaximumWidthRequest = 520, MaximumHeightRequest = 650, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Center, Margin = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         var stack = new VerticalStackLayout();
-        var header = (new Frame { Padding = 16, CornerRadius = 0, BorderColor = Colors.Transparent, Content = (new Label { Text = "Select Project", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface);
+        var header = (new Frame { Padding = 16, CornerRadius = 0, BorderColor = Colors.Transparent, Content = (new Label { Text = "Select Project", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText);
         stack.Children.Add(header);
         var searchEntry = (new Entry { Placeholder = "Search projects...", FontSize = 13, Margin = new Thickness(12, 8, 12, 0), HeightRequest = 38 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
         stack.Children.Add(searchEntry);
@@ -291,7 +291,7 @@ public class StoryProjectSelector
         };
         var categoryBtn = SmallButton("Category: All", ThemeKey.HighlightTeal, ThemeKey.HighlightTealText);
         var seriesBtn = SmallButton("Series: All", ThemeKey.WarningBackground, ThemeKey.WarningText);
-        var sortBtn = SmallButton("A-Z \u25B2", ThemeKey.AccentPurpleSurface, ThemeKey.OnColorText);
+        var sortBtn = SmallButton("A-Z \u25B2", ThemeKey.HighlightVioletText, ThemeKey.ButtonPrimaryText);
         categoryBtn.Margin = new Thickness(0, 0, 4, 4);
         seriesBtn.Margin = new Thickness(0, 0, 4, 4);
         sortBtn.Margin = new Thickness(0, 0, 4, 4);
@@ -314,7 +314,7 @@ public class StoryProjectSelector
         {
             int? rootId = CurrentProject?.ParentProjectId ?? CurrentProject?.Id;
             bool selected = rootId == project.Id;
-            var frame = (new Frame { Padding = 12, CornerRadius = 8, HasShadow = false }).ThemeColor(VisualElement.BackgroundColorProperty, selected ? ThemeKey.HighlightIndigo : ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, selected ? ThemeKey.AccentPurpleText : (ThemeKey?)null);
+            var frame = (new Frame { Padding = 12, CornerRadius = 8, HasShadow = false }).ThemeColor(VisualElement.BackgroundColorProperty, selected ? ThemeKey.HighlightIndigo : ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, selected ? ThemeKey.HighlightVioletText : (ThemeKey?)null);
             var body = new VerticalStackLayout { Spacing = 2 };
             body.Children.Add((new Label { Text = project.Name + (project.IsPublished ? " \u2713" : project.Status == "completed" ? " (done)" : ""), FontSize = 14, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
             var meta = new List<string>(); if (!string.IsNullOrWhiteSpace(project.Series)) meta.Add($"\U0001F4DA {project.Series}"); if (!string.IsNullOrWhiteSpace(project.WritingProcess)) meta.Add(project.WritingProcess); if (!string.IsNullOrWhiteSpace(project.ProjectCategory)) meta.Add(project.ProjectCategory); meta.Add(project.CreatedAt.ToString("MMM yyyy"));
@@ -345,7 +345,7 @@ public class StoryProjectSelector
         categoryBtn.Clicked += async (_, _) => { var options = new List<string> { "All" }; options.AddRange(categories); var value = await _page.DisplayActionSheet("Filter by Category", "Cancel", null, options.ToArray()); if (string.IsNullOrEmpty(value) || value == "Cancel") return; category = value; categoryBtn.Text = $"Category: {category}"; Apply(); Rebuild(); };
         seriesBtn.Clicked += async (_, _) => { var options = new List<string> { "All" }; options.AddRange(seriesList); var value = await _page.DisplayActionSheet("Filter by Series", "Cancel", null, options.ToArray()); if (string.IsNullOrEmpty(value) || value == "Cancel") return; series = value; seriesBtn.Text = $"Series: {series}"; Apply(); Rebuild(); };
         sortBtn.Clicked += (_, _) => { sort = sort switch { "alpha_asc" => "alpha_desc", "alpha_desc" => "date_desc", "date_desc" => "date_asc", _ => "alpha_asc" }; sortBtn.Text = sort switch { "alpha_desc" => "Z-A \u25BC", "date_desc" => "Newest \u25BC", "date_asc" => "Oldest \u25B2", _ => "A-Z \u25B2" }; Apply(); Rebuild(); };
-        var cancel = (new Button { Text = "Cancel", BackgroundColor = Colors.Transparent, Margin = new Thickness(12, 4, 12, 12) }).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleText);
+        var cancel = (new Button { Text = "Cancel", BackgroundColor = Colors.Transparent, Margin = new Thickness(12, 4, 12, 12) }).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         cancel.Clicked += (_, _) => { if (_page.Content is Grid grid) grid.Children.Remove(overlay); tcs.TrySetResult(null); }; stack.Children.Add(cancel);
         card.Content = stack; overlay.Children.Add(card); Apply(); Rebuild();
         if (_page.Content is Grid root) root.Children.Add(overlay); else { var old = _page.Content; var rootGrid = new Grid(); rootGrid.Children.Add(old); rootGrid.Children.Add(overlay); _page.Content = rootGrid; }

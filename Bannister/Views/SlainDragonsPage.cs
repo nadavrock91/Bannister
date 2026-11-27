@@ -62,13 +62,13 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
             Text = "🏆 Slain Dragons",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         headerStack.Children.Add((new Label
         {
             Text = "Dragons you have defeated (reached Level 100)",
             FontSize = 13
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellow, ThemeKey.PageText1, classifyPageText: true));
 
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
@@ -99,7 +99,7 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
             },
             SelectedIndex = 0,
             WidthRequest = 180
-        }).ThemeColor(Picker.TextColorProperty, ThemeKey.CardTextStrong);
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.CardText1);
         _sortPicker.SelectedIndexChanged += async (s, e) =>
         {
             if (_sortPicker.SelectedItem != null)
@@ -196,7 +196,7 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningText);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
 
@@ -212,7 +212,7 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 30,
             Padding = new Thickness(4, 0)
-        }).ThemeColor(Button.TextColorProperty, ThemeKey.WarningAccentText);
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         btnExpand.Clicked += (s, e) =>
         {
             _expandedDragons[dragonKey] = !_expandedDragons[dragonKey];
@@ -247,7 +247,7 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true));
 
         headerStack.Children.Add(titleRow);
 
@@ -272,7 +272,7 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText1, classifyPageText: true));
 
             infoRow.Children.Add((new Label
             {
@@ -295,7 +295,7 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
             FontSize = 12,
             HeightRequest = 32,
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnEditSlayDate.Clicked += async (s, e) => await EditSlayDateAsync(dragon);
         buttonsRow.Children.Add(btnEditSlayDate);
 
@@ -307,7 +307,7 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
             FontSize = 12,
             HeightRequest = 32,
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAddAttempt.Clicked += async (s, e) => await AddAttemptAsync(dragon, sortedAttempts);
         buttonsRow.Children.Add(btnAddAttempt);
 
@@ -324,7 +324,7 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
             FontSize = 12,
             HeightRequest = 32,
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnRestore.Clicked += async (s, e) => await RestoreToActiveAsync(dragon);
         buttonsRow2.Children.Add(btnRestore);
 
@@ -337,7 +337,7 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 32,
             WidthRequest = 40,
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnIrrelevant.Clicked += async (s, e) => await MarkDragonIrrelevantAsync(dragon);
         buttonsRow2.Children.Add(btnIrrelevant);
 
@@ -372,7 +372,7 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
     {
         var isFailed = attempt.FailedAt.HasValue;
         
-        var borderColor = isFailed ? ThemeKey.ErrorButtonBackground : ThemeKey.SuccessLightText;
+        var borderColor = isFailed ? ThemeKey.ErrorButtonBackground : ThemeKey.SuccessButtonBackground;
         var bgColor = isFailed ? ThemeKey.ErrorBackground : ThemeKey.SuccessBackground;
 
         var frame = (new Frame

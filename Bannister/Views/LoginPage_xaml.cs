@@ -493,7 +493,7 @@ namespace Bannister.Views
         private void ShowStatus(string message)
         {
             lblError.Text = message;
-            lblError.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText);
+            lblError.ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText);
             lblError.IsVisible = true;
         }
 
@@ -569,7 +569,7 @@ namespace Bannister.Views
         private void ShowError(string message)
         {
             lblError.Text = message;
-            lblError.ThemeColor(Label.TextColorProperty, ThemeKey.ErrorPureText);
+            lblError.ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText);
             lblError.IsVisible = true;
         }
 

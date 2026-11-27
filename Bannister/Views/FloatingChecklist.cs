@@ -56,9 +56,9 @@ public class FloatingChecklist
             HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(0, 0, 20, 20),
-            Shadow = new Shadow { Brush = AppColors.Get(ThemeKey.CardTextStrong), Offset = new Point(2, 2), Radius = 6, Opacity = 0.3f },
+            Shadow = new Shadow { Brush = AppColors.Get(ThemeKey.CardText1), Offset = new Point(2, 2), Radius = 6, Opacity = 0.3f },
             ZIndex = 100
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _floatingBtn.Clicked += async (s, e) => await TogglePopupAsync();
         wrapper.Children.Add(_floatingBtn);
 
@@ -80,7 +80,7 @@ public class FloatingChecklist
         };
 
         // Tap background to close
-        var bg = (new BoxView { }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.OverlayFaint);
+        var bg = (new BoxView { }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
         var bgTap = new TapGestureRecognizer();
         bgTap.Tapped += (s, e) => _popupOverlay.IsVisible = false;
         bg.GestureRecognizers.Add(bgTap);
@@ -107,7 +107,7 @@ public class FloatingChecklist
             ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
             ColumnSpacing = 8
         };
-        headerRow.Add((new Label { Text = "📋 Process Checklist", FontSize = 16, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true), 0, 0);
+        headerRow.Add((new Label { Text = "📋 Process Checklist", FontSize = 16, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true), 0, 0);
         var closeBtn = (new Button { Text = "✕", FontSize = 14, WidthRequest = 32, HeightRequest = 32, CornerRadius = 16, Padding = 0 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         closeBtn.Clicked += (s, e) => _popupOverlay.IsVisible = false;
         headerRow.Add(closeBtn, 1, 0);
@@ -221,7 +221,7 @@ public class FloatingChecklist
             var cb = (new CheckBox
             {
                 IsChecked = step.Done
-            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SecondaryAccentText);
+            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.HighlightIndigoText);
             cb.CheckedChanged += async (s, e) =>
             {
                 var result = await _subService.ToggleStepAsync(_selectedProcess, idx);

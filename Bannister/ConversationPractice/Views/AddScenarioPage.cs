@@ -117,7 +117,7 @@ public class AddScenarioPage : Bannister.Views.ModeThemedPage
             Text = "💡 Tip: Be specific about personality, objections, and how the AI should respond to different approaches.",
             FontSize = 12,
             Margin = new Thickness(0, 0, 0, 8)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true);
         mainStack.Children.Add(promptHelp);
 
         txtSystemPrompt = new Editor
@@ -196,7 +196,7 @@ public class AddScenarioPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnSave.Clicked += OnSaveClicked;
         Grid.SetColumn(btnSave, 0);
         buttonGrid.Children.Add(btnSave);
@@ -206,7 +206,7 @@ public class AddScenarioPage : Bannister.Views.ModeThemedPage
             Text = "Cancel",
             CornerRadius = 8,
             HeightRequest = 50
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnCancel.Clicked += OnCancelClicked;
         Grid.SetColumn(btnCancel, 1);
         buttonGrid.Children.Add(btnCancel);

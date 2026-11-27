@@ -85,10 +85,10 @@ public class TalkingHeadCutterPage : Bannister.Views.ModeThemedPage
             Progress = 0,
             IsVisible = false
         };
-        _truncateProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.HighlightMintText);
+        _truncateProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.HighlightTealText);
         _transcriptEditor = CreateEditor("Paste timestamped words here...", 180);
         _transcriptStatusLabel = CreateMutedLabel("No transcript imported");
-        _trimCompareButton = CreateButton("\u2702\ufe0f Trim & Compare", ThemeKey.AccentPurpleDarkButtonBackground);
+        _trimCompareButton = CreateButton("\u2702\ufe0f Trim & Compare", ThemeKey.HighlightVioletText);
         _trimCompareButton.IsEnabled = false;
         _smartTrimButton = CreateButton("Smart Trim", ThemeKey.ButtonPrimaryBackground);
         _smartTrimButton.IsEnabled = false;
@@ -103,10 +103,10 @@ public class TalkingHeadCutterPage : Bannister.Views.ModeThemedPage
             Progress = 0,
             IsVisible = false
         };
-        _cutProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.HighlightMintText);
+        _cutProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.HighlightTealText);
         _etaLabel = CreateMutedLabel("");
         _etaLabel.IsVisible = false;
-        _cutAllButton = CreateButton("\u2702\ufe0f Cut All Shorts", ThemeKey.HighlightMintText);
+        _cutAllButton = CreateButton("\u2702\ufe0f Cut All Shorts", ThemeKey.HighlightTealText);
         _exportSelectedButton = CreateButton("Export Selected", ThemeKey.ButtonPrimaryBackground);
         _exportSelectedButton.IsEnabled = false;
         _truncateSilenceCard = BuildStageCard("1b", "Truncate Silence (optional)", new View[]
@@ -154,7 +154,7 @@ public class TalkingHeadCutterPage : Bannister.Views.ModeThemedPage
             Text = "Talking Head Shorts Cutter",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightMintText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightTealText, ThemeKey.PageText1, classifyPageText: true));
 
         stack.Children.Add(BuildProjectBar());
 
@@ -252,7 +252,7 @@ public class TalkingHeadCutterPage : Bannister.Views.ModeThemedPage
         {
             Progress = 0
         };
-        _ffmpegSetupProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.HighlightMintText);
+        _ffmpegSetupProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.HighlightTealText);
         _ffmpegSetupPercentLabel = (new Label
         {
             Text = "0%",
@@ -293,12 +293,12 @@ public class TalkingHeadCutterPage : Bannister.Views.ModeThemedPage
             IsVisible = false,
             Padding = 16,
             Children = { card }
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.OverlayDark);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
     }
 
     private Frame BuildProjectBar()
     {
-        var saveButton = CreateButton("Save Project", ThemeKey.HighlightMintText);
+        var saveButton = CreateButton("Save Project", ThemeKey.HighlightTealText);
         saveButton.Clicked += OnSaveProjectClicked;
 
         return (new Frame
@@ -332,7 +332,7 @@ public class TalkingHeadCutterPage : Bannister.Views.ModeThemedPage
         var copyButton = CreateButton("Copy Reformat Prompt", ThemeKey.ButtonPrimaryBackground);
         copyButton.Clicked += OnCopyReformatPromptClicked;
 
-        var cancelButton = CreateButton("Cancel", ThemeKey.NeutralMutedButton);
+        var cancelButton = CreateButton("Cancel", ThemeKey.NeutralDarkButton);
         cancelButton.Clicked += (_, _) => _wrapTranscriptOverlay.IsVisible = false;
 
         var card = (new Frame
@@ -372,7 +372,7 @@ public class TalkingHeadCutterPage : Bannister.Views.ModeThemedPage
             IsVisible = false,
             Padding = 16,
             Children = { card }
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.OverlayMedium);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
     }
 
     private Frame BuildStageCard(string number, string title, IEnumerable<View> children)
@@ -412,7 +412,7 @@ public class TalkingHeadCutterPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 46
-        }).ThemeColor(VisualElement.BackgroundColorProperty, backgroundColor).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, backgroundColor).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
     private Editor CreateEditor(string placeholder, double height) =>
         (new Editor(){
@@ -437,7 +437,7 @@ public class TalkingHeadCutterPage : Bannister.Views.ModeThemedPage
                 {
                     Text = label,
                     FontSize = 13
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.SlateText, ThemeKey.PageText1, classifyPageText: true),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true),
                 entry
             }
         };
@@ -452,7 +452,7 @@ public class TalkingHeadCutterPage : Bannister.Views.ModeThemedPage
                 {
                     Text = label,
                     FontSize = 13
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.SlateText, ThemeKey.PageText1, classifyPageText: true),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true),
                 picker
             }
         };
@@ -1271,7 +1271,7 @@ public class TalkingHeadCutterPage : Bannister.Views.ModeThemedPage
                 Text = $"Hook: {cut.HookRating}/10",
                 FontSize = 12,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true));
             ratings.Children.Add((new Label
             {
                 Text = $"\u2b50 Content: {cut.ContentRating}/10",
@@ -1285,7 +1285,7 @@ public class TalkingHeadCutterPage : Bannister.Views.ModeThemedPage
                 FontSize = 12,
                 LineBreakMode = LineBreakMode.WordWrap,
                 IsVisible = false
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SlateText, ThemeKey.PageText3, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
             var transcriptToggle = CreateSmallButton("Show transcript", () =>
             {
                 transcriptLabel.IsVisible = !transcriptLabel.IsVisible;

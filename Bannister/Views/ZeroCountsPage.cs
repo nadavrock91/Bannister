@@ -42,7 +42,7 @@ public class ZeroCountsPage : Bannister.Views.ModeThemedPage
             Text = "Zero Counts",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         root.Children.Add((new Label
         {
@@ -193,13 +193,13 @@ public class ZeroCountsPage : Bannister.Views.ModeThemedPage
                 FontSize = 18,
                 FontAttributes = FontAttributes.Bold,
                 Margin = new Thickness(0, 12, 0, 0)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
             _contentStack.Children.Add((new BoxView
             {
                 HeightRequest = 1,
                 Margin = new Thickness(0, -4, 0, 4)
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBorder));
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton));
 
             var sorted = completed
                 ? group.OrderByDescending(a => a.ZeroCountCompletedAt).ToList()
@@ -248,7 +248,7 @@ public class ZeroCountsPage : Bannister.Views.ModeThemedPage
             {
                 Text = $"Completed: {activity.ZeroCountCompletedAt.Value:yyyy-MM-dd}",
                 FontSize = 12
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.TimelineMint, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.TimelineSecondary, ThemeKey.PageText3, classifyPageText: true));
         }
 
         return (new Frame
@@ -257,7 +257,7 @@ public class ZeroCountsPage : Bannister.Views.ModeThemedPage
             Padding = 12,
             HasShadow = false,
             Content = stack
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.BrandMediaBorder);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.NeutralDarkButton);
     }
 
     private void RenderEmpty(string message)
@@ -276,9 +276,9 @@ public class ZeroCountsPage : Bannister.Views.ModeThemedPage
         foreach (var mode in _modeFrames.Keys)
         {
             bool selected = mode == _currentMode;
-            _modeFrames[mode].ThemeColor(VisualElement.BackgroundColorProperty, selected ? ThemeKey.TealButtonBackground : (ThemeKey?)null);
-            _modeFrames[mode].ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, selected ? ThemeKey.TealButtonBackground : ThemeKey.BrandMediaBorder);
-            _modeLabels[mode].ThemeColor(Label.TextColorProperty, selected ? ThemeKey.OnColorText : ThemeKey.BrandMediaText, ThemeKey.PageText1, classifyPageText: true);
+            _modeFrames[mode].ThemeColor(VisualElement.BackgroundColorProperty, selected ? ThemeKey.HighlightTealText : (ThemeKey?)null);
+            _modeFrames[mode].ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, selected ? ThemeKey.HighlightTealText : ThemeKey.NeutralDarkButton);
+            _modeLabels[mode].ThemeColor(Label.TextColorProperty, selected ? ThemeKey.ButtonPrimaryText : ThemeKey.MediaText, ThemeKey.PageText1, classifyPageText: true);
         }
     }
 

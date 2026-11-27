@@ -140,7 +140,7 @@ public class EditScenarioPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnSave.Clicked += OnSaveClicked;
         Grid.SetColumn(btnSave, 0);
         buttonGrid.Children.Add(btnSave);
@@ -150,7 +150,7 @@ public class EditScenarioPage : Bannister.Views.ModeThemedPage
             Text = "Cancel",
             CornerRadius = 8,
             HeightRequest = 50
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnCancel.Clicked += OnCancelClicked;
         Grid.SetColumn(btnCancel, 1);
         buttonGrid.Children.Add(btnCancel);

@@ -49,7 +49,7 @@ public class EnforcerLevelsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 44
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += async (_, _) => await AddLevelAsync();
         stack.Children.Add(addBtn);
 
@@ -86,7 +86,7 @@ public class EnforcerLevelsPage : Bannister.Views.ModeThemedPage
             Padding = 12,
             CornerRadius = 10,
             HasShadow = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, level.LevelNumber > 0 ? ThemeKey.HighlightLime : level.LevelNumber < 0 ? ThemeKey.WarningBackground : ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, level.LevelNumber > 0 ? ThemeKey.SuccessSelectedBackground : level.LevelNumber < 0 ? ThemeKey.HighlightAmberStrong : ThemeKey.Separator);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, level.LevelNumber > 0 ? ThemeKey.HighlightTeal : level.LevelNumber < 0 ? ThemeKey.WarningBackground : ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, level.LevelNumber > 0 ? ThemeKey.SuccessBackground : level.LevelNumber < 0 ? ThemeKey.HighlightYellow : ThemeKey.Separator);
 
         var inner = new VerticalStackLayout { Spacing = 6 };
 
@@ -104,7 +104,7 @@ public class EnforcerLevelsPage : Bannister.Views.ModeThemedPage
             FontSize = 15,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         headerRow.Children.Add((new Label
         {
             Text = level.LevelDisplay,

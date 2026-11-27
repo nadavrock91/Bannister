@@ -42,7 +42,7 @@ public class DailyRemindersPage : Bannister.Views.ModeThemedPage
             Text = " Daily Reminders",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label
         {
             Text = "Tap \"Send to Tomorrow\" to postpone a " +
@@ -59,7 +59,7 @@ public class DailyRemindersPage : Bannister.Views.ModeThemedPage
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Start,
             Padding = new Thickness(16, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += async (_, _) =>
             await AddReminderAsync();
         stack.Children.Add(addBtn);
@@ -118,7 +118,7 @@ public class DailyRemindersPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             LineBreakMode = LineBreakMode.TailTruncation
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         if (!string.IsNullOrWhiteSpace(reminder.Notes))
             infoStack.Children.Add((new Label
             {
@@ -136,7 +136,7 @@ public class DailyRemindersPage : Bannister.Views.ModeThemedPage
             HeightRequest = 36,
             Padding = new Thickness(6, 0),
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         sendBtn.Clicked += async (_, _) =>
         {
             await _taskService.CreateTaskAsync(
@@ -153,7 +153,7 @@ public class DailyRemindersPage : Bannister.Views.ModeThemedPage
 
             await Task.Delay(1500);
             sendBtn.Text = " Tomorrow";
-            sendBtn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground);
+            sendBtn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground);
             sendBtn.IsEnabled = true;
         };
         row.Add(sendBtn, 1, 0);

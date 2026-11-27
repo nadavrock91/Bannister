@@ -64,13 +64,13 @@ public class IrrelevantDragonsPage : Bannister.Views.ModeThemedPage
             Text = "💤 Irrelevant Dragons",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         headerStack.Children.Add((new Label
         {
             Text = "Dragons you have decided not to pursue anymore",
             FontSize = 13
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellow, ThemeKey.PageText1, classifyPageText: true));
 
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
@@ -100,7 +100,7 @@ public class IrrelevantDragonsPage : Bannister.Views.ModeThemedPage
             },
             SelectedIndex = 0,
             WidthRequest = 180
-        }).ThemeColor(Picker.TextColorProperty, ThemeKey.CardTextStrong);
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.CardText1);
         _sortPicker.SelectedIndexChanged += async (s, e) =>
         {
             if (_sortPicker.SelectedItem != null)
@@ -202,7 +202,7 @@ public class IrrelevantDragonsPage : Bannister.Views.ModeThemedPage
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, hasActiveAttempt ? ThemeKey.HighlightIndigo : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, hasActiveAttempt ? ThemeKey.SecondaryAccentText : ThemeKey.Separator);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, hasActiveAttempt ? ThemeKey.HighlightIndigo : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, hasActiveAttempt ? ThemeKey.HighlightIndigoText : ThemeKey.Separator);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
 
@@ -218,7 +218,7 @@ public class IrrelevantDragonsPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 30,
             Padding = new Thickness(4, 0)
-        }).ThemeColor(Button.TextColorProperty, ThemeKey.SecondaryAccentText);
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         btnExpand.Clicked += (s, e) =>
         {
             _expandedDragons[dragonKey] = !_expandedDragons[dragonKey];
@@ -254,7 +254,7 @@ public class IrrelevantDragonsPage : Bannister.Views.ModeThemedPage
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true));
         }
 
         headerStack.Children.Add(titleRow);
@@ -280,7 +280,7 @@ public class IrrelevantDragonsPage : Bannister.Views.ModeThemedPage
                 FontSize = 28,
                 FontAttributes = FontAttributes.Bold,
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true));
 
             attemptRow.Children.Add((new Label
             {
@@ -332,7 +332,7 @@ public class IrrelevantDragonsPage : Bannister.Views.ModeThemedPage
             FontSize = 12,
             HeightRequest = 32,
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnRestore.Clicked += async (s, e) => await RestoreDragonAsync(dragon);
         buttonsRow.Children.Add(btnRestore);
 
@@ -343,7 +343,7 @@ public class IrrelevantDragonsPage : Bannister.Views.ModeThemedPage
             FontSize = 12,
             HeightRequest = 32,
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnDelete.Clicked += async (s, e) => await DeleteDragonAsync(dragon);
         buttonsRow.Children.Add(btnDelete);
 
@@ -379,7 +379,7 @@ public class IrrelevantDragonsPage : Bannister.Views.ModeThemedPage
         var isActive = attempt.IsActive;
         var isFailed = attempt.FailedAt.HasValue;
         
-        var borderColor = isActive ? ThemeKey.SecondaryAccentText : isFailed ? ThemeKey.ErrorButtonBackground : ThemeKey.SuccessLightText; // Success (completed without fail)
+        var borderColor = isActive ? ThemeKey.HighlightIndigoText : isFailed ? ThemeKey.ErrorButtonBackground : ThemeKey.SuccessButtonBackground; // Success (completed without fail)
         
         var bgColor = isActive ? ThemeKey.HighlightIndigo : isFailed ? ThemeKey.ErrorBackground : ThemeKey.SuccessBackground;
 
@@ -409,7 +409,7 @@ public class IrrelevantDragonsPage : Bannister.Views.ModeThemedPage
             FontSize = 11,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.HighlightIndigoButton : isFailed ? ThemeKey.ErrorText : ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.HighlightIndigoText : isFailed ? ThemeKey.ErrorText : ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true));
 
         // Days (big number)
         stack.Children.Add((new Label
@@ -418,7 +418,7 @@ public class IrrelevantDragonsPage : Bannister.Views.ModeThemedPage
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.SecondaryAccentText : ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.HighlightIndigoText : ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         // "days" label
         stack.Children.Add((new Label
@@ -437,7 +437,7 @@ public class IrrelevantDragonsPage : Bannister.Views.ModeThemedPage
                 FontSize = 10,
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 4, 0, 0)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText3, classifyPageText: true));
         }
         else if (isFailed)
         {

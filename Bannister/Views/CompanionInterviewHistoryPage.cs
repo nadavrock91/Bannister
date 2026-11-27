@@ -53,7 +53,7 @@ public sealed class CompanionInterviewHistoryPage : Bannister.Views.ModeThemedPa
                 _content.Children.Add((new Label
                 {
                     Text = "No interviews yet."
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
                 return;
             }
 
@@ -119,9 +119,9 @@ internal static class CompanionInterviewPresentation
         {
             Text = StepText(interview),
             FontSize = 12
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText3, classifyPageText: true));
 
-        var resume = MakeButton("Open / Resume", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoButton);
+        var resume = MakeButton("Open / Resume", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoText);
         resume.HorizontalOptions = LayoutOptions.Start;
         resume.Clicked += async (_, _) => await openOrResume();
         var delete = MakeButton("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText);

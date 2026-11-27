@@ -64,7 +64,7 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             HeightRequest = 40,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += OnAddProcessClicked;
         Grid.SetColumn(addBtn, 1);
         headerRow.Children.Add(addBtn);
@@ -90,7 +90,7 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
             HeightRequest = 50,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.OnColorText));
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.ButtonPrimaryText));
         mainGrid.Children.Add(_loadingOverlay);
 
         Content = mainGrid;
@@ -275,7 +275,7 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, allDone ? ThemeKey.SuccessBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, allDone ? ThemeKey.SuccessLightText : ThemeKey.Separator);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, allDone ? ThemeKey.SuccessBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, allDone ? ThemeKey.SuccessButtonBackground : ThemeKey.Separator);
 
         var cardStack = new VerticalStackLayout { Spacing = 12 };
 
@@ -303,7 +303,7 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
             {
                 Text = $"{doneCount}/{steps.Count}",
                 FontSize = 11
-            }).ThemeColor(Label.TextColorProperty, allDone ? ThemeKey.OnColorText : ThemeKey.InfoText, ThemeKey.PageText3, classifyPageText: true)
+            }).ThemeColor(Label.TextColorProperty, allDone ? ThemeKey.ButtonPrimaryText : ThemeKey.InfoText, ThemeKey.PageText3, classifyPageText: true)
         }).ThemeColor(VisualElement.BackgroundColorProperty, allDone ? ThemeKey.SuccessButtonBackground : ThemeKey.InfoBackground));
 
         // Streak (ConsecutiveAllDoneDays toward 3-day milestone)
@@ -319,8 +319,8 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
                     Text = $"🔥 {item.ConsecutiveAllDoneDays}/3 streak",
                     FontSize = 11,
                     FontAttributes = FontAttributes.Bold
-                }).ThemeColor(Label.TextColorProperty, item.ConsecutiveAllDoneDays >= 3 ? ThemeKey.OnColorText : ThemeKey.HighlightVioletText, ThemeKey.PageText3, classifyPageText: true)
-            }).ThemeColor(VisualElement.BackgroundColorProperty, item.ConsecutiveAllDoneDays >= 3 ? ThemeKey.AccentPurpleSurface : ThemeKey.AccentPurpleSelected);
+                }).ThemeColor(Label.TextColorProperty, item.ConsecutiveAllDoneDays >= 3 ? ThemeKey.ButtonPrimaryText : ThemeKey.HighlightVioletText, ThemeKey.PageText3, classifyPageText: true)
+            }).ThemeColor(VisualElement.BackgroundColorProperty, item.ConsecutiveAllDoneDays >= 3 ? ThemeKey.HighlightVioletText : ThemeKey.HighlightViolet);
             badgeRow.Children.Add(streakBadge);
         }
 

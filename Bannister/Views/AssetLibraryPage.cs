@@ -113,7 +113,7 @@ Include every filename from the list above. Each filename gets at least one cate
             Text = "📁 Asset Library",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
         stack.Children.Add((new Label
         {
@@ -144,7 +144,7 @@ Include every filename from the list above. Each filename gets at least one cate
             Text = "Rescan",
             CornerRadius = 8,
             HeightRequest = 40
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _rescanButton.Clicked += OnRescanClicked;
 
         stack.Children.Add((new Frame
@@ -203,7 +203,7 @@ Include every filename from the list above. Each filename gets at least one cate
         {
             Text = "Add category to selected",
             CornerRadius = 8
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         categorizeSelectedButton.Clicked += async (_, _) => await CategorizeSelectedAsync();
 
         var cancelSelectionButton = (new Button
@@ -228,7 +228,7 @@ Include every filename from the list above. Each filename gets at least one cate
             },
             ColumnSpacing = 8,
             Padding = 10
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightMint);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTeal);
         _bulkBar.Add(_selectionCountLabel, 0, 0);
         _bulkBar.Add(categorizeSelectedButton, 1, 0);
         _bulkBar.Add(cancelSelectionButton, 2, 0);
@@ -282,7 +282,7 @@ Include every filename from the list above. Each filename gets at least one cate
             Text = " Copy lookup prompt to clipboard",
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         copyButton.Clicked += OnCopyLookupPromptClicked;
 
         var pasteResponseButton = (new Button
@@ -397,7 +397,7 @@ Include every filename from the list above. Each filename gets at least one cate
             CornerRadius = 8,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightMint).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightMintText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTeal).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightTealText);
         _lookupSectionToggle.Clicked += (_, _) =>
         {
             _lookupSectionContent.IsVisible = !_lookupSectionContent.IsVisible;
@@ -420,7 +420,7 @@ Include every filename from the list above. Each filename gets at least one cate
                     _lookupSectionContent
                 }
             }
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightMintStrong);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightTeal);
     }
 
     private Button BuildStoryDiscoveryButton()
@@ -431,7 +431,7 @@ Include every filename from the list above. Each filename gets at least one cate
             CornerRadius = 8,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.WarningStrongText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
 
         button.Clicked += async (_, _) =>
             await Navigation.PushAsync(new StoryBasedAssetDiscoveryPage(_auth, _assetService, _thumbnailService));
@@ -447,7 +447,7 @@ Include every filename from the list above. Each filename gets at least one cate
             CornerRadius = 8,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleStrongText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
 
         button.Clicked += async (_, _) => await ShowBulkCategorizeModalAsync();
         return button;
@@ -679,7 +679,7 @@ Include every filename from the list above. Each filename gets at least one cate
             FontSize = 13,
             IsVisible = false,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
 
         var responseScroll = new ScrollView
         {
@@ -693,7 +693,7 @@ Include every filename from the list above. Each filename gets at least one cate
             Text = "Show response",
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var closeButton = (new Button
         {
@@ -943,7 +943,7 @@ Include every filename from the list above. Each filename gets at least one cate
             Text = "Copy prompt to clipboard",
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         copyButton.Clicked += OnCopyBulkCategorizePromptClicked;
 
         var pasteEditor = (new Editor
@@ -966,7 +966,7 @@ Include every filename from the list above. Each filename gets at least one cate
             Text = "Apply categorization",
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var closeButton = (new Button
         {
@@ -1213,8 +1213,8 @@ Include every filename from the list above. Each filename gets at least one cate
                     Text = "MISSING",
                     FontSize = 10,
                     FontAttributes = FontAttributes.Bold
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorDeepText, ThemeKey.PageText3)
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorSelectedBackground));
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText3)
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground));
         }
 
         var openButton = (new Button
@@ -1246,7 +1246,7 @@ Include every filename from the list above. Each filename gets at least one cate
                     FontSize = 14,
                     FontAttributes = FontAttributes.Bold,
                     LineBreakMode = LineBreakMode.TailTruncation
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                 badges,
                 (new Label
                 {
@@ -1312,8 +1312,8 @@ Include every filename from the list above. Each filename gets at least one cate
                 Text = text,
                 FontSize = 11,
                 FontAttributes = uncategorized ? FontAttributes.Italic : FontAttributes.None
-            }).ThemeColor(Label.TextColorProperty, uncategorized ? ThemeKey.CardText2 : ThemeKey.HighlightMintText, ThemeKey.PageText3)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, uncategorized ? ThemeKey.SecondarySurface : ThemeKey.HighlightMint);
+            }).ThemeColor(Label.TextColorProperty, uncategorized ? ThemeKey.CardText2 : ThemeKey.HighlightTealText, ThemeKey.PageText3)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, uncategorized ? ThemeKey.SecondarySurface : ThemeKey.HighlightTeal);
     }
 
     private View BuildThumbnail(AssetLibraryItem item)
@@ -1450,7 +1450,7 @@ Include every filename from the list above. Each filename gets at least one cate
             CornerRadius = 8,
             HeightRequest = 36,
             WidthRequest = 80
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addNewButton.Clicked += (_, _) =>
         {
             var name = newCategoryEntry.Text?.Trim() ?? "";
@@ -1486,7 +1486,7 @@ Include every filename from the list above. Each filename gets at least one cate
             Text = "Update",
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var actionsRow = new Grid
         {
@@ -1602,8 +1602,8 @@ Include every filename from the list above. Each filename gets at least one cate
                 Text = category,
                 FontSize = 11,
                 FontAttributes = string.IsNullOrWhiteSpace(item.Category) ? FontAttributes.Italic : FontAttributes.None
-            }).ThemeColor(Label.TextColorProperty, string.IsNullOrWhiteSpace(item.Category) ? ThemeKey.CardText2 : ThemeKey.HighlightMintText, ThemeKey.PageText3)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, string.IsNullOrWhiteSpace(item.Category) ? ThemeKey.SecondarySurface : ThemeKey.HighlightMint);
+            }).ThemeColor(Label.TextColorProperty, string.IsNullOrWhiteSpace(item.Category) ? ThemeKey.CardText2 : ThemeKey.HighlightTealText, ThemeKey.PageText3)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, string.IsNullOrWhiteSpace(item.Category) ? ThemeKey.SecondarySurface : ThemeKey.HighlightTeal);
 
         var badges = new HorizontalStackLayout
         {
@@ -1632,8 +1632,8 @@ Include every filename from the list above. Each filename gets at least one cate
                     Text = "MISSING",
                     FontSize = 10,
                     FontAttributes = FontAttributes.Bold
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorDeepText, ThemeKey.PageText3)
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorSelectedBackground));
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText3)
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground));
         }
 
         var openButton = (new Button
@@ -1678,7 +1678,7 @@ Include every filename from the list above. Each filename gets at least one cate
                     FontSize = 14,
                     FontAttributes = FontAttributes.Bold,
                     LineBreakMode = LineBreakMode.TailTruncation
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                 badges,
                 (new Label
                 {

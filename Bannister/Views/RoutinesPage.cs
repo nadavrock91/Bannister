@@ -50,7 +50,7 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             Padding = new Thickness(16, 0),
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addButton.Clicked += async (_, _) => await AddRoutineAsync();
         root.Children.Add(addButton);
 
@@ -70,7 +70,7 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 10, 0, 0)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownLightButtonBackground, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText1, classifyPageText: true));
         _inactiveStack = new VerticalStackLayout { Spacing = 8 };
         root.Children.Add(_inactiveStack);
 
@@ -114,7 +114,7 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             Padding = 12,
             HasShadow = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, routine.IsActive ? ThemeKey.SuccessBackground : ThemeKey.WarmSurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, routine.IsActive ? ThemeKey.SuccessSelectedBackground : ThemeKey.WarmSelectedSurface);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, routine.IsActive ? ThemeKey.SuccessBackground : ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, routine.IsActive ? ThemeKey.SuccessBackground : ThemeKey.HighlightYellow);
 
         var grid = new Grid
         {
@@ -162,7 +162,7 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
             else if (daysUntil == 1)
             {
                 dateText = $" Due tomorrow";
-                dateColor = ThemeKey.WarningStrongText;
+                dateColor = ThemeKey.WarningText;
             }
             else
             {
@@ -222,7 +222,7 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
                 actions.Children.Add(editDate);
             }
 
-            var inactive = SmallButton("Make Inactive", ThemeKey.BrownLightButtonBackground);
+            var inactive = SmallButton("Make Inactive", ThemeKey.NeutralDarkButton);
             inactive.Clicked += async (_, _) =>
             {
                 await _routines.SetRoutineActiveAsync(routine.Id, false);
@@ -232,12 +232,12 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
         }
         else
         {
-            var resume = SmallButton("Resume", ThemeKey.SuccessDarkButtonBackground);
+            var resume = SmallButton("Resume", ThemeKey.SuccessButtonBackground);
             resume.Clicked += async (_, _) => await ResumeRoutineAsync(routine);
             actions.Children.Add(resume);
         }
 
-        var delete = SmallButton("Delete", ThemeKey.ErrorDarkButtonBackground);
+        var delete = SmallButton("Delete", ThemeKey.ErrorButtonBackground);
         delete.Clicked += async (_, _) =>
         {
             if (!await DisplayAlert("Delete Routine?", $"Delete \"{routine.Name}\" and all its calendar instances?", "Delete", "Cancel"))
@@ -465,7 +465,7 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
             tcs.TrySetResult(result);
         }
 
-        var save = SmallButton("Save", ThemeKey.SuccessDarkButtonBackground);
+        var save = SmallButton("Save", ThemeKey.SuccessButtonBackground);
         save.Clicked += async (_, _) => await CloseAsync(picker.Date);
         var cancel = SmallButton("Cancel", ThemeKey.DisabledButtonBackground);
         cancel.Clicked += async (_, _) => await CloseAsync(null);
@@ -520,7 +520,7 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             Padding = new Thickness(10, 0),
             Margin = new Thickness(4, 2)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         return button;
     }
 

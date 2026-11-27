@@ -32,7 +32,7 @@ public class AutoAwardConfirmationPage : ContentPage
         _pendingDayCounts = pendingDayCounts ?? eligibleActivities.ToDictionary(a => a.Id, _ => 1);
 
         Title = "Auto-Award Activities";
-        BackgroundColor = AppColors.Get(ThemeKey.SecondaryLavenderSurface);
+        BackgroundColor = AppColors.Get(ThemeKey.HighlightViolet);
 
         _awardButton = (new Button
         {
@@ -42,7 +42,7 @@ public class AutoAwardConfirmationPage : ContentPage
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 60,
             HorizontalOptions = LayoutOptions.Fill
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _awardButton.Clicked += OnAwardClicked;
 
         BuildUI();
@@ -58,13 +58,13 @@ public class AutoAwardConfirmationPage : ContentPage
                 new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Star }
             }
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet);
 
         var topSection = (new VerticalStackLayout
         {
             Padding = 20,
             Spacing = 15
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet);
 
         topSection.Children.Add((new Label
         {
@@ -76,7 +76,7 @@ public class AutoAwardConfirmationPage : ContentPage
 
         _totalLabel.FontSize = 28;
         _totalLabel.FontAttributes = FontAttributes.Bold;
-        _totalLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true);
+        _totalLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText1, classifyPageText: true);
         _totalLabel.HorizontalOptions = LayoutOptions.Center;
         _totalLabel.Margin = new Thickness(0, 5, 0, 10);
         topSection.Children.Add(_totalLabel);
@@ -90,7 +90,7 @@ public class AutoAwardConfirmationPage : ContentPage
             FontSize = 14,
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Fill
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         skipButton.Clicked += OnSkipClicked;
         topSection.Children.Add(skipButton);
 
@@ -134,7 +134,7 @@ public class AutoAwardConfirmationPage : ContentPage
         {
             IsChecked = true,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
+        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessButtonBackground);
         checkbox.CheckedChanged += (_, _) => CalculateTotal();
         _activityCheckBoxes[activity.Id] = checkbox;
         grid.Add(checkbox, 0, 0);
@@ -210,7 +210,7 @@ public class AutoAwardConfirmationPage : ContentPage
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true), 2, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText1, classifyPageText: true), 2, 0);
 
         return (new Frame
         {

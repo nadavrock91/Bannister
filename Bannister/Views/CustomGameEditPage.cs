@@ -35,7 +35,7 @@ public class CustomGameEditPage : Bannister.Views.ModeThemedPage
         {
             Text = "+ Add Button",
             CornerRadius = 8
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.AccentVioletDeep);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         addButton.Clicked += async (_, _) => await AddButtonAsync();
 
         var saveButton = (new Button
@@ -45,7 +45,7 @@ public class CustomGameEditPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 48,
             Margin = new Thickness(0, 12, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         saveButton.Clicked += async (_, _) => await SaveAsync();
 
         Content = new ScrollView
@@ -56,7 +56,7 @@ public class CustomGameEditPage : Bannister.Views.ModeThemedPage
                 Spacing = 12,
                 Children =
                 {
-                    (new Label { Text = Title, FontSize = 26, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                    (new Label { Text = Title, FontSize = 26, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                     _nameEntry,
                     _endTypePicker,
                     _secondsEntry,
@@ -71,7 +71,7 @@ public class CustomGameEditPage : Bannister.Views.ModeThemedPage
                             new Label { Text = "Higher is better", VerticalOptions = LayoutOptions.Center }
                         }
                     },
-                    (new Label { Text = "Buttons", FontSize = 18, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 8, 0, 0) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                    (new Label { Text = "Buttons", FontSize = 18, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 8, 0, 0) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                     _buttonRows,
                     addButton,
                     saveButton
@@ -184,7 +184,7 @@ public class CustomGameEditPage : Bannister.Views.ModeThemedPage
             {
                 Text = $"{button.Label} ({button.PointValue:+#;-#;0}) {button.Color}",
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 0, 0);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 0, 0);
             row.Add(MiniButton("Edit", async () => await EditButtonAsync(index)), 1, 0);
             row.Add(MiniButton("↑", () => MoveButton(index, -1)), 2, 0);
             row.Add(MiniButton("↓", () => MoveButton(index, 1)), 3, 0);

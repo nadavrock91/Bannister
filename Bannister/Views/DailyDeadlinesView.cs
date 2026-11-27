@@ -98,7 +98,7 @@ public class DailyDeadlinesView : ContentView
         var completedIds = ParseIds(log?.CompletedItemIds);
 
         _content.Children.Clear();
-        _content.Children.Add((new Label { Text = "Daily Deadlines", FontSize = 26, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        _content.Children.Add((new Label { Text = "Daily Deadlines", FontSize = 26, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         _content.Children.Add((new Label { Text = $"Allowance: {state.Allowance} slots    Streak: {state.ConsecutiveStreak} / 3 days", FontSize = 15 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         if (displayMode != ActivityDisplayMode.All)
         {
@@ -385,7 +385,7 @@ public class DailyDeadlinesView : ContentView
                         FontSize = 18,
                         FontAttributes = FontAttributes.Bold,
                         HorizontalTextAlignment = TextAlignment.Center
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                     remainingLabel
                 }
             },

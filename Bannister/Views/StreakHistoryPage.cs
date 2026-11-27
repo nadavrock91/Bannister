@@ -54,13 +54,13 @@ public class StreakHistoryPage : Bannister.Views.ModeThemedPage
             Text = $"📊 {_streak.ActivityName}",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         headerStack.Children.Add((new Label
         {
             Text = $"Attempt #{_streak.AttemptNumber} • Currently {_streak.DaysAchieved} days",
             FontSize = 14
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellow, ThemeKey.PageText1, classifyPageText: true));
 
         if (_streak.StartedAt.HasValue)
         {
@@ -68,7 +68,7 @@ public class StreakHistoryPage : Bannister.Views.ModeThemedPage
             {
                 Text = $"Started: {_streak.StartedAt.Value.ToLocalTime():MMM dd, yyyy}",
                 FontSize = 12
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellow, ThemeKey.PageText3, classifyPageText: true));
         }
 
         headerFrame.Content = headerStack;
@@ -80,7 +80,7 @@ public class StreakHistoryPage : Bannister.Views.ModeThemedPage
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessLightText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessButtonBackground);
 
         var summaryGrid = new Grid
         {
@@ -101,7 +101,7 @@ public class StreakHistoryPage : Bannister.Views.ModeThemedPage
             FontSize = 32,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true));
         currentStack.Children.Add((new Label
         {
             Text = "Current",
@@ -139,7 +139,7 @@ public class StreakHistoryPage : Bannister.Views.ModeThemedPage
             FontSize = 32,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true));
         durationStack.Children.Add((new Label
         {
             Text = "Calendar Days",
@@ -206,7 +206,7 @@ public class StreakHistoryPage : Bannister.Views.ModeThemedPage
                     Text = "📝 No detailed history recorded yet.\n\nHistory tracking starts from now - future changes will be logged here.",
                     FontSize = 13,
                     HorizontalTextAlignment = TextAlignment.Center
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText1, classifyPageText: true)
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true)
             }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow));
 
             // Show initial entry based on streak start
@@ -239,7 +239,7 @@ public class StreakHistoryPage : Bannister.Views.ModeThemedPage
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
                 Margin = new Thickness(0, 8, 0, 4)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
             _historyContainer.Children.Add(dateLabel);
 
             // Log entries for this date
@@ -253,7 +253,7 @@ public class StreakHistoryPage : Bannister.Views.ModeThemedPage
     private Frame BuildHistoryCard(StreakLog log)
     {
         var isPositive = log.Change >= 0;
-        var changeColor = log.ChangeType == "created" ? ThemeKey.SecondaryAccentText : isPositive ? ThemeKey.SuccessLightText : ThemeKey.ErrorButtonBackground;
+        var changeColor = log.ChangeType == "created" ? ThemeKey.HighlightIndigoText : isPositive ? ThemeKey.SuccessButtonBackground : ThemeKey.ErrorButtonBackground;
 
         var frame = (new Frame
         {
@@ -356,7 +356,7 @@ public class StreakHistoryPage : Bannister.Views.ModeThemedPage
             Padding = 12,
             CornerRadius = 8,
             HasShadow = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessLightText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessButtonBackground);
 
         var grid = new Grid
         {

@@ -360,7 +360,7 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
     private Frame BuildPromptRow(PromptItem prompt)
     {
         // Color based on group
-        var groupColors = new[] { ThemeKey.RowSelected, ThemeKey.SuccessBackground, ThemeKey.WarningBackground, ThemeKey.AccentPurpleBackground, ThemeKey.HighlightTeal, ThemeKey.HighlightPink, ThemeKey.WarningBackground, ThemeKey.HighlightIndigo };
+        var groupColors = new[] { ThemeKey.RowSelected, ThemeKey.SuccessBackground, ThemeKey.WarningBackground, ThemeKey.HighlightViolet, ThemeKey.HighlightTeal, ThemeKey.HighlightPink, ThemeKey.WarningBackground, ThemeKey.HighlightIndigo };
         int colorIndex = Math.Abs(prompt.GroupName.GetHashCode()) % groupColors.Length;
 
         var frame = (new Frame
@@ -369,7 +369,7 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HasShadow = false,
             Margin = new Thickness(0, 2)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, groupColors[colorIndex]).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, prompt.Priority > 0 ? ThemeKey.WarningAccentText : (ThemeKey?)null);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, groupColors[colorIndex]).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, prompt.Priority > 0 ? ThemeKey.WarningText : (ThemeKey?)null);
 
         var grid = new Grid
         {
@@ -397,7 +397,7 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
         {
             Text = prompt.GroupName,
             FontSize = 10
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true);
         badgeRow.Children.Add(groupBadge);
 
         if (prompt.Priority > 0)
@@ -413,7 +413,7 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
                 Text = $"P{prompt.Priority}",
                 FontSize = 10,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true);
             badgeRow.Children.Add(priorityBadge);
         }
 
@@ -429,7 +429,7 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
             {
                 Text = "Inactive",
                 FontSize = 10
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true);
             badgeRow.Children.Add(inactiveBadge);
         }
 
@@ -439,7 +439,7 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
             Text = new string('★', prompt.Rating) + new string('☆', 5 - prompt.Rating),
             FontSize = 10,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightAmberButton, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningButtonBackground, ThemeKey.PageText3, classifyPageText: true);
         badgeRow.Children.Add(ratingLabel);
 
         infoStack.Children.Add(badgeRow);

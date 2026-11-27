@@ -96,12 +96,12 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
                     Text = "Commands Casino",
                     FontSize = 30,
                     FontAttributes = FontAttributes.Bold
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownStrongText, ThemeKey.PageText1),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                 (new Label
                 {
                     Text = "Stake something. Write a command. Beat the clock.",
                     FontSize = 14
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownMutedText, ThemeKey.PageText1)
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1)
             }
         }, 0, 0);
 
@@ -112,7 +112,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
             HeightRequest = 44,
             CornerRadius = 22,
             FontSize = 18
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarmSurface).ThemeColor(Button.TextColorProperty, ThemeKey.BrownStrongText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         settingsButton.Clicked += OnSettingsClicked;
         header.Add(settingsButton, 1, 0);
         main.Children.Add(header);
@@ -139,7 +139,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
         {
             Text = "No chip selected",
             FontSize = 15
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownMutedText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1);
 
         _chipsStack = new VerticalStackLayout { Spacing = 8 };
         _chipCategoryPicker = new Picker
@@ -163,15 +163,15 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
                 {
                     Text = "Category:",
                     VerticalOptions = LayoutOptions.Center
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownMutedText, ThemeKey.PageText1),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1),
                 _chipCategoryPicker
             }
         };
 
-        var addButton = SmallButton("+ Add Chip", ThemeKey.SuccessDarkButtonBackground, ThemeKey.OnColorText);
+        var addButton = SmallButton("+ Add Chip", ThemeKey.SuccessButtonBackground, ThemeKey.ButtonPrimaryText);
         addButton.Clicked += OnAddChipClicked;
 
-        var manageButton = SmallButton("Manage", ThemeKey.BrownLightButtonBackground, ThemeKey.OnColorText);
+        var manageButton = SmallButton("Manage", ThemeKey.NeutralDarkButton, ThemeKey.ButtonPrimaryText);
         manageButton.Clicked += OnManageChipsClicked;
 
         return Section("Stake your chip", new View[]
@@ -189,7 +189,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
         {
             FontSize = 15,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownStrongText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
 
         var row = new HorizontalStackLayout
         {
@@ -198,7 +198,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
 
         foreach (int seconds in _deadlineOptions)
         {
-            var button = SmallButton(FormatDuration(seconds), ThemeKey.WarmSelectedSurface, ThemeKey.BrownStrongText);
+            var button = SmallButton(FormatDuration(seconds), ThemeKey.HighlightYellow, ThemeKey.CardText1);
             int value = seconds;
             button.Clicked += (_, _) =>
             {
@@ -217,10 +217,10 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
     {
         _presetsStack = new VerticalStackLayout { Spacing = 8 };
 
-        var addButton = SmallButton("+ Add Preset", ThemeKey.ButtonPrimaryBackground, ThemeKey.OnColorText);
+        var addButton = SmallButton("+ Add Preset", ThemeKey.ButtonPrimaryBackground, ThemeKey.ButtonPrimaryText);
         addButton.Clicked += OnAddPresetClicked;
 
-        var manageButton = SmallButton("Manage", ThemeKey.BrownLightButtonBackground, ThemeKey.OnColorText);
+        var manageButton = SmallButton("Manage", ThemeKey.NeutralDarkButton, ThemeKey.ButtonPrimaryText);
         manageButton.Clicked += OnManagePresetsClicked;
 
         _commandEditor = (new Editor
@@ -258,13 +258,13 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
             HeightRequest = 58,
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _startButton.Clicked += OnStartClicked;
 
         _startHintLabel = (new Label
         {
             FontSize = 13
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownMutedButton, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText1);
 
         return new VerticalStackLayout
         {
@@ -280,7 +280,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningGoldenButton, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningButtonBackground, ThemeKey.PageText1);
 
         _sessionDeadlineCountdownLabel = (new Label
         {
@@ -307,9 +307,9 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             LineBreakMode = LineBreakMode.WordWrap,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownStrongText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
 
-        var cancelButton = SmallButton("Cancel", ThemeKey.DisabledButtonBackground, ThemeKey.OnColorText);
+        var cancelButton = SmallButton("Cancel", ThemeKey.DisabledButtonBackground, ThemeKey.ButtonPrimaryText);
         cancelButton.Clicked += async (_, _) =>
         {
             CancelSession();
@@ -334,13 +334,13 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
                                 Text = "In session",
                                 FontSize = 18,
                                 FontAttributes = FontAttributes.Bold
-                            }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownText, ThemeKey.PageText1),
+                            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                             _sessionCommandLabel,
                             countdownGrid,
                             cancelButton
                         }
                     }
-                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarmSelectedSurface)
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightYellow)
             }
         };
     }
@@ -349,7 +349,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
     {
         _lostChipsStack = new VerticalStackLayout { Spacing = 8 };
 
-        var clearButton = SmallButton("Clear All", ThemeKey.ErrorDarkButtonBackground, ThemeKey.OnColorText);
+        var clearButton = SmallButton("Clear All", ThemeKey.ErrorButtonBackground, ThemeKey.ButtonPrimaryText);
         clearButton.Clicked += OnClearLostChipsClicked;
 
         return Section("☠ LOST CHIPS ☠", new View[]
@@ -367,7 +367,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
             Text = title,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownStrongText, ThemeKey.PageText1));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
         foreach (var child in children)
             stack.Children.Add(child);
@@ -378,7 +378,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
             Padding = 14,
             HasShadow = false,
             Content = stack
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellowSoft).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarmSelectedSurface);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightYellow);
     }
 
     private Button SmallButton(string text, ThemeKey background, ThemeKey textColor)
@@ -445,7 +445,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
             _chipsStack.Children.Add((new Label
             {
                 Text = "No chips yet. Add one to stake."
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownMutedButton, ThemeKey.PageText1));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText1));
             return;
         }
 
@@ -455,7 +455,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
             _chipsStack.Children.Add((new Label
             {
                 Text = "No chips in this category."
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownMutedButton, ThemeKey.PageText1));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText1));
             return;
         }
 
@@ -471,7 +471,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
         foreach (var chip in visibleChips)
         {
             bool selected = _selectedChip?.Id == chip.Id;
-            var button = SmallButton(chip.Name, selected ? ThemeKey.WarningGoldenButton : ThemeKey.WarmSurface, ThemeKey.BrownStrongText);
+            var button = SmallButton(chip.Name, selected ? ThemeKey.WarningButtonBackground : ThemeKey.HighlightYellow, ThemeKey.CardText1);
             button.Margin = new Thickness(0, 0, 8, 8);
             button.Clicked += (_, _) =>
             {
@@ -499,7 +499,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
             _presetsStack.Children.Add((new Label
             {
                 Text = "No presets saved yet."
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownMutedButton, ThemeKey.PageText1));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText1));
             return;
         }
 
@@ -508,8 +508,8 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
             bool selected = _selectedPreset?.Id == preset.Id;
             var button = SmallButton(
                 Truncate(preset.Text, 80),
-                selected ? ThemeKey.WarningGoldenButton : ThemeKey.InfoBackground,
-                selected ? ThemeKey.BrownStrongText : ThemeKey.InfoDeepText);
+                selected ? ThemeKey.WarningButtonBackground : ThemeKey.InfoBackground,
+                selected ? ThemeKey.CardText1 : ThemeKey.InfoText);
             button.HorizontalOptions = LayoutOptions.Fill;
             button.Clicked += (_, _) =>
             {
@@ -543,7 +543,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
                 Text = $"{lost.ChipName} - {Truncate(lost.CommandText, 90)}\nLost {lost.LostAt.ToLocalTime():g} after {FormatDuration(lost.DeadlineSeconds)}",
                 FontSize = 13,
                 LineBreakMode = LineBreakMode.WordWrap
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownText, ThemeKey.PageText1));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         }
     }
 
@@ -553,7 +553,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
         for (int i = 0; i < _deadlineButtons.Count; i++)
         {
             bool selected = _deadlineOptions[i] == _selectedDeadlineSeconds;
-            _deadlineButtons[i].ThemeColor(VisualElement.BackgroundColorProperty, selected ? ThemeKey.WarningGoldenButton : ThemeKey.WarmSelectedSurface);
+            _deadlineButtons[i].ThemeColor(VisualElement.BackgroundColorProperty, selected ? ThemeKey.WarningButtonBackground : ThemeKey.HighlightYellow);
         }
     }
 
@@ -888,7 +888,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
             list.Children.Add((new Label
             {
                 Text = "Nothing to manage yet."
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownMutedButton, ThemeKey.PageText1));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText1));
         }
         else
         {
@@ -911,9 +911,9 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
                     Text = $"{chip.Name} [{NormalizeChipCategory(chip.Category)}]",
                     LineBreakMode = LineBreakMode.WordWrap,
                     VerticalOptions = LayoutOptions.Center
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownStrongText, ThemeKey.PageText1), 0, 0);
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1), 0, 0);
 
-                var categoryButton = SmallButton("Change Category", ThemeKey.ButtonPrimaryBackground, ThemeKey.OnColorText);
+                var categoryButton = SmallButton("Change Category", ThemeKey.ButtonPrimaryBackground, ThemeKey.ButtonPrimaryText);
                 categoryButton.Clicked += async (_, _) =>
                 {
                     string? category = await PickChipCategoryAsync("Change Chip Category", defaultToUncategorizedOnCancel: false);
@@ -926,7 +926,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
                 };
                 row.Add(categoryButton, 1, 0);
 
-                var deleteButton = SmallButton("Delete", ThemeKey.ErrorDarkButtonBackground, ThemeKey.OnColorText);
+                var deleteButton = SmallButton("Delete", ThemeKey.ErrorButtonBackground, ThemeKey.ButtonPrimaryText);
                 deleteButton.Clicked += async (_, _) =>
                 {
                     await _casino.DeleteChipAsync(chip.Id);
@@ -940,7 +940,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
             }
         }
 
-        var closeButton = SmallButton("Done", ThemeKey.BrownButtonBackground, ThemeKey.OnColorText);
+        var closeButton = SmallButton("Done", ThemeKey.NeutralDarkButton, ThemeKey.ButtonPrimaryText);
 
         async Task CloseAsync()
         {
@@ -1007,7 +1007,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
             list.Children.Add((new Label
             {
                 Text = "Nothing to manage yet."
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownMutedButton, ThemeKey.PageText1));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText1));
         }
         else
         {
@@ -1029,16 +1029,16 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
                     Text = rowData.text,
                     LineBreakMode = LineBreakMode.WordWrap,
                     VerticalOptions = LayoutOptions.Center
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownStrongText, ThemeKey.PageText1), 0, 0);
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1), 0, 0);
 
-                var deleteButton = SmallButton("Delete", ThemeKey.ErrorDarkButtonBackground, ThemeKey.OnColorText);
+                var deleteButton = SmallButton("Delete", ThemeKey.ErrorButtonBackground, ThemeKey.ButtonPrimaryText);
                 deleteButton.Clicked += async (_, _) => await deleteAsync(rowData.id);
                 row.Add(deleteButton, 1, 0);
                 list.Children.Add(row);
             }
         }
 
-        var closeButton = SmallButton("Done", ThemeKey.BrownButtonBackground, ThemeKey.OnColorText);
+        var closeButton = SmallButton("Done", ThemeKey.NeutralDarkButton, ThemeKey.ButtonPrimaryText);
         ContentPage? page = null;
 
         async Task CloseAsync()
@@ -1169,7 +1169,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
                 Text = "Yes",
                 CornerRadius = 8,
                 HeightRequest = 44
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             yesButton.Clicked += (_, _) => _ = CloseAsync(true);
 
             var noButton = (new Button
@@ -1177,7 +1177,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
                 Text = "No",
                 CornerRadius = 8,
                 HeightRequest = 44
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             noButton.Clicked += (_, _) => _ = CloseAsync(false);
 
             var buttons = new Grid
@@ -1221,7 +1221,7 @@ public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
                                     Text = "Did you do it?",
                                     FontSize = 18,
                                     FontAttributes = FontAttributes.Bold
-                                }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownText, ThemeKey.PageText1),
+                                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                                 (new Label
                                 {
                                     Text = command,

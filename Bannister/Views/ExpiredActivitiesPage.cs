@@ -33,13 +33,13 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
                 new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Star }
             }
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet);
 
         var topStack = (new VerticalStackLayout
         {
             Padding = 20,
             Spacing = 16
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet);
 
         topStack.Children.Add((new Label
         {
@@ -47,7 +47,7 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         topStack.Children.Add((new Label
         {
@@ -70,7 +70,7 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             WidthRequest = 150,
             HeightRequest = 45
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         postponeBtn.Clicked += OnPostponeClicked;
         buttonRow.Children.Add(postponeBtn);
 
@@ -82,7 +82,7 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             WidthRequest = 150,
             HeightRequest = 45
-        }).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorBrightText).ThemeColor(Button.BorderColorProperty, ThemeKey.ErrorBrightText);
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText).ThemeColor(Button.BorderColorProperty, ThemeKey.ErrorText);
         expireBtn.Clicked += OnExpireClicked;
         buttonRow.Children.Add(expireBtn);
 
@@ -135,7 +135,7 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
                 StrokeThickness = 2,
                 Shadow = new Shadow
                 {
-                    Brush = AppColors.Get(ThemeKey.Shadow),
+                    Brush = AppColors.Get(ThemeKey.Overlay),
                     Offset = new Point(2, 2),
                     Radius = 4,
                     Opacity = 0.2f
@@ -174,7 +174,7 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
                 Text = "\u2713",
                 FontSize = 16,
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoStrongText, ThemeKey.PageText1, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true);
             checkLabel.SetBinding(Label.IsVisibleProperty, nameof(ExpiredActivityViewModel.IsSelected));
             nameRow.Children.Add(checkLabel);
             
@@ -193,7 +193,7 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
             var gameLabel = (new Label
             {
                 FontSize = 14
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText1, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true);
             gameLabel.SetBinding(Label.TextProperty, nameof(ExpiredActivityViewModel.Game), stringFormat: "Game: {0}");
             Grid.SetRow(gameLabel, 1);
             grid.Children.Add(gameLabel);
@@ -201,7 +201,7 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
             var categoryLabel = (new Label
             {
                 FontSize = 14
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true);
             categoryLabel.SetBinding(Label.TextProperty, nameof(ExpiredActivityViewModel.Category), stringFormat: "Category: {0}");
             Grid.SetRow(categoryLabel, 2);
             grid.Children.Add(categoryLabel);
@@ -339,7 +339,7 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, 8)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         contentStack.Children.Add(dateLabel);
         
         // Days from today display
@@ -375,7 +375,7 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
                 HeightRequest = 44,
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btn.Clicked += (s, args) =>
             {
                 currentDate = currentDate.AddDays(days);
@@ -402,7 +402,7 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
                 HeightRequest = 44,
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btn.Clicked += (s, args) =>
             {
                 currentDate = currentDate.AddDays(days);
@@ -420,7 +420,7 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
             HeightRequest = 36,
             FontSize = 12,
             Margin = new Thickness(0, 8, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         resetBtn.Clicked += (s, args) =>
         {
             currentDate = DateTime.Today.AddDays(1);
@@ -449,7 +449,7 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
             HeightRequest = 48,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         okBtn.Clicked += (s, args) => tcs.TrySetResult(currentDate);
         buttonRow.Children.Add(okBtn);
         
@@ -592,11 +592,11 @@ public class ExpiredActivityViewModel : INotifyPropertyChanged
     
     // Border uses Brush, not Color
     public Brush BorderBrush => IsSelected 
-        ? new SolidColorBrush(AppColors.Get(ThemeKey.InfoLinkText))  // Blue border when selected
+        ? new SolidColorBrush(AppColors.Get(ThemeKey.InfoText))  // Blue border when selected
         : new SolidColorBrush(Colors.Transparent);
     
     public Color NameColor => IsSelected 
-        ? AppColors.Get(ThemeKey.InfoStrongText)  // Blue text when selected
+        ? AppColors.Get(ThemeKey.InfoText)  // Blue text when selected
         : AppColors.Get(ThemeKey.WarningText); // Original orange
 
     public event PropertyChangedEventHandler? PropertyChanged;

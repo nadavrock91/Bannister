@@ -57,7 +57,7 @@ public class GameCatchUpPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 48
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _applyButton.Clicked += OnApplyClicked;
 
         _skipButton = (new Button
@@ -95,7 +95,7 @@ public class GameCatchUpPage : Bannister.Views.ModeThemedPage
                     Text = "Catch Up",
                     FontSize = 28,
                     FontAttributes = FontAttributes.Bold
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                 _subtitle
             }
         };
@@ -467,7 +467,7 @@ public class GameCatchUpPage : Bannister.Views.ModeThemedPage
                 FontSize = 18,
                 FontAttributes = FontAttributes.Bold,
                 LineBreakMode = LineBreakMode.WordWrap
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
             stack.Children.Add((new Label
             {
                 Text = string.IsNullOrWhiteSpace(activity.Category) ? "Uncategorized" : activity.Category,
@@ -550,7 +550,7 @@ public class GameCatchUpPage : Bannister.Views.ModeThemedPage
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center,
                 WidthRequest = 42
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
             _countLabel.GestureRecognizers.Add(new TapGestureRecognizer
             {
                 Command = new Command(async () =>

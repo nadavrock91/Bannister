@@ -67,7 +67,7 @@ public class TextInputPage : ContentPage
             CornerRadius = 8,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnConfirm.Clicked += (s, e) => Close(_editor.Text);
         Grid.SetColumn(btnConfirm, 0);
         buttonGrid.Children.Add(btnConfirm);

@@ -17,7 +17,7 @@ public partial class ActivityGamePage
             CornerRadius = 8,
             FontSize = 13,
             IsVisible = !_db.IsReadOnly
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralMutedButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnSetDisplayDays.Clicked += OnSetDisplayDaysClicked;
         stack.Children.Add(btnSetDisplayDays);
     }
@@ -41,7 +41,7 @@ public partial class ActivityGamePage
                 (new BoxView
                 {
                     Opacity = 0.6
-                }).ThemeColor(BoxView.ColorProperty, ThemeKey.BrandMediaBackground),
+                }).ThemeColor(BoxView.ColorProperty, ThemeKey.MediaBackground),
                 (new Frame
                 {
                     CornerRadius = 12,
@@ -61,7 +61,7 @@ public partial class ActivityGamePage
                                 WidthRequest = 36,
                                 HeightRequest = 36,
                                 HorizontalOptions = LayoutOptions.Center
-                            }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.SecondaryAccentText),
+                            }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.HighlightIndigoText),
                             _busyOverlayLabel
                         }
                     }
@@ -142,7 +142,7 @@ public partial class ActivityGamePage
         private BulkDisplayDaysPage(int selectedCount)
         {
             Title = "Set Display Days";
-            BackgroundColor = AppColors.Get(ThemeKey.OverlayLight);
+            BackgroundColor = AppColors.Get(ThemeKey.Overlay);
 
             var daysGrid = new Grid
             {
@@ -192,7 +192,7 @@ public partial class ActivityGamePage
                 Text = "Apply to Selected",
                 CornerRadius = 8,
                 HeightRequest = 44
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             applyButton.Clicked += async (_, _) => await CompleteAsync(BuildSchedule());
 
             var buttonGrid = new Grid
@@ -270,7 +270,7 @@ public partial class ActivityGamePage
             var checkBox = (new CheckBox
             {
                 HorizontalOptions = LayoutOptions.Center
-            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SecondaryAccentText);
+            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.HighlightIndigoText);
 
             stack.Children.Add(checkBox);
             stack.Children.Add((new Label

@@ -138,7 +138,7 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         var colorsButton = new Button { Text = "UI Colors", CornerRadius = 8, HeightRequest = 48, FontSize = 16 }
-            .ThemeColor(BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            .ThemeColor(BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         colorsButton.Clicked += async (_, _) => await Navigation.PushAsync(new UIColorsPage(_auth, _appSettings, _privacyMode));
         mainStack.Children.Add(colorsButton);
 
@@ -184,7 +184,7 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 48,
             FontSize = 16
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnChangePassword.Clicked += OnChangePasswordClicked;
         accountStack.Children.Add(btnChangePassword);
 
@@ -365,7 +365,7 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 48,
             FontSize = 16
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnSyncSettings.Clicked += OnSyncSettingsClicked;
         syncStack.Children.Add(btnSyncSettings);
 
@@ -418,7 +418,7 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Fill,
             Margin = new Thickness(0, 4, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         menuOrderBtn.Clicked += async (_, _) =>
             await Navigation.PushAsync(
                 new ContextMenuOrderPage(
@@ -433,7 +433,7 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Fill,
             Margin = new Thickness(0, 4, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         privacyLogBtn.Clicked += async (_, _) =>
             await Navigation.PushAsync(new PrivacyLogPage(
                 _activityService, _gameService, _auth));
@@ -514,7 +514,7 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Fill,
             Margin = new Thickness(0, 4, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         pageVisibilityBtn.Clicked += async (_, _) =>
             await Navigation.PushAsync(
                 new PageVisibilityPage(

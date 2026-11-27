@@ -108,7 +108,7 @@ public class AudioLibraryPage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             HeightRequest = 36,
             IsEnabled = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentVioletStrongText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _actionsButton.Clicked += async (s, e) =>
         {
             if (_selectedItem != null)
@@ -165,7 +165,7 @@ public class AudioLibraryPage : Bannister.Views.ModeThemedPage
             HeightRequest = 48,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAddText.Clicked += OnAddFromTextClicked;
         Grid.SetColumn(btnAddText, 0);
         bottomBar.Children.Add(btnAddText);
@@ -177,7 +177,7 @@ public class AudioLibraryPage : Bannister.Views.ModeThemedPage
             HeightRequest = 48,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAddAudio.Clicked += OnAddFromAudioClicked;
         Grid.SetColumn(btnAddAudio, 1);
         bottomBar.Children.Add(btnAddAudio);
@@ -254,7 +254,7 @@ public class AudioLibraryPage : Bannister.Views.ModeThemedPage
         }
 
         var dataGrid = DataGridView.Create(columns, displayRows)
-            .WithHeaderStyle(AppColors.Get(ThemeKey.AccentVioletStrongText), AppColors.Get(ThemeKey.OnColorText))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.HighlightVioletText), AppColors.Get(ThemeKey.ButtonPrimaryText))
             .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightViolet))
             .WithColumnWidths(60, 400)
             .WithCellPadding(6)

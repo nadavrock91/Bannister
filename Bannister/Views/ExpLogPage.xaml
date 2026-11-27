@@ -5,7 +5,7 @@
     <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="20" RowSpacing="15">
         
         <!-- Title -->
-        <Label Grid.Row="0" Text="Activity Log" FontSize="24" FontAttributes="Bold" TextColor="{DynamicResource ModeCardTextStrong}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardTextStrong" />
+        <Label Grid.Row="0" Text="Activity Log" FontSize="24" FontAttributes="Bold" TextColor="{DynamicResource ModeCardText1}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText1" />
         
         <!-- Stats Summary -->
         <Frame Grid.Row="1" Padding="15" CornerRadius="12" BackgroundColor="{DynamicResource ModeCardBackground}" HasShadow="True" BorderColor="Transparent" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=CardBackground">
@@ -14,19 +14,19 @@
                 <!-- Total EXP -->
                 <VerticalStackLayout Grid.Column="0" Spacing="5">
                     <Label Text="Total EXP" FontSize="12" TextColor="{DynamicResource ModeCardText2}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
-                    <Label x:Name="lblTotalExp" Text="0" FontSize="18" FontAttributes="Bold" TextColor="{DynamicResource ModeSuccessLightText}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=SuccessLightText" />
+                    <Label x:Name="lblTotalExp" Text="0" FontSize="18" FontAttributes="Bold" TextColor="{DynamicResource ModeSuccessButtonBackground}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=SuccessButtonBackground" />
                 </VerticalStackLayout>
                 
                 <!-- Today -->
                 <VerticalStackLayout Grid.Column="1" Spacing="5">
                     <Label Text="Today" FontSize="12" TextColor="{DynamicResource ModeCardText2}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
-                    <Label x:Name="lblTodayExp" Text="0" FontSize="18" FontAttributes="Bold" TextColor="{DynamicResource ModeInfoLinkText}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=InfoLinkText" />
+                    <Label x:Name="lblTodayExp" Text="0" FontSize="18" FontAttributes="Bold" TextColor="{DynamicResource ModeInfoText}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=InfoText" />
                 </VerticalStackLayout>
                 
                 <!-- This Week -->
                 <VerticalStackLayout Grid.Column="2" Spacing="5">
                     <Label Text="This Week" FontSize="12" TextColor="{DynamicResource ModeCardText2}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
-                    <Label x:Name="lblWeekExp" Text="0" FontSize="18" FontAttributes="Bold" TextColor="{DynamicResource ModeWarningAccentText}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=WarningAccentText" />
+                    <Label x:Name="lblWeekExp" Text="0" FontSize="18" FontAttributes="Bold" TextColor="{DynamicResource ModeWarningText}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=WarningText" />
                 </VerticalStackLayout>
                 
             </Grid>
@@ -50,7 +50,7 @@
                                             <FileImageSource File="{Binding ResolvedImagePath}" />
                                         </Image.Source>
                                     </Image>
-                                    <Label Grid.Column="0" Text="{Binding ActivityName}" IsVisible="{Binding ShowName}" FontSize="16" FontAttributes="Bold" TextColor="{DynamicResource ModeCardTextStrong}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardTextStrong" />
+                                    <Label Grid.Column="0" Text="{Binding ActivityName}" IsVisible="{Binding ShowName}" FontSize="16" FontAttributes="Bold" TextColor="{DynamicResource ModeCardText1}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText1" />
                                     <Label Grid.Column="1" Text="{Binding ExpText}" FontSize="16" FontAttributes="Bold" TextColor="{Binding ExpColor}" />
                                 </Grid>
                                 
@@ -58,7 +58,7 @@
                                 <Label Grid.Row="1" Text="{Binding LevelChangeText}" FontSize="14" TextColor="{DynamicResource ModeCardText2}" IsVisible="{Binding LeveledUp}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
                                 
                                 <!-- Timestamp -->
-                                <Label Grid.Row="2" Text="{Binding ExecutedAt, StringFormat='{0:MMM dd, yyyy h:mm tt}'}" FontSize="12" TextColor="{DynamicResource ModeDisabledText}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=DisabledText" />
+                                <Label Grid.Row="2" Text="{Binding ExecutedAt, StringFormat='{0:MMM dd, yyyy h:mm tt}'}" FontSize="12" TextColor="{DynamicResource ModeCardText3}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText3" />
                                 
                             </Grid>
                             
@@ -72,8 +72,8 @@
             
             <CollectionView.EmptyView>
                 <VerticalStackLayout Padding="40" Spacing="10">
-                    <Label Text="No activity logged yet." FontSize="16" TextColor="{DynamicResource ModeText1}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text1" />
-                    <Label Text="Complete activities to see your progress!" FontSize="14" TextColor="{DynamicResource ModeText1}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text1" />
+                    <Label Text="No activity logged yet." FontSize="16" TextColor="{DynamicResource ModePageText1}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText1" />
+                    <Label Text="Complete activities to see your progress!" FontSize="14" TextColor="{DynamicResource ModePageText1}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText1" />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
         </CollectionView>

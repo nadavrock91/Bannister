@@ -98,7 +98,7 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
             FontSize = 22,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         // Stats
         _streakLabel = (new Label
@@ -147,7 +147,7 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         resetBtn.Clicked += async (_, _) => await DoResetAsync();
         stack.Children.Add(resetBtn);
 
@@ -165,7 +165,7 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
             FontSize = 13,
             HeightRequest = 38,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         levelsBtn.Clicked += async (_, _) =>
         {
             await Navigation.PushAsync(
@@ -297,7 +297,7 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
                     Text = condition.Text,
                     FontSize = 13,
                     LineBreakMode = LineBreakMode.WordWrap
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
                 if (!string.IsNullOrWhiteSpace(condition.WhatGetsReset))
                 {
                     condTextStack.Children.Add((new Label
@@ -324,7 +324,7 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
                             .Where(s => s != null)),
                         FontSize = 11,
                         FontAttributes = FontAttributes.Italic
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText3, classifyPageText: true), 0, 1);
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText3, classifyPageText: true), 0, 1);
                 }
 
                 var editCondBtn = (new Button
@@ -584,7 +584,7 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
             Text = "Done",
             CornerRadius = 8,
             Margin = new Thickness(16, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         confirmBtn.Clicked += async (_, _) =>
         {
             tcs.TrySetResult(editor.Text ?? "");

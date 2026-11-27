@@ -80,7 +80,7 @@ public class SharedActivitySelectionPage : Bannister.Views.ModeThemedPage
             Text = "✅ Confirm Selection", CornerRadius = 8, FontSize = 14,
             HeightRequest = 44, FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 8, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         confirmBtn.Clicked += async (_, _) =>
         {
             var selected = new List<(string, string)>();
@@ -199,7 +199,7 @@ public class SharedActivitySelectionPage : Bannister.Views.ModeThemedPage
                     Text = act.Name, FontSize = 13,
                     VerticalOptions = LayoutOptions.Center,
                     LineBreakMode = LineBreakMode.TailTruncation
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 1, 0);
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 1, 0);
                 row.Add((new Label
                 {
                     Text = $"+{act.ExpGain}", FontSize = 11,

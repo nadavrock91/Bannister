@@ -118,7 +118,7 @@ public class ImageEditPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 48,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, PrimaryColor).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, PrimaryColor).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _actionButton.Clicked += OnCropAndSaveClicked;
         UpdateModeButtons();
 
@@ -144,7 +144,7 @@ public class ImageEditPage : Bannister.Views.ModeThemedPage
             Text = "Browse Image",
             CornerRadius = 8,
             HeightRequest = 46
-        }).ThemeColor(VisualElement.BackgroundColorProperty, PrimaryColor).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, PrimaryColor).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         browseButton.Clicked += OnBrowseImageClicked;
 
         return (new Frame
@@ -162,7 +162,7 @@ public class ImageEditPage : Bannister.Views.ModeThemedPage
                         Text = "Crop to Resolution",
                         FontSize = 20,
                         FontAttributes = FontAttributes.Bold
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                     BuildModeToggle(),
                     browseButton,
                     _sourcePathLabel,
@@ -229,7 +229,7 @@ public class ImageEditPage : Bannister.Views.ModeThemedPage
     {
         bool selected = _selectedMode == mode;
         button.ThemeColor(VisualElement.BackgroundColorProperty, selected ? PrimaryColor : LightButtonColor);
-        button.ThemeColor(Button.TextColorProperty, selected ? ThemeKey.OnColorText : ThemeKey.CardText1);
+        button.ThemeColor(Button.TextColorProperty, selected ? ThemeKey.ButtonPrimaryText : ThemeKey.CardText1);
     }
 
     private Grid BuildAnchorGrid()
@@ -295,7 +295,7 @@ public class ImageEditPage : Bannister.Views.ModeThemedPage
         {
             bool selected = button.BindingContext is CropAnchor anchor && anchor == _selectedAnchor;
             button.ThemeColor(VisualElement.BackgroundColorProperty, selected ? PrimaryColor : LightButtonColor);
-            button.ThemeColor(Button.TextColorProperty, selected ? ThemeKey.OnColorText : ThemeKey.CardText1);
+            button.ThemeColor(Button.TextColorProperty, selected ? ThemeKey.ButtonPrimaryText : ThemeKey.CardText1);
         }
     }
 

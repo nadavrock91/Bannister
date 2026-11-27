@@ -81,7 +81,7 @@ public class DragonTreePage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAddRoot.Clicked += (s, e) => OnAddDragonClicked(null);
         btnStack.Children.Add(btnAddRoot);
 
@@ -225,7 +225,7 @@ public class DragonTreePage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             FontSize = 11,
             Padding = new Thickness(8, 4)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAddChild.Clicked += (s, e) => OnAddDragonClicked(dragon.Id);
         buttonStack.Children.Add(btnAddChild);
 
@@ -235,7 +235,7 @@ public class DragonTreePage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             FontSize = 11,
             Padding = new Thickness(8, 4)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnEdit.Clicked += (s, e) => OnEditDragonClicked(dragon);
         buttonStack.Children.Add(btnEdit);
 
@@ -245,7 +245,7 @@ public class DragonTreePage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             FontSize = 11,
             Padding = new Thickness(8, 4)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnDelete.Clicked += (s, e) => OnDeleteDragonClicked(dragon);
         buttonStack.Children.Add(btnDelete);
 

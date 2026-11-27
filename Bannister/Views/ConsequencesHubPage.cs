@@ -32,7 +32,7 @@ public class ConsequencesHubPage : Bannister.Views.ModeThemedPage
                     FontSize = 26,
                     FontAttributes = FontAttributes.Bold,
                     HorizontalOptions = LayoutOptions.Center
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                 (new Label
                 {
                     Text = "Define the consequences of breaking your commitments.",
@@ -70,7 +70,7 @@ public class ConsequencesHubPage : Bannister.Views.ModeThemedPage
             Text = title,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         textStack.Children.Add((new Label
         {
             Text = subtitle,
@@ -83,7 +83,7 @@ public class ConsequencesHubPage : Bannister.Views.ModeThemedPage
             Text = "→",
             FontSize = 24,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 1, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 1, 0);
 
         var frame = (new Frame
         {

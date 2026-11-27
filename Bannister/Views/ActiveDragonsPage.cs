@@ -64,13 +64,13 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
             Text = "🐉 Active Dragons",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         headerStack.Children.Add((new Label
         {
             Text = "Track your attempts to slay each dragon (reach Level 100)",
             FontSize = 13
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellow, ThemeKey.PageText1, classifyPageText: true));
 
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
@@ -84,7 +84,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 44,
             HorizontalOptions = LayoutOptions.Center,
             Padding = new Thickness(20, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAddDragon.Clicked += OnAddDragonClicked;
         mainStack.Children.Add(btnAddDragon);
 
@@ -113,7 +113,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
             },
             SelectedIndex = 0,
             WidthRequest = 180
-        }).ThemeColor(Picker.TextColorProperty, ThemeKey.CardTextStrong);
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.CardText1);
         _sortPicker.SelectedIndexChanged += async (s, e) =>
         {
             if (_sortPicker.SelectedItem != null)
@@ -249,7 +249,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, hasActiveAttempt ? ThemeKey.HighlightIndigo : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, hasActiveAttempt ? ThemeKey.SecondaryAccentText : ThemeKey.Separator);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, hasActiveAttempt ? ThemeKey.HighlightIndigo : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, hasActiveAttempt ? ThemeKey.HighlightIndigoText : ThemeKey.Separator);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
 
@@ -265,7 +265,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 30,
             Padding = new Thickness(4, 0)
-        }).ThemeColor(Button.TextColorProperty, ThemeKey.SecondaryAccentText);
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         btnExpand.Clicked += (s, e) =>
         {
             _expandedDragons[dragonKey] = !_expandedDragons[dragonKey];
@@ -301,7 +301,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true));
         }
 
         headerStack.Children.Add(titleRow);
@@ -326,7 +326,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
                 FontSize = 28,
                 FontAttributes = FontAttributes.Bold,
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true));
 
             attemptRow.Children.Add((new Label
             {
@@ -381,7 +381,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
                 FontSize = 12,
                 HeightRequest = 32,
                 HorizontalOptions = LayoutOptions.Start
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btnStartAttempt.Clicked += async (s, e) => await StartNewAttemptAsync(dragon, sortedAttempts);
             buttonsRow.Children.Add(btnStartAttempt);
         }
@@ -395,7 +395,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
                 FontSize = 12,
                 HeightRequest = 32,
                 HorizontalOptions = LayoutOptions.Start
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btnEditDays.Clicked += async (s, e) => await EditActiveAttemptAsync(activeAttempt!, dragon, displayDays);
             buttonsRow.Children.Add(btnEditDays);
 
@@ -407,7 +407,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
                 FontSize = 12,
                 HeightRequest = 32,
                 HorizontalOptions = LayoutOptions.Start
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btnFailed.Clicked += async (s, e) => await MarkAttemptFailedAsync(dragon);
             buttonsRow.Children.Add(btnFailed);
         }
@@ -420,7 +420,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
             FontSize = 12,
             HeightRequest = 32,
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAddPast.Clicked += async (s, e) => await AddPastAttemptAsync(dragon);
         buttonsRow.Children.Add(btnAddPast);
 
@@ -433,7 +433,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 32,
             WidthRequest = 40,
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnIrrelevant.Clicked += async (s, e) => await MarkDragonIrrelevantAsync(dragon);
         buttonsRow.Children.Add(btnIrrelevant);
 
@@ -446,7 +446,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 32,
             WidthRequest = 40,
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnSlain.Clicked += async (s, e) => await MarkDragonSlainAsync(dragon);
         buttonsRow.Children.Add(btnSlain);
 
@@ -465,7 +465,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
                 FontSize = 12,
                 HeightRequest = 32,
                 HorizontalOptions = LayoutOptions.Start
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btnHistory.Clicked += async (s, e) => await ShowHistoryAsync(dragon, activeAttempt!);
             buttonsRow2.Children.Add(btnHistory);
 
@@ -475,7 +475,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
             {
                 IsChecked = dragon.IsAutoIncrement,
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
+            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessButtonBackground);
             chkAuto.CheckedChanged += async (s, e) => await ToggleAutoIncrementAsync(dragon, e.Value);
             autoToggleStack.Children.Add(chkAuto);
             autoToggleStack.Children.Add((new Label
@@ -521,7 +521,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
         var isActive = attempt.IsActive;
         var isFailed = attempt.FailedAt.HasValue;
         
-        var borderColor = isActive ? ThemeKey.SecondaryAccentText : isFailed ? ThemeKey.ErrorButtonBackground : ThemeKey.SuccessLightText; // Success (completed without fail)
+        var borderColor = isActive ? ThemeKey.HighlightIndigoText : isFailed ? ThemeKey.ErrorButtonBackground : ThemeKey.SuccessButtonBackground; // Success (completed without fail)
         
         var bgColor = isActive ? ThemeKey.HighlightIndigo : isFailed ? ThemeKey.ErrorBackground : ThemeKey.SuccessBackground;
 
@@ -551,7 +551,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
             FontSize = 11,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.HighlightIndigoButton : isFailed ? ThemeKey.ErrorText : ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.HighlightIndigoText : isFailed ? ThemeKey.ErrorText : ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true));
 
         // Days (big number) - use displayDays
         stack.Children.Add((new Label
@@ -560,7 +560,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.SecondaryAccentText : ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.HighlightIndigoText : ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         // "days" label
         stack.Children.Add((new Label
@@ -579,7 +579,7 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
                 FontSize = 10,
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 4, 0, 0)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText3, classifyPageText: true));
         }
         else if (isFailed)
         {

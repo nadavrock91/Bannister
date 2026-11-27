@@ -74,11 +74,11 @@ public class ListsPage : Bannister.Views.ModeThemedPage
         _listPicker.SelectedIndexChanged += async (s, e) => await OnListSelectedAsync();
         topRow.Add(_listPicker, 0, 0);
 
-        var newListBtn = CreateHeaderButton("+ List", ThemeKey.SuccessDarkButtonBackground, ThemeKey.OnColorText);
+        var newListBtn = CreateHeaderButton("+ List", ThemeKey.SuccessButtonBackground, ThemeKey.ButtonPrimaryText);
         newListBtn.Clicked += async (s, e) => await CreateListAsync();
         topRow.Add(newListBtn, 1, 0);
 
-        var addItemBtn = CreateHeaderButton("+ Item", ThemeKey.ButtonPrimaryBackground, ThemeKey.OnColorText);
+        var addItemBtn = CreateHeaderButton("+ Item", ThemeKey.ButtonPrimaryBackground, ThemeKey.ButtonPrimaryText);
         addItemBtn.Clicked += async (s, e) => await AddItemAsync();
         topRow.Add(addItemBtn, 2, 0);
 
@@ -86,7 +86,7 @@ public class ListsPage : Bannister.Views.ModeThemedPage
         deleteItemBtn.Clicked += async (s, e) => await DeleteSelectedItemAsync();
         topRow.Add(deleteItemBtn, 3, 0);
 
-        var deleteListBtn = CreateHeaderButton("Delete List", ThemeKey.ErrorBackground, ThemeKey.ErrorDeepText);
+        var deleteListBtn = CreateHeaderButton("Delete List", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
         deleteListBtn.Clicked += async (_, _) =>
         {
             if (_selectedList == null) return;
@@ -213,8 +213,8 @@ public class ListsPage : Bannister.Views.ModeThemedPage
             .ToList();
 
         var dataGrid = DataGridView.Create(headers, displayRows)
-            .WithHeaderStyle(AppColors.Get(ThemeKey.SecondaryAccentText), AppColors.Get(ThemeKey.OnColorText))
-            .WithAlternateRowColor(AppColors.Get(ThemeKey.SecondaryLavenderSurface))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.HighlightIndigoText), AppColors.Get(ThemeKey.ButtonPrimaryText))
+            .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightViolet))
             .WithColumnWidths(60, 240)
             .WithCellPadding(6)
             .WithFontSize(12, 12)
@@ -366,7 +366,7 @@ public class ListsPage : Bannister.Views.ModeThemedPage
             {
                 Text = "Add",
                 CornerRadius = 6
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             addButton.Clicked += async (_, _) => await CloseAsync(_editor.Text);
 
             var cancelButton = (new Button

@@ -52,7 +52,7 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
             Text = " Privacy Log",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label
         {
             Text = "Recent visibility changes across activities " +
@@ -68,7 +68,7 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 4, 0, 0)
         };
 
-        _btnAll = MakeFilterBtn("All", true, ThemeKey.NeutralHoverButton);
+        _btnAll = MakeFilterBtn("All", true, ThemeKey.NeutralDarkButton);
         _btnAll.Clicked += async (_, _) =>
         {
             _timeFilter = null;
@@ -130,11 +130,11 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
             HeightRequest = 30,
             CornerRadius = 6,
             Padding = new Thickness(8, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, active ? activeHex : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, active ? activeHex : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, active ? ThemeKey.ButtonPrimaryText : ThemeKey.NeutralButtonText);
 
     private void UpdateFilterButtons()
     {
-        StyleBtn(_btnAll, _timeFilter == null, ThemeKey.NeutralHoverButton);
+        StyleBtn(_btnAll, _timeFilter == null, ThemeKey.NeutralDarkButton);
         StyleBtn(_btnToday, _timeFilter == 0, ThemeKey.ButtonPrimaryBackground);
         StyleBtn(_btnYesterday, _timeFilter == 1, ThemeKey.ButtonPrimaryBackground);
         StyleBtn(_btnWeek, _timeFilter == 7, ThemeKey.ButtonPrimaryBackground);
@@ -145,7 +145,7 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
         Button btn, bool active, ThemeKey activeHex)
     {
         btn.ThemeColor(VisualElement.BackgroundColorProperty, active ? activeHex : ThemeKey.NeutralButtonBackground);
-        btn.ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
+        btn.ThemeColor(Button.TextColorProperty, active ? ThemeKey.ButtonPrimaryText : ThemeKey.NeutralButtonText);
     }
 
     private async Task LoadAndRenderAsync()
@@ -229,7 +229,7 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
                 FontSize = 15,
                 FontAttributes = FontAttributes.Bold,
                 Margin = new Thickness(0, 8, 0, 2)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
             foreach (var g in gameChanges)
                 _contentContainer.Children.Add(
@@ -249,7 +249,7 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
                 FontSize = 15,
                 FontAttributes = FontAttributes.Bold,
                 Margin = new Thickness(0, 8, 0, 2)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
             foreach (var a in actChanges)
                 _contentContainer.Children.Add(
@@ -280,7 +280,7 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
         {
             1 => ThemeKey.InfoText,
             2 => ThemeKey.SuccessText,
-            _ => ThemeKey.AccentPurpleStrongText
+            _ => ThemeKey.HighlightVioletText
         };
 
         var row = (new Grid
@@ -301,7 +301,7 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
             Text = name,
             FontSize = 13,
             LineBreakMode = LineBreakMode.TailTruncation
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         nameStack.Children.Add((new Label
         {
             Text = changedAt.ToLocalTime()

@@ -38,7 +38,7 @@ public class AllCountdownsPage : Bannister.Views.ModeThemedPage
             Text = "📊 All Countdowns",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
         
         // Filters row
         var filterRow = new Grid
@@ -63,7 +63,7 @@ public class AllCountdownsPage : Bannister.Views.ModeThemedPage
         {
             ItemsSource = new[] { "All", "Active", "Correct", "Wrong", "Cancelled" },
             SelectedIndex = 0
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _filterPicker.SelectedIndexChanged += async (s, e) => await LoadCountdownsAsync();
         filterStack.Children.Add(_filterPicker);
         
@@ -82,7 +82,7 @@ public class AllCountdownsPage : Bannister.Views.ModeThemedPage
         {
             ItemsSource = new[] { "Target Date", "Created Date", "Category", "Days Remaining" },
             SelectedIndex = 0
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _sortPicker.SelectedIndexChanged += async (s, e) => await LoadCountdownsAsync();
         sortStack.Children.Add(_sortPicker);
         
@@ -168,7 +168,7 @@ public class AllCountdownsPage : Bannister.Views.ModeThemedPage
             BorderColor = countdown.StatusColor,
             CornerRadius = 12,
             Padding = 14
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground);
         
         var stack = new VerticalStackLayout { Spacing = 6 };
         
@@ -207,7 +207,7 @@ public class AllCountdownsPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(nameLabel, 1);
         titleRow.Children.Add(nameLabel);
         
@@ -239,7 +239,7 @@ public class AllCountdownsPage : Bannister.Views.ModeThemedPage
             {
                 Text = $"⏱️ Postponed {countdown.PostponeCount}x",
                 FontSize = 11
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true));
         }
         
         frame.Content = stack;

@@ -43,7 +43,7 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
             CornerRadius = 12,
             BorderColor = Colors.Transparent,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
         
@@ -52,14 +52,14 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
             Text = $"📸 Line #{_line.LineOrder} - Clips",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         // Progress indicator
         _progressLabel = (new Label
         {
             Text = "0/0 clips ready",
             FontSize = 16
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleSelected, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightViolet, ThemeKey.PageText1, classifyPageText: true);
         headerStack.Children.Add(_progressLabel);
 
         headerFrame.Content = headerStack;
@@ -72,7 +72,7 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
             {
                 Padding = 12,
                 CornerRadius = 8
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightYellowButton);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningButtonBackground);
             contextFrame.Content = (new Label
             {
                 Text = $"🎨 {_line.VisualDescription}",
@@ -88,7 +88,7 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
             {
                 Padding = 12,
                 CornerRadius = 8
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.InfoLinkText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.InfoText);
             lineTextFrame.Content = (new Label
             {
                 Text = $"💬 \"{_line.LineText}\"",
@@ -107,7 +107,7 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
             HeightRequest = 44,
             HorizontalOptions = LayoutOptions.Start,
             Padding = new Thickness(16, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addClipBtn.Clicked += OnAddClipClicked;
         mainStack.Children.Add(addClipBtn);
 
@@ -200,7 +200,7 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, isReady ? ThemeKey.SuccessBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isReady ? ThemeKey.SuccessLightText : ThemeKey.Separator);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isReady ? ThemeKey.SuccessBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isReady ? ThemeKey.SuccessButtonBackground : ThemeKey.Separator);
 
         var grid = new Grid
         {
@@ -219,7 +219,7 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
         {
             IsChecked = isReady,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
+        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessButtonBackground);
         int shotIdx = shot.Index - 1;
         checkbox.CheckedChanged += async (s, e) =>
         {
@@ -277,7 +277,7 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
             Text = isReady ? "✓ Ready" : $"{tasksComplete}/2 tasks",
             FontSize = 12,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, isReady ? ThemeKey.OnColorText : ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, isReady ? ThemeKey.ButtonPrimaryText : ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true);
         Grid.SetColumn(progressFrame, 2);
         grid.Children.Add(progressFrame);
 

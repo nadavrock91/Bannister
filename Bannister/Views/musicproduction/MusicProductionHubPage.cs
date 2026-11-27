@@ -38,7 +38,7 @@ public class MusicProductionHubPage : Bannister.Views.ModeThemedPage
             Text = "Music Production",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoButton, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true));
 
         stack.Children.Add((new Label
         {
@@ -50,7 +50,7 @@ public class MusicProductionHubPage : Bannister.Views.ModeThemedPage
             "Music for Stories",
             "Plan music cues alongside script and visuals.",
             ThemeKey.HighlightIndigo,
-            ThemeKey.HighlightIndigoButton,
+            ThemeKey.HighlightIndigoText,
             OnMusicForStoriesClicked));
 
         scroll.Content = stack;
@@ -98,7 +98,7 @@ public class MusicProductionHubPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             Padding = new Thickness(18, 10),
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(VisualElement.BackgroundColorProperty, accent).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, accent).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         button.Clicked += clicked;
         Grid.SetColumn(button, 1);
         grid.Children.Add(button);

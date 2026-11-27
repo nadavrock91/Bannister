@@ -41,7 +41,7 @@ public class CustomGamePlayPage : Bannister.Views.ModeThemedPage
             Text = "View Top Scores",
             CornerRadius = 8,
             HeightRequest = 44
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.AccentVioletDeep);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         topScores.Clicked += async (_, _) => await Navigation.PushAsync(new CustomGameTopScoresPage(_auth, _customGames, _gameId));
 
         Content = new ScrollView
@@ -108,7 +108,7 @@ public class CustomGamePlayPage : Bannister.Views.ModeThemedPage
                 Margin = new Thickness(0, 0, 8, 8),
                 HeightRequest = 48,
                 MinimumWidthRequest = 96
-            }).ThemeColor(VisualElement.BackgroundColorProperty, TryParseColor(customButton.Color, customButton.PointValue >= 0 ? ThemeKey.SuccessDarkButtonBackground : ThemeKey.ErrorDarkButtonBackground)).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, TryParseColor(customButton.Color, customButton.PointValue >= 0 ? ThemeKey.SuccessButtonBackground : ThemeKey.ErrorButtonBackground)).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             button.Clicked += async (_, _) => await ApplyButtonAsync(customButton);
             _buttonsLayout.Children.Add(button);
         }
@@ -236,7 +236,7 @@ public class CustomGamePlayPage : Bannister.Views.ModeThemedPage
         _scoreLabel.Text = _instance.FinalScore.ToString();
         _scoreLabel.FontSize = 56;
         _scoreLabel.FontAttributes = FontAttributes.Bold;
-        _scoreLabel.ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
+        _scoreLabel.ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         _scoreLabel.HorizontalTextAlignment = TextAlignment.Center;
 
         _statusLabel.Text = _game.EndType switch

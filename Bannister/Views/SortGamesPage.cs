@@ -51,7 +51,7 @@ public class SortGamesPage : Bannister.Views.ModeThemedPage
             Text = " Sort Games",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label
         {
             Text = "Set each game to Public, Private, or Both. " +
@@ -63,7 +63,7 @@ public class SortGamesPage : Bannister.Views.ModeThemedPage
         // Legend
         var legendRow = new HorizontalStackLayout { Spacing = 16 };
         legendRow.Children.Add(MakeLegend(" Public", ThemeKey.InfoText));
-        legendRow.Children.Add(MakeLegend(" Private", ThemeKey.AccentPurpleDarkButtonBackground));
+        legendRow.Children.Add(MakeLegend(" Private", ThemeKey.HighlightVioletText));
         legendRow.Children.Add(MakeLegend(" Both", ThemeKey.SuccessText));
         stack.Children.Add(legendRow);
 
@@ -88,7 +88,7 @@ public class SortGamesPage : Bannister.Views.ModeThemedPage
         };
         filterRow.Children.Add(_filterPublicBtn);
 
-        _filterPrivateBtn = MakeFilterBtn(" Private", false, ThemeKey.AccentPurpleDarkButtonBackground);
+        _filterPrivateBtn = MakeFilterBtn(" Private", false, ThemeKey.HighlightVioletText);
         _filterPrivateBtn.Clicked += (_, _) =>
         {
             _viewFilter = 0;
@@ -142,13 +142,13 @@ public class SortGamesPage : Bannister.Views.ModeThemedPage
             HeightRequest = 30,
             CornerRadius = 6,
             Padding = new Thickness(8, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, active ? activeHex : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, active ? activeHex : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, active ? ThemeKey.ButtonPrimaryText : ThemeKey.NeutralButtonText);
 
     private void UpdateFilterButtons()
     {
         StyleBtn(_filterAllBtn, _viewFilter == null, ThemeKey.CardText2);
         StyleBtn(_filterPublicBtn, _viewFilter == 1, ThemeKey.InfoText);
-        StyleBtn(_filterPrivateBtn, _viewFilter == 0, ThemeKey.AccentPurpleDarkButtonBackground);
+        StyleBtn(_filterPrivateBtn, _viewFilter == 0, ThemeKey.HighlightVioletText);
         StyleBtn(_filterBothBtn, _viewFilter == 2, ThemeKey.SuccessText);
     }
 
@@ -156,7 +156,7 @@ public class SortGamesPage : Bannister.Views.ModeThemedPage
         Button btn, bool active, ThemeKey activeHex)
     {
         btn.ThemeColor(VisualElement.BackgroundColorProperty, active ? activeHex : ThemeKey.NeutralButtonBackground);
-        btn.ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
+        btn.ThemeColor(Button.TextColorProperty, active ? ThemeKey.ButtonPrimaryText : ThemeKey.NeutralButtonText);
     }
 
     private async Task LoadDataAsync()
@@ -283,7 +283,7 @@ public class SortGamesPage : Bannister.Views.ModeThemedPage
         setAllRow.Add(setAllPub, 1, 0);
 
         var setAllPriv = VisBtn("", false,
-            ThemeKey.AccentPurpleDarkButtonBackground, ThemeKey.AccentPurpleBackground, ThemeKey.AccentPurpleDarkButtonBackground);
+            ThemeKey.HighlightVioletText, ThemeKey.HighlightViolet, ThemeKey.HighlightVioletText);
         setAllPriv.Clicked += async (_, _) =>
             await SetAllVisibilityAsync(filtered, 0);
         setAllRow.Add(setAllPriv, 2, 0);
@@ -346,7 +346,7 @@ public class SortGamesPage : Bannister.Views.ModeThemedPage
             Text = game.DisplayName,
             FontSize = 14,
             LineBreakMode = LineBreakMode.TailTruncation
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         if (game.VisibilityChangedAt.HasValue)
             nameStack.Children.Add((new Label
             {
@@ -376,7 +376,7 @@ public class SortGamesPage : Bannister.Views.ModeThemedPage
 
         var privBtn = VisBtn("",
             game.GameVisibility == 0,
-            ThemeKey.AccentPurpleDarkButtonBackground, ThemeKey.AccentPurpleBackground, ThemeKey.AccentPurpleDarkButtonBackground);
+            ThemeKey.HighlightVioletText, ThemeKey.HighlightViolet, ThemeKey.HighlightVioletText);
         privBtn.Clicked += async (_, _) =>
         {
             if (_isSaving) return;
@@ -430,5 +430,5 @@ public class SortGamesPage : Bannister.Views.ModeThemedPage
             WidthRequest = 36,
             CornerRadius = 6,
             Padding = 0
-        }).ThemeColor(VisualElement.BackgroundColorProperty, active ? activeBg : inactiveBg).ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : inactiveFg);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, active ? activeBg : inactiveBg).ThemeColor(Button.TextColorProperty, active ? ThemeKey.ButtonPrimaryText : inactiveFg);
 }

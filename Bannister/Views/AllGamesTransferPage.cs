@@ -56,7 +56,7 @@ public class AllGamesTransferPage : Bannister.Views.ModeThemedPage
     private void BuildUI()
     {
         var stack = new VerticalStackLayout { Padding = 20, Spacing = 16 };
-        stack.Children.Add((new Label { Text = " Transfer All Games", FontSize = 22, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label { Text = " Transfer All Games", FontSize = 22, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label { Text = "Select activities to export per game, then copy to clipboard. On the other device paste the JSON to import.", FontSize = 13, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         var exportHeader = new Grid
@@ -86,14 +86,14 @@ public class AllGamesTransferPage : Bannister.Views.ModeThemedPage
         stack.Children.Add(_exportStatusLabel);
         _exportContainer = new VerticalStackLayout { Spacing = 12 };
         stack.Children.Add(_exportContainer);
-        var exportBtn = (new Button { Text = " Copy Selected to Clipboard", CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var exportBtn = (new Button { Text = " Copy Selected to Clipboard", CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         exportBtn.Clicked += async (_, _) => await ExportSelectedAsync();
         stack.Children.Add(exportBtn);
 
         stack.Children.Add((new BoxView { HeightRequest = 1, Margin = new Thickness(0, 8, 0, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator));
         stack.Children.Add((new Label { Text = "Import", FontSize = 16, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label { Text = "Paste exported JSON. All activities are imported. Duplicates (same name in same game) will ask what to do.", FontSize = 12, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
-        var pasteBtn = (new Button { Text = " Paste & Import JSON", CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var pasteBtn = (new Button { Text = " Paste & Import JSON", CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         pasteBtn.Clicked += async (_, _) => await PasteAndImportAsync();
         stack.Children.Add(pasteBtn);
         Content = new ScrollView { Content = stack };
@@ -169,7 +169,7 @@ public class AllGamesTransferPage : Bannister.Views.ModeThemedPage
                         capturedGroup.SelectedIndices.Remove(capturedI);
                 };
                 row.Add(cb, 0, 0);
-                row.Add((new Label { Text = act.Name, FontSize = 13, VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.TailTruncation }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 1, 0);
+                row.Add((new Label { Text = act.Name, FontSize = 13, VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.TailTruncation }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 1, 0);
                 row.Add((new Label { Text = $"+{act.ExpGain}", FontSize = 11, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true), 2, 0);
                 actStack.Children.Add(row);
             }

@@ -89,7 +89,7 @@ public class PracticePage : Bannister.Views.ModeThemedPage
             CornerRadius = 12,
             HasShadow = true,
             MinimumHeightRequest = 100
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.AccentPurpleButtonBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightVioletText);
 
         var theirStack = new VerticalStackLayout { Spacing = 12 };
 
@@ -98,7 +98,7 @@ public class PracticePage : Bannister.Views.ModeThemedPage
             Text = $"🗣️ {_conversation.AiRole} says:",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleButtonBackground, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true));
 
         lblTheirResponse = (new Label
         {
@@ -117,7 +117,7 @@ public class PracticePage : Bannister.Views.ModeThemedPage
             Padding = 16,
             CornerRadius = 12,
             HasShadow = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.InfoLinkText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.InfoText);
 
         var yourOuterStack = new VerticalStackLayout { Spacing = 12 };
 
@@ -141,7 +141,7 @@ public class PracticePage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 45
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnRestart.Clicked += OnRestartClicked;
         mainStack.Children.Add(btnRestart);
 
@@ -247,7 +247,7 @@ public class PracticePage : Bannister.Views.ModeThemedPage
                 CornerRadius = 8,
                 FontSize = 14,
                 HeightRequest = 45
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btnContinue.Clicked += async (s, e) => await EndConversationAsync();
             yourChoicesContainer.Children.Add(btnContinue);
             return;
@@ -263,7 +263,7 @@ public class PracticePage : Bannister.Views.ModeThemedPage
                 FontAttributes = FontAttributes.Bold,
                 Padding = new Thickness(12, 10),
                 LineBreakMode = LineBreakMode.WordWrap
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
             btn.Clicked += async (s, e) => await OnYourChoiceClicked(option);
             yourChoicesContainer.Children.Add(btn);
@@ -311,7 +311,7 @@ public class PracticePage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText1, classifyPageText: true));
 
         // Show self-scoring dialog
         await ShowSelfScoringAsync();
@@ -325,7 +325,7 @@ public class PracticePage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HasShadow = false,
             Margin = isUser ? new Thickness(40, 0, 0, 0) : new Thickness(0, 0, 40, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, isUser ? ThemeKey.InfoBackground : ThemeKey.AccentPurpleBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isUser ? ThemeKey.InfoLinkText : ThemeKey.AccentPurpleButtonBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isUser ? ThemeKey.InfoBackground : ThemeKey.HighlightViolet).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isUser ? ThemeKey.InfoText : ThemeKey.HighlightVioletText);
 
         var stack = new VerticalStackLayout { Spacing = 4 };
 
@@ -334,7 +334,7 @@ public class PracticePage : Bannister.Views.ModeThemedPage
             Text = isUser ? $"You ({_conversation.UserRole}):" : $"{_conversation.AiRole}:",
             FontSize = 11,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, isUser ? ThemeKey.InfoText : ThemeKey.AccentPurpleText, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, isUser ? ThemeKey.InfoText : ThemeKey.HighlightVioletText, ThemeKey.PageText3, classifyPageText: true));
 
         stack.Children.Add((new Label
         {
@@ -417,7 +417,7 @@ public class PracticePage : Bannister.Views.ModeThemedPage
             Maximum = 100,
             Value = 50
         };
-        slider.ThemeColor(Slider.MinimumTrackColorProperty, ThemeKey.SuccessLightText)
+        slider.ThemeColor(Slider.MinimumTrackColorProperty, ThemeKey.SuccessButtonBackground)
             .ThemeColor(Slider.MaximumTrackColorProperty, ThemeKey.Separator);
 
         var lblScore = (new Label
@@ -426,7 +426,7 @@ public class PracticePage : Bannister.Views.ModeThemedPage
             FontSize = 48,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
 
         slider.ValueChanged += (s, e) =>
         {
@@ -452,7 +452,7 @@ public class PracticePage : Bannister.Views.ModeThemedPage
             HeightRequest = 60,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 20, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
 

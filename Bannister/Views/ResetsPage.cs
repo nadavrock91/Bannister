@@ -47,7 +47,7 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
             Text = "⚡ Resets",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label
         {
             Text = "Track reset enforcers — commitments where breaking " +
@@ -63,7 +63,7 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += async (_, _) => await AddEnforcerAsync();
         stack.Children.Add(addBtn);
 
@@ -264,7 +264,7 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.End
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 1, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 1, 0);
 
         string visText = enforcer.Visibility switch
         {
@@ -283,7 +283,7 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
             BorderWidth = 1
         }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, enforcer.Visibility switch
             {
-                1 => ThemeKey.InfoText,                2 => ThemeKey.SuccessText,                _ => ThemeKey.AccentPurpleDarkButtonBackground            }).ThemeColor(Button.BorderColorProperty, ThemeKey.Separator);
+                1 => ThemeKey.InfoText,                2 => ThemeKey.SuccessText,                _ => ThemeKey.HighlightVioletText            }).ThemeColor(Button.BorderColorProperty, ThemeKey.Separator);
         visBtn.Clicked += async (_, _) =>
         {
             enforcer.Visibility =
@@ -317,7 +317,7 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
             FontSize = 13,
             HeightRequest = 36,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         var capturedEnforcer = enforcer;
         resetBtn.Clicked += async (_, _) =>
         {
@@ -341,7 +341,7 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.End,
             Padding = new Thickness(10, 0),
             Margin = new Thickness(0, 6, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, isArchived ? ThemeKey.SuccessBackground : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, isArchived ? ThemeKey.SuccessText : ThemeKey.NeutralHoverButton);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isArchived ? ThemeKey.SuccessBackground : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, isArchived ? ThemeKey.SuccessText : ThemeKey.NeutralDarkButton);
         var capturedArchived = isArchived;
         archiveBtn.Clicked += async (_, _) =>
         {

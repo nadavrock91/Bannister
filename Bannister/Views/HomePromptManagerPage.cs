@@ -42,7 +42,7 @@ public class HomePromptManagerPage : Bannister.Views.ModeThemedPage
         {
             FontSize = 14,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText1, classifyPageText: true);
 
         var scroll = new ScrollView
         {
@@ -56,7 +56,7 @@ public class HomePromptManagerPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 46
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _addressAllButton.Clicked += async (_, _) => await CloseAsync(new HomePromptManagerResult(HomePromptManagerResult.AddressAll));
 
         var closeButton = (new Button
@@ -129,7 +129,7 @@ public class HomePromptManagerPage : Bannister.Views.ModeThemedPage
             {
                 Text = "No prompts remain.",
                 FontSize = 15
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText1, classifyPageText: true));
             return;
         }
 
@@ -161,7 +161,7 @@ public class HomePromptManagerPage : Bannister.Views.ModeThemedPage
             Text = "Address",
             CornerRadius = 8,
             HeightRequest = 40
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         address.Clicked += async (_, _) => await CloseAsync(new HomePromptManagerResult(HomePromptManagerResult.Address, prompt.Id));
 
         var skip = (new Button

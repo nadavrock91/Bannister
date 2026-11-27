@@ -44,7 +44,7 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
             Text = "Writing Processes",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true));
 
         var experimentBtn = (new Button
         {
@@ -54,7 +54,7 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 12, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleStrongText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         experimentBtn.Clicked += async (_, _) =>
         {
             var page = new WritingExperimentPage(_auth, _experimentService, _storyService, _ideaLogger);
@@ -75,7 +75,7 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += OnAddClicked;
         mainStack.Children.Add(addBtn);
 
@@ -99,7 +99,7 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true);
         var headerTap = new TapGestureRecognizer();
         headerTap.Tapped += async (_, _) =>
         {
@@ -179,7 +179,7 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
                     FontSize = 12,
                     Padding = new Thickness(12, 0),
                     VerticalOptions = LayoutOptions.Center
-                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorSelectedBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
                 var capturedProcess = process;
                 deleteButton.Clicked += async (_, _) =>
                     await DeleteProcessAsync(capturedProcess, totalCount);
@@ -221,7 +221,7 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
                 {
                     var topTt = ttProjects.OrderByDescending(p => p.TikTokViews).First();
                     processStack.Children.Add(BuildPlatformStats(
-                        "TikTok", ThemeKey.CardTextStrong, ttProjects.Count,
+                        "TikTok", ThemeKey.CardText1, ttProjects.Count,
                         ttProjects.Average(p => p.TikTokViews),
                         ttProjects.Average(p => p.TikTokLikes),
                         ttProjects.Average(p => p.TikTokComments),

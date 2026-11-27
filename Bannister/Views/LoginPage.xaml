@@ -26,8 +26,8 @@
             <Frame x:Name="DatabaseMissingSection" IsVisible="False" BackgroundColor="{DynamicResource ModeCardBackground}" Padding="20" CornerRadius="10" Margin="0,20,0,0" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=CardBackground">
                 <VerticalStackLayout Spacing="14">
                     <Label Text="No Bannister database found on this device." FontSize="18" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                    <Button Text="Select existing database" Clicked="OnSelectExistingDatabaseClicked" BackgroundColor="{DynamicResource ModeHighlightIndigoButton}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=HighlightIndigoButton,TextColor=OnColorText" />
-                    <Button Text="Create new database" Clicked="OnCreateNewDatabaseClicked" BackgroundColor="{DynamicResource ModeSuccessDarkButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SuccessDarkButtonBackground,TextColor=OnColorText" />
+                    <Button Text="Select existing database" Clicked="OnSelectExistingDatabaseClicked" BackgroundColor="{DynamicResource ModeHighlightIndigoText}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=HighlightIndigoText,TextColor=ButtonPrimaryText" />
+                    <Button Text="Create new database" Clicked="OnCreateNewDatabaseClicked" BackgroundColor="{DynamicResource ModeSuccessButtonBackground}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SuccessButtonBackground,TextColor=ButtonPrimaryText" />
                 </VerticalStackLayout>
             </Frame>
 
@@ -36,31 +36,31 @@
 
                     <Label x:Name="lblTitle" Text="Welcome Back" FontSize="18" FontAttributes="Bold" />
 
-                    <Entry x:Name="txtUsername" Placeholder="Username" TextColor="{DynamicResource ModeInputText}" PlaceholderColor="{DynamicResource ModeDisabledText}" BackgroundColor="{DynamicResource ModeInputBackground}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=InputText,PlaceholderColor=DisabledText,BackgroundColor=InputBackground" />
+                    <Entry x:Name="txtUsername" Placeholder="Username" TextColor="{DynamicResource ModeInputText}" PlaceholderColor="{DynamicResource ModeCardText3}" BackgroundColor="{DynamicResource ModeInputBackground}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=InputText,PlaceholderColor=CardText3,BackgroundColor=InputBackground" />
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                        <Entry x:Name="txtPassword" Grid.Column="0" Placeholder="Password" IsPassword="True" TextChanged="OnPasswordTextChanged" TextColor="{DynamicResource ModeInputText}" PlaceholderColor="{DynamicResource ModeDisabledText}" BackgroundColor="{DynamicResource ModeInputBackground}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=InputText,PlaceholderColor=DisabledText,BackgroundColor=InputBackground" />
+                        <Entry x:Name="txtPassword" Grid.Column="0" Placeholder="Password" IsPassword="True" TextChanged="OnPasswordTextChanged" TextColor="{DynamicResource ModeInputText}" PlaceholderColor="{DynamicResource ModeCardText3}" BackgroundColor="{DynamicResource ModeInputBackground}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=InputText,PlaceholderColor=CardText3,BackgroundColor=InputBackground" />
                         <Button x:Name="btnTogglePasswordVisibility" Grid.Column="1" Text="👁" FontSize="16" WidthRequest="40" HeightRequest="40" Padding="0" VerticalOptions="Center" BackgroundColor="Transparent" TextColor="{DynamicResource ModeCardText2}" Clicked="OnTogglePasswordVisibilityClicked" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
                     </Grid>
                     <Label x:Name="lblPasswordCharacterCount" IsVisible="False" FontSize="11" TextColor="{DynamicResource ModeCardText2}" Margin="0,-12,0,0" LineBreakMode="CharacterWrap" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
 
                     <HorizontalStackLayout Spacing="8">
-                        <CheckBox x:Name="chkRemember" Color="{DynamicResource ModeAccentVioletButton}" theme:ThemeColorExtensions.NamedColorProperties="Color=AccentVioletButton" />
+                        <CheckBox x:Name="chkRemember" Color="{DynamicResource ModeHighlightVioletText}" theme:ThemeColorExtensions.NamedColorProperties="Color=HighlightVioletText" />
                         <Label Text="Remember me" VerticalOptions="Center" />
                     </HorizontalStackLayout>
 
-                    <Label x:Name="lblError" TextColor="{DynamicResource ModeErrorPureText}" IsVisible="False" theme:ThemeColorExtensions.NamedColorProperties="TextColor=ErrorPureText" />
+                    <Label x:Name="lblError" TextColor="{DynamicResource ModeErrorText}" IsVisible="False" theme:ThemeColorExtensions.NamedColorProperties="TextColor=ErrorText" />
 
-                    <Button x:Name="btnLogin" Text="Login" Clicked="OnLoginClicked" BackgroundColor="{DynamicResource ModeAccentVioletButton}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" HeightRequest="48" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=AccentVioletButton,TextColor=OnColorText" />
+                    <Button x:Name="btnLogin" Text="Login" Clicked="OnLoginClicked" BackgroundColor="{DynamicResource ModeHighlightVioletText}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" HeightRequest="48" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=HighlightVioletText,TextColor=ButtonPrimaryText" />
 
-                    <Button x:Name="btnToggle" Text="Need an account?" Clicked="OnToggleClicked" BackgroundColor="Transparent" TextColor="{DynamicResource ModeAccentVioletButton}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=AccentVioletButton" />
+                    <Button x:Name="btnToggle" Text="Need an account?" Clicked="OnToggleClicked" BackgroundColor="Transparent" TextColor="{DynamicResource ModeHighlightVioletText}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=HighlightVioletText" />
 
-                    <Button x:Name="btnImportFromSync" Text="Import from Another Device" Clicked="OnImportFromSyncClicked" BackgroundColor="{DynamicResource ModeHighlightViolet}" TextColor="{DynamicResource ModeAccentVioletButton}" BorderColor="{DynamicResource ModeHighlightIndigoStrong}" BorderWidth="1" CornerRadius="8" HeightRequest="42" FontSize="13" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=HighlightViolet,TextColor=AccentVioletButton,BorderColor=HighlightIndigoStrong" />
+                    <Button x:Name="btnImportFromSync" Text="Import from Another Device" Clicked="OnImportFromSyncClicked" BackgroundColor="{DynamicResource ModeHighlightViolet}" TextColor="{DynamicResource ModeHighlightVioletText}" BorderColor="{DynamicResource ModeHighlightIndigo}" BorderWidth="1" CornerRadius="8" HeightRequest="42" FontSize="13" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=HighlightViolet,TextColor=HighlightVioletText,BorderColor=HighlightIndigo" />
 
                     <Button x:Name="btnTestDev" Text="TEST (DEV)" Clicked="OnTestDevClicked" BackgroundColor="{DynamicResource ModeCardBackground}" TextColor="{DynamicResource ModeCardText1}" BorderColor="{DynamicResource ModeSeparator}" BorderWidth="1" CornerRadius="8" HeightRequest="48" IsVisible="False" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=CardBackground,TextColor=CardText1,BorderColor=Separator" />
 
-                    <Button x:Name="btnRunFix" Text="Run Fix (DEV)" Clicked="OnRunFixClicked" BackgroundColor="{DynamicResource ModeSuccessButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" HeightRequest="48" IsVisible="False" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SuccessButtonBackground,TextColor=OnColorText" />
+                    <Button x:Name="btnRunFix" Text="Run Fix (DEV)" Clicked="OnRunFixClicked" BackgroundColor="{DynamicResource ModeSuccessButtonBackground}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" HeightRequest="48" IsVisible="False" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SuccessButtonBackground,TextColor=ButtonPrimaryText" />
 
-                    <Button x:Name="btnDeleteDb" Text="Delete Database (DEV)" Clicked="OnDeleteDatabaseClicked" BackgroundColor="{DynamicResource ModeDeepOrangeButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" HeightRequest="40" FontSize="12" IsVisible="False" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=DeepOrangeButtonBackground,TextColor=OnColorText" />
+                    <Button x:Name="btnDeleteDb" Text="Delete Database (DEV)" Clicked="OnDeleteDatabaseClicked" BackgroundColor="{DynamicResource ModeWarningButtonBackground}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" HeightRequest="40" FontSize="12" IsVisible="False" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=WarningButtonBackground,TextColor=ButtonPrimaryText" />
 
                 </VerticalStackLayout>
             </Frame>

@@ -85,7 +85,7 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
                 FontSize = 13,
                 HeightRequest = 40,
                 Padding = new Thickness(14, 0)
-            }).ThemeColor(VisualElement.BackgroundColorProperty, isActive ? ThemeKey.ButtonPrimaryBackground : ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, isActive ? ThemeKey.OnColorText : ThemeKey.InfoText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, isActive ? ThemeKey.ButtonPrimaryBackground : ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, isActive ? ThemeKey.ButtonPrimaryText : ThemeKey.InfoText);
             button.Clicked += async (_, _) =>
             {
                 _activeTab = tab;
@@ -147,7 +147,7 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
             Text = technique.Title,
             FontSize = 17,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1), 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1), 0, 0);
         header.Add(CreateStatusBadge(technique.Status), 1, 0);
         stack.Children.Add(header);
         stack.Children.Add((new Label
@@ -197,7 +197,7 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
         }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText2);
         var status = CreateStatusPicker(technique.Status);
 
-        var save = CreateActionButton("Save", ThemeKey.SuccessDarkButtonBackground);
+        var save = CreateActionButton("Save", ThemeKey.SuccessButtonBackground);
         save.Clicked += async (_, _) =>
         {
             technique.Title = title.Text?.Trim() ?? "";
@@ -209,7 +209,7 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
             await RefreshAsync();
         };
 
-        var delete = CreateActionButton("Delete", ThemeKey.ErrorDarkButtonBackground);
+        var delete = CreateActionButton("Delete", ThemeKey.ErrorButtonBackground);
         delete.Clicked += async (_, _) =>
         {
             var confirm = await DisplayAlert(
@@ -310,13 +310,13 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
             Text = $"Quality: {RatingName(_selectedRating)}",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
         var ratingRow = new HorizontalStackLayout { Spacing = 8 };
         foreach (var option in new[]
         {
-            ("Terrible", 1, ThemeKey.ErrorDarkButtonBackground),
-            ("Usable", 5, ThemeKey.WarningHoverButtonBackground),
-            ("Extraordinary", 10, ThemeKey.SuccessDarkButtonBackground)
+            ("Terrible", 1, ThemeKey.ErrorButtonBackground),
+            ("Usable", 5, ThemeKey.WarningButtonBackground),
+            ("Extraordinary", 10, ThemeKey.SuccessButtonBackground)
         })
         {
             var rating = option.Item2;
@@ -327,7 +327,7 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
                 HeightRequest = 40,
                 Padding = new Thickness(12, 0),
                 CornerRadius = 6
-            }).ThemeColor(Button.TextColorProperty, rating == _selectedRating ? ThemeKey.OnColorText : ThemeKey.CardText1)
+            }).ThemeColor(Button.TextColorProperty, rating == _selectedRating ? ThemeKey.ButtonPrimaryText : ThemeKey.CardText1)
                 .ThemeColor(VisualElement.BackgroundColorProperty, rating == _selectedRating ? color : ThemeKey.NeutralButtonBackground);
             button.Clicked += (_, _) =>
             {
@@ -337,13 +337,13 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
                 {
                     var childOption = child.Text switch
                     {
-                        "Terrible" => (value: 1, selectedColor: ThemeKey.ErrorDarkButtonBackground),
-                        "Extraordinary" => (value: 10, selectedColor: ThemeKey.SuccessDarkButtonBackground),
-                        _ => (value: 5, selectedColor: ThemeKey.WarningHoverButtonBackground)
+                        "Terrible" => (value: 1, selectedColor: ThemeKey.ErrorButtonBackground),
+                        "Extraordinary" => (value: 10, selectedColor: ThemeKey.SuccessButtonBackground),
+                        _ => (value: 5, selectedColor: ThemeKey.WarningButtonBackground)
                     };
                     var isSelected = childOption.value == _selectedRating;
                     child.ThemeColor(VisualElement.BackgroundColorProperty, isSelected ? childOption.selectedColor : ThemeKey.NeutralButtonBackground);
-                    child.ThemeColor(Button.TextColorProperty, isSelected ? ThemeKey.OnColorText : ThemeKey.CardText1);
+                    child.ThemeColor(Button.TextColorProperty, isSelected ? ThemeKey.ButtonPrimaryText : ThemeKey.CardText1);
                 }
             };
             ratingRow.Children.Add(button);
@@ -415,7 +415,7 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
                         Text = $"{techniqueTitle} - {result.QualityRating}/10",
                         FontSize = 15,
                         FontAttributes = FontAttributes.Bold
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                     (new Label
                     {
                         Text = result.CreatedDate.ToLocalTime().ToString("MMM d, yyyy h:mm tt"),
@@ -457,7 +457,7 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
         }).ToList();
 
         var dataGrid = DataGridView.Create(headers, rows)
-            .WithHeaderStyle(AppColors.Get(ThemeKey.InfoText), AppColors.Get(ThemeKey.OnColorText))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.InfoText), AppColors.Get(ThemeKey.ButtonPrimaryText))
             .WithAlternateRowColor(AppColors.Get(ThemeKey.RowSelected))
             .WithColumnWidths(100, 260)
             .WithCellPadding(6)
@@ -465,7 +465,7 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
             .WithPageSize(100)
             .Build();
 
-        var export = CreateActionButton("LLM Export", ThemeKey.SuccessDarkButtonBackground);
+        var export = CreateActionButton("LLM Export", ThemeKey.SuccessButtonBackground);
         export.Clicked += async (_, _) => await CopyExportPromptAsync();
 
         _body.Children.Add(export);
@@ -549,7 +549,7 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
         Text = text,
         FontSize = 18,
         FontAttributes = FontAttributes.Bold
-    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
+    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
 
     private static Label CreateMutedLabel(string text) => (new Label(){
         Text = text,
@@ -562,14 +562,14 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
         FontAttributes = FontAttributes.Bold,
         Padding = new Thickness(8, 4),
         VerticalOptions = LayoutOptions.Center
-    }).ThemeColor(VisualElement.BackgroundColorProperty, StatusColor(status)).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3);
+    }).ThemeColor(VisualElement.BackgroundColorProperty, StatusColor(status)).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3);
 
     private static Button CreateActionButton(string text, ThemeKey color) => (new Button(){
         Text = text,
         CornerRadius = 8,
         HeightRequest = 42,
         Padding = new Thickness(14, 0)
-    }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+    }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
     private static Frame CreateFrame(View content) => (new Frame(){
         CornerRadius = 8,
@@ -580,5 +580,5 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
 
     private static ThemeKey StatusColor(string status) => status switch
     {
-        "Confirmed" => ThemeKey.SuccessText,        "Promising" => ThemeKey.InfoText,        "Abandoned" => ThemeKey.NeutralHoverButton,        _ => ThemeKey.WarningStrongText    };
+        "Confirmed" => ThemeKey.SuccessText,        "Promising" => ThemeKey.InfoText,        "Abandoned" => ThemeKey.NeutralDarkButton,        _ => ThemeKey.WarningText    };
 }

@@ -19,7 +19,7 @@ public class MotivationHubPage : Bannister.Views.ModeThemedPage
             Text = "Motivation",
             FontSize = 26,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         var sources = (new Button
         {
             Text = "Motivation Sources",

@@ -49,7 +49,7 @@ public class SharedActivitiesPage : Bannister.Views.ModeThemedPage
         {
             Text = " Shared Activities", FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label
         {
             Text = "Share activities between accounts. Both users must use the same link code and shared password.",
@@ -61,14 +61,14 @@ public class SharedActivitiesPage : Bannister.Views.ModeThemedPage
         {
             Text = "➕ Create Link", CornerRadius = 8, FontSize = 13,
             HeightRequest = 40, Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         createBtn.Clicked += async (_, _) => await CreateShareLinkAsync();
         btnRow.Children.Add(createBtn);
         var joinBtn = (new Button
         {
             Text = " Join with Code", CornerRadius = 8, FontSize = 13,
             HeightRequest = 40, Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         joinBtn.Clicked += async (_, _) => await JoinShareLinkAsync();
         btnRow.Children.Add(joinBtn);
         stack.Children.Add(btnRow);
@@ -83,14 +83,14 @@ public class SharedActivitiesPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true);
 
         _loadingOverlay = (new Grid
         {
             IsVisible = false,
             InputTransparent = false,
             Children = { _loadingLabel }
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.OverlayStrong);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
         rootGrid.Children.Add(_loadingOverlay);
         Content = rootGrid;
     }
@@ -119,12 +119,12 @@ public class SharedActivitiesPage : Bannister.Views.ModeThemedPage
         {
             Text = $"Partner: {link.PartnerName}", FontSize = 15,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         inner.Children.Add((new Label
         {
             Text = $"Code: {link.LinkCode}", FontSize = 13,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true));
         var acts = _sharedService.GetSharedActivities(link);
         inner.Children.Add((new Label
         {
@@ -144,14 +144,14 @@ public class SharedActivitiesPage : Bannister.Views.ModeThemedPage
         {
             Text = "⬆ Push", CornerRadius = 6, FontSize = 12,
             HeightRequest = 34, Padding = new Thickness(10, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         pushBtn.Clicked += async (_, _) => await PushLinkAsync(capturedLink);
         actionRow.Children.Add(pushBtn);
         var pullBtn = (new Button
         {
             Text = "⬇ Pull", CornerRadius = 6, FontSize = 12,
             HeightRequest = 34, Padding = new Thickness(10, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         pullBtn.Clicked += async (_, _) => await PullLinkAsync(capturedLink);
         actionRow.Children.Add(pullBtn);
         var delBtn = (new Button
@@ -198,7 +198,7 @@ Padding = 14, CornerRadius = 10,
             FontSize = 14,
             HeightRequest = 44,
             Margin = new Thickness(16, 0, 8, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var cancelBtn = (new Button
         {

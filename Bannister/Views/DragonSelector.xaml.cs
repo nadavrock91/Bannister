@@ -59,7 +59,7 @@ public partial class DragonSelector : Bannister.Views.ModeThemedPage
             _selectedImage = imageName;
             _selectedFrame = frame;
             frame.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo);
-            frame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SecondaryAccentText);
+            frame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightIndigoText);
 
             // Enable choose button
             chooseButton.IsEnabled = true;

@@ -63,7 +63,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
             Text = " Sort Activities",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label
         {
             Text = "Tap  Public,  Private, or  Both per activity. " +
@@ -97,7 +97,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         };
         filterRow.Children.Add(_filterPublicBtn);
 
-        _filterPrivateBtn = MakeFilterBtn(" Private", false, ThemeKey.AccentPurpleDarkButtonBackground);
+        _filterPrivateBtn = MakeFilterBtn(" Private", false, ThemeKey.HighlightVioletText);
         _filterPrivateBtn.Clicked += (_, _) =>
         {
             _viewFilter = 0;
@@ -195,7 +195,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
             HeightRequest = 30,
             CornerRadius = 6,
             Padding = new Thickness(8, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, active ? activeHex : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, active ? activeHex : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, active ? ThemeKey.ButtonPrimaryText : ThemeKey.NeutralButtonText);
 
     private void UpdateFilterButtons()
     {
@@ -204,7 +204,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         StyleBtn(_filterPublicBtn,
             _viewFilter == 1, ThemeKey.InfoText);
         StyleBtn(_filterPrivateBtn,
-            _viewFilter == 0, ThemeKey.AccentPurpleDarkButtonBackground);
+            _viewFilter == 0, ThemeKey.HighlightVioletText);
         StyleBtn(_filterBothBtn,
             _viewFilter == 2, ThemeKey.SuccessText);
     }
@@ -213,7 +213,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         Button btn, bool active, ThemeKey activeHex)
     {
         btn.ThemeColor(VisualElement.BackgroundColorProperty, active ? activeHex : ThemeKey.NeutralButtonBackground);
-        btn.ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
+        btn.ThemeColor(Button.TextColorProperty, active ? ThemeKey.ButtonPrimaryText : ThemeKey.NeutralButtonText);
     }
 
     private async Task LoadDataAsync()
@@ -347,7 +347,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         setAllRow.Add(setAllPubBtn, 1, 0);
 
         var setAllPrivBtn = VisBtn("", false,
-            ThemeKey.AccentPurpleDarkButtonBackground, ThemeKey.AccentPurpleBackground, ThemeKey.AccentPurpleDarkButtonBackground);
+            ThemeKey.HighlightVioletText, ThemeKey.HighlightViolet, ThemeKey.HighlightVioletText);
         setAllPrivBtn.Clicked += async (_, _) =>
         {
             if (_isSaving) return;
@@ -423,7 +423,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
             Text = activity.Name,
             FontSize = 13,
             LineBreakMode = LineBreakMode.TailTruncation
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         if (activity.VisibilityChangedAt.HasValue)
             nameStack.Children.Add((new Label
             {
@@ -457,7 +457,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         //  Private
         var privBtn = VisBtn("",
             activity.ActivityVisibility == 0,
-            ThemeKey.AccentPurpleDarkButtonBackground, ThemeKey.AccentPurpleBackground, ThemeKey.AccentPurpleDarkButtonBackground);
+            ThemeKey.HighlightVioletText, ThemeKey.HighlightViolet, ThemeKey.HighlightVioletText);
         privBtn.Clicked += async (_, _) =>
         {
             if (_isSaving) return;
@@ -516,5 +516,5 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
             WidthRequest = 36,
             CornerRadius = 6,
             Padding = 0
-        }).ThemeColor(VisualElement.BackgroundColorProperty, active ? activeBg : inactiveBg).ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : inactiveFg);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, active ? activeBg : inactiveBg).ThemeColor(Button.TextColorProperty, active ? ThemeKey.ButtonPrimaryText : inactiveFg);
 }

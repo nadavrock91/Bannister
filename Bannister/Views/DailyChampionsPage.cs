@@ -43,7 +43,7 @@ public class DailyChampionsPage : Bannister.Views.ModeThemedPage
             Text = "Refresh",
             CornerRadius = 8,
             HeightRequest = 44
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _refreshButton.Clicked += async (_, _) => await LoadAsync();
 
         _featPicker = (new Picker
@@ -100,7 +100,7 @@ public class DailyChampionsPage : Bannister.Views.ModeThemedPage
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 0, 0);
         header.Add(_refreshButton, 1, 0);
         main.Children.Add(header);
         main.Children.Add(_statusLabel);
@@ -178,13 +178,13 @@ public class DailyChampionsPage : Bannister.Views.ModeThemedPage
             Text = "Today's Feats",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         _todayStack.Children.Add((new Label
         {
             Text = DateTime.Today.ToString("dddd, MMMM d, yyyy", CultureInfo.CurrentCulture),
             FontSize = 24,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true));
 
         if (dailyFeats.Count == 0)
         {
@@ -245,7 +245,7 @@ public class DailyChampionsPage : Bannister.Views.ModeThemedPage
             Text = "＋ New",
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.WarningStrongText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         newButton.Clicked += (_, _) =>
         {
             _customFeatEntry.IsVisible = true;
@@ -258,7 +258,7 @@ public class DailyChampionsPage : Bannister.Views.ModeThemedPage
             Text = "Add",
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addButton.Clicked += async (_, _) => await AddDailyFeatAsync(todayKey);
 
         _todayStack.Children.Add(_customFeatEntry);
@@ -294,7 +294,7 @@ public class DailyChampionsPage : Bannister.Views.ModeThemedPage
             Text = GetDailyFeatTitle(dailyFeat),
             FontSize = 14,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 0, 0);
 
         var deleteButton = (new Button
         {
@@ -321,7 +321,7 @@ public class DailyChampionsPage : Bannister.Views.ModeThemedPage
             Text = "Feats Management",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         var activeFeats = allFeats
             .Where(x => !x.IsArchived)
@@ -375,7 +375,7 @@ public class DailyChampionsPage : Bannister.Views.ModeThemedPage
             Text = "Save",
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         saveButton.Clicked += async (_, _) => await SaveLibraryFeatAsync();
         _managementStack.Children.Add(saveButton);
     }
@@ -400,7 +400,7 @@ public class DailyChampionsPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 0, 0);
 
         var upButton = SmallButton("Up", index > 0);
         upButton.Clicked += async (_, _) =>
@@ -446,7 +446,7 @@ public class DailyChampionsPage : Bannister.Views.ModeThemedPage
             Text = "All-Time Leaderboard",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         if (leaders.Count == 0)
         {
@@ -501,7 +501,7 @@ public class DailyChampionsPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             FontAttributes = isChampion || isToday ? FontAttributes.Bold : FontAttributes.None,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 1, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 1, 0);
 
         row.Add((new Label
         {
@@ -517,7 +517,7 @@ public class DailyChampionsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 8,
             WidthRequest = barWidth,
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, isChampion ? ThemeKey.HighlightGoldButton : ThemeKey.SecondaryButtonBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isChampion ? ThemeKey.WarningButtonBackground : ThemeKey.SecondaryButtonBackground);
         row.Add(bar, 1, 1);
         Grid.SetColumnSpan(bar, 2);
 
@@ -527,7 +527,7 @@ public class DailyChampionsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HasShadow = false,
             Content = row
-        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isToday ? ThemeKey.SuccessSelectedBackground : ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, bg);
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isToday ? ThemeKey.SuccessBackground : ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, bg);
     }
 
     private async Task AddDailyFeatAsync(string todayKey)

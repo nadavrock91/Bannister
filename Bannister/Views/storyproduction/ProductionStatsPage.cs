@@ -155,7 +155,7 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 50,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.OnColorText));
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.ButtonPrimaryText));
         mainGrid.Children.Add(_loadingOverlay);
 
         Content = mainGrid;
@@ -224,7 +224,7 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             _statsStack.Children.Add((new Label
             {
                 Text = $"Error: {ex.Message}"
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorPureText, ThemeKey.PageText1));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1));
         }
         finally
         {
@@ -441,7 +441,7 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             Padding = 14,
             CornerRadius = 10,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, project.IsProduced ? ThemeKey.SuccessBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, project.IsProduced ? ThemeKey.SuccessLightText : ThemeKey.Separator);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, project.IsProduced ? ThemeKey.SuccessBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, project.IsProduced ? ThemeKey.SuccessButtonBackground : ThemeKey.Separator);
 
         var tapGesture = new TapGestureRecognizer();
         tapGesture.Tapped += async (s, e) =>
@@ -779,7 +779,7 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             Text = "Save",
             CornerRadius = 8,
             Padding = new Thickness(22, 8)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         Grid.SetColumn(saveBtn, 3);
         footer.Children.Add(saveBtn);
 
@@ -933,7 +933,7 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             Text = "Save",
             CornerRadius = 8,
             Padding = new Thickness(22, 8)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandFacebook).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandFacebook).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         Grid.SetColumn(saveBtn, 3);
         footer.Children.Add(saveBtn);
 
@@ -1087,7 +1087,7 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             Text = "Save",
             CornerRadius = 8,
             Padding = new Thickness(22, 8)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandTikTok).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandTikTok).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         Grid.SetColumn(saveBtn, 3);
         footer.Children.Add(saveBtn);
 

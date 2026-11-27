@@ -35,7 +35,7 @@
                 <Label Text="Meaningful until level (1-100)" FontAttributes="Bold" />
                 <HorizontalStackLayout Spacing="12">
                     <Entry x:Name="txtMeaningfulLevel" Keyboard="Numeric" Text="20" WidthRequest="100" TextChanged="OnMeaningfulLevelChanged" />
-                    <Label x:Name="lblExpPreview" Text="→ This activity will give: +40 EXP" TextColor="{DynamicResource ModeText1}" VerticalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text1" />
+                    <Label x:Name="lblExpPreview" Text="→ This activity will give: +40 EXP" TextColor="{DynamicResource ModePageText1}" VerticalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText1" />
                 </HorizontalStackLayout>
             </VerticalStackLayout>
 
@@ -44,16 +44,16 @@
                 <Label Text="Percent of current level's EXP" FontAttributes="Bold" />
                 <HorizontalStackLayout Spacing="12">
                     <Entry x:Name="txtPercentOfLevel" Keyboard="Numeric" Text="1" WidthRequest="100" />
-                    <Label Text="% (e.g., 1 = 1% of level span)" TextColor="{DynamicResource ModeText2}" VerticalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text2" />
+                    <Label Text="% (e.g., 1 = 1% of level span)" TextColor="{DynamicResource ModePageText2}" VerticalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText2" />
                 </HorizontalStackLayout>
                 
                 <Label Text="Stop scaling at level (1-100)" FontAttributes="Bold" Margin="0,8,0,0" />
                 <HorizontalStackLayout Spacing="12">
                     <Entry x:Name="txtPercentCutoff" Keyboard="Numeric" Text="100" WidthRequest="100" />
-                    <Label Text="(after this level, EXP stays fixed)" TextColor="{DynamicResource ModeText2}" VerticalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text2" />
+                    <Label Text="(after this level, EXP stays fixed)" TextColor="{DynamicResource ModePageText2}" VerticalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText2" />
                 </HorizontalStackLayout>
                 
-                <Label Text="💡 EXP scales with your level until cutoff, then stays fixed" FontSize="12" TextColor="{DynamicResource ModeText3}" FontAttributes="Italic" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text3" />
+                <Label Text="💡 EXP scales with your level until cutoff, then stays fixed" FontSize="12" TextColor="{DynamicResource ModePageText3}" FontAttributes="Italic" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText3" />
             </VerticalStackLayout>
 
             <!-- Streak Tracking -->
@@ -66,7 +66,7 @@
                 <HorizontalStackLayout Spacing="12">
                     <Label Text="Target days:" VerticalOptions="Center" />
                     <Entry x:Name="txtStreakTargetDays" Text="365" Keyboard="Numeric" WidthRequest="100" IsEnabled="False" />
-                    <Label Text="shown as days / target" FontSize="12" TextColor="{DynamicResource ModeText3}" VerticalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text3" />
+                    <Label Text="shown as days / target" FontSize="12" TextColor="{DynamicResource ModePageText3}" VerticalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText3" />
                 </HorizontalStackLayout>
                 <HorizontalStackLayout Spacing="12">
                     <CheckBox x:Name="chkShowStreakAsDaysSinceStarted" />
@@ -75,11 +75,11 @@
                 <HorizontalStackLayout Spacing="12">
                     <Label Text="Enough is enough after:" VerticalOptions="Center" />
                     <Entry x:Name="txtStreakTotalDaysCap" Text="365" Keyboard="Numeric" WidthRequest="100" IsEnabled="False" />
-                    <Label Text="total days (0 = off)" FontSize="12" TextColor="{DynamicResource ModeText3}" VerticalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text3" />
+                    <Label Text="total days (0 = off)" FontSize="12" TextColor="{DynamicResource ModePageText3}" VerticalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText3" />
                 </HorizontalStackLayout>
-                <Label Text="What to do when reached:" FontSize="12" TextColor="{DynamicResource ModeText3}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text3" />
+                <Label Text="What to do when reached:" FontSize="12" TextColor="{DynamicResource ModePageText3}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText3" />
                 <Entry x:Name="txtStreakCapReachedNote" Placeholder="e.g. Take a break, reassess goals…" IsEnabled="False" />
-                <Label Text="🔥 When enabled, this activity becomes its own category with attempt cards showing day counts" FontSize="12" TextColor="{DynamicResource ModeText3}" FontAttributes="Italic" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text3" />
+                <Label Text="🔥 When enabled, this activity becomes its own category with attempt cards showing day counts" FontSize="12" TextColor="{DynamicResource ModePageText3}" FontAttributes="Italic" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText3" />
             </VerticalStackLayout>
 
             <!-- Possible Activity -->
@@ -89,7 +89,7 @@
                     <CheckBox x:Name="chkIsPossible" CheckedChanged="OnIsPossibleChanged" />
                     <Label Text="Mark as Possible (idea for future)" VerticalOptions="Center" />
                 </HorizontalStackLayout>
-                <Label Text="💡 Possible activities won't show in normal filters - only under 'Possible' filter" FontSize="12" TextColor="{DynamicResource ModeText3}" FontAttributes="Italic" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text3" />
+                <Label Text="💡 Possible activities won't show in normal filters - only under 'Possible' filter" FontSize="12" TextColor="{DynamicResource ModePageText3}" FontAttributes="Italic" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText3" />
             </VerticalStackLayout>
 
                 <HorizontalStackLayout Spacing="12">
@@ -104,7 +104,7 @@
                     <CheckBox x:Name="chkShowTimesCompleted" />
                     <Label Text="Show times completed badge (✓X)" VerticalOptions="Center" />
                 </HorizontalStackLayout>
-                <Label Text="💡 Badge shows how many times you've gained EXP from this activity" FontSize="12" TextColor="{DynamicResource ModeText3}" FontAttributes="Italic" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text3" />
+                <Label Text="💡 Badge shows how many times you've gained EXP from this activity" FontSize="12" TextColor="{DynamicResource ModePageText3}" FontAttributes="Italic" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText3" />
             </VerticalStackLayout>
 
             <!-- Habit Target Section -->
@@ -131,7 +131,7 @@
                     <Button Text="+1y" Clicked="OnHabitTarget1Year" BackgroundColor="{DynamicResource ModeWarningBackground}" TextColor="{DynamicResource ModeWarningText}" CornerRadius="6" Padding="12,6" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=WarningBackground,TextColor=WarningText" />
                 </HorizontalStackLayout>
                 
-                <Label Text="📅 Set a target date by which you want to turn this activity into a regular habit" FontSize="12" TextColor="{DynamicResource ModeText3}" FontAttributes="Italic" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text3" />
+                <Label Text="📅 Set a target date by which you want to turn this activity into a regular habit" FontSize="12" TextColor="{DynamicResource ModePageText3}" FontAttributes="Italic" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText3" />
             </VerticalStackLayout>
 
             <!-- Schedule Section -->
@@ -176,15 +176,15 @@
 
                 <!-- Image Actions -->
                 <VerticalStackLayout Spacing="8">
-                    <Button Text="Browse..." Clicked="OnBrowseImage" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=OnColorText" />
+                    <Button Text="Browse..." Clicked="OnBrowseImage" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=ButtonPrimaryText" />
 
-                    <Button Text=" Set Default Image Path" Clicked="OnSetDefaultImagePath" BackgroundColor="{DynamicResource ModeNeutralMutedButton}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="6" Margin="0,4,0,0" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralMutedButton,TextColor=OnColorText" />
+                    <Button Text=" Set Default Image Path" Clicked="OnSetDefaultImagePath" BackgroundColor="{DynamicResource ModeNeutralDarkButton}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="6" Margin="0,4,0,0" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralDarkButton,TextColor=ButtonPrimaryText" />
 
-                    <Button Text=" Browse &amp; Copy to Default" Clicked="OnBrowseAndCopyToDefault" BackgroundColor="{DynamicResource ModeNeutralDarkButton}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="6" Margin="0,4,0,0" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralDarkButton,TextColor=OnColorText" />
+                    <Button Text=" Browse &amp; Copy to Default" Clicked="OnBrowseAndCopyToDefault" BackgroundColor="{DynamicResource ModeNeutralDarkButton}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="6" Margin="0,4,0,0" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralDarkButton,TextColor=ButtonPrimaryText" />
 
-                    <Label x:Name="lblDefaultPath" FontSize="11" TextColor="{DynamicResource ModeText3}" Margin="0,2,0,0" LineBreakMode="TailTruncation" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text3" />
+                    <Label x:Name="lblDefaultPath" FontSize="11" TextColor="{DynamicResource ModePageText3}" Margin="0,2,0,0" LineBreakMode="TailTruncation" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText3" />
 
-                    <Button Text="Set to Black" Clicked="OnSetToBlack" BackgroundColor="{DynamicResource ModeNeutralStrongButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralStrongButtonBackground,TextColor=OnColorText" />
+                    <Button Text="Set to Black" Clicked="OnSetToBlack" BackgroundColor="{DynamicResource ModeNeutralDarkButton}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralDarkButton,TextColor=ButtonPrimaryText" />
 
                     <Button Text="AI Generators ▼" Clicked="OnAiGenerators" BackgroundColor="{DynamicResource ModeNeutralButtonBackground}" TextColor="{DynamicResource ModeCardText1}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralButtonBackground,TextColor=CardText1" />
 
@@ -196,7 +196,7 @@
 
             <!-- Action Buttons -->
             <Grid ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,20,0,0">
-                <Button Text="Save Changes" Clicked="OnAddActivity" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" HeightRequest="50" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=OnColorText" />
+                <Button Text="Save Changes" Clicked="OnAddActivity" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" HeightRequest="50" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=ButtonPrimaryText" />
 
                 <Button Text="Cancel" Clicked="OnCancel" Grid.Column="1" BackgroundColor="{DynamicResource ModeNeutralButtonBackground}" TextColor="{DynamicResource ModeCardText1}" CornerRadius="8" HeightRequest="50" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralButtonBackground,TextColor=CardText1" />
             </Grid>

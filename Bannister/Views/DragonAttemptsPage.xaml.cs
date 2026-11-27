@@ -54,11 +54,11 @@ public partial class DragonAttemptsPage : Bannister.Views.ModeThemedPage
         {
             int days = (int)(DateTime.UtcNow - (activeAttempt.StartedAt ?? DateTime.UtcNow)).TotalDays;
             lblCurrentStatus.Text = $"🟢 Attempt {activeAttempt.AttemptNumber} Active\n{days} days and counting!";
-            lblCurrentStatus.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText);
+            lblCurrentStatus.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground);
             
             btnAction.Text = "❌ Mark as Failed";
             btnAction.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground);
-            btnAction.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            btnAction.ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         }
         else
         {
@@ -70,7 +70,7 @@ public partial class DragonAttemptsPage : Bannister.Views.ModeThemedPage
             
             btnAction.Text = attemptCount > 0 ? "🚀 Start New Attempt" : "🚀 Start First Attempt";
             btnAction.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
-            btnAction.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            btnAction.ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         }
         
         historyList.ItemsSource = attempts.Select(a => new AttemptHistoryViewModel(a)).ToList();

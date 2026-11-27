@@ -60,7 +60,7 @@ public class PromptsLibraryPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         newCategoryButton.Clicked += async (_, _) => await AddCategoryAsync();
         stack.Children.Add(newCategoryButton);
 
@@ -181,7 +181,7 @@ public class PromptsLibraryPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightMint).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightMintText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTeal).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightTealText);
         addPromptButton.Clicked += async (_, _) => await ShowPromptEditorAsync(category, null);
         contentStack.Children.Add(addPromptButton);
 
@@ -208,7 +208,7 @@ public class PromptsLibraryPage : Bannister.Views.ModeThemedPage
             Padding = 14,
             HasShadow = false,
             Content = outer
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightMintStrong);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightTeal);
     }
 
     private Frame BuildPromptCard(PromptLibraryPrompt prompt, List<PromptLibraryCategory> allCategories)
@@ -221,7 +221,7 @@ public class PromptsLibraryPage : Bannister.Views.ModeThemedPage
             Text = prompt.Title,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         var bodyRow = new Grid
         {
@@ -336,7 +336,7 @@ public class PromptsLibraryPage : Bannister.Views.ModeThemedPage
         copyButton.Clicked += async (_, _) => await CopyPromptAsync(prompt, copyButton);
         actions.Children.Add(copyButton);
 
-        var editButton = ActionButton("Edit", ThemeKey.AccentPurpleDarkButtonBackground);
+        var editButton = ActionButton("Edit", ThemeKey.HighlightVioletText);
         editButton.Clicked += async (_, _) => await ShowPromptEditorAsync(null, prompt);
         actions.Children.Add(editButton);
 
@@ -352,11 +352,11 @@ public class PromptsLibraryPage : Bannister.Views.ModeThemedPage
         moveButton.Clicked += async (_, _) => await MovePromptToCategoryAsync(prompt, allCategories);
         actions.Children.Add(moveButton);
 
-        var statsButton = ActionButton("Edit stats", ThemeKey.BrownButtonBackground);
+        var statsButton = ActionButton("Edit stats", ThemeKey.NeutralDarkButton);
         statsButton.Clicked += async (_, _) => await ShowStatsEditorAsync(prompt);
         actions.Children.Add(statsButton);
 
-        var deleteButton = ActionButton("Delete", ThemeKey.ErrorDarkButtonBackground);
+        var deleteButton = ActionButton("Delete", ThemeKey.ErrorButtonBackground);
         deleteButton.Clicked += async (_, _) => await DeletePromptAsync(prompt);
         actions.Children.Add(deleteButton);
 
@@ -395,7 +395,7 @@ public class PromptsLibraryPage : Bannister.Views.ModeThemedPage
             HeightRequest = 32,
             FontSize = 11,
             Padding = new Thickness(10, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
     }
 
     private static View BuildStatCell(string caption, string value, ThemeKey valueColor)
@@ -547,7 +547,7 @@ public class PromptsLibraryPage : Bannister.Views.ModeThemedPage
             Text = "Save",
             CornerRadius = 8,
             HeightRequest = 40
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var cancelButton = (new Button
         {
@@ -660,7 +660,7 @@ public class PromptsLibraryPage : Bannister.Views.ModeThemedPage
             Text = "Save",
             CornerRadius = 8,
             HeightRequest = 40
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var cancelButton = (new Button
         {
@@ -701,7 +701,7 @@ public class PromptsLibraryPage : Bannister.Views.ModeThemedPage
                         FontAttributes = FontAttributes.Bold,
                         LineBreakMode = LineBreakMode.TailTruncation,
                         MaxLines = 1
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownText, ThemeKey.PageText1, classifyPageText: true),
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                     (new Label { Text = "Success", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true),
                     successEntry,
                     (new Label { Text = "Failure", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true),

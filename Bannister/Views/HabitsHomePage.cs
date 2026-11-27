@@ -59,7 +59,7 @@ public class HabitsHomePage : Bannister.Views.ModeThemedPage
             FontSize = 32,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         mainStack.Children.Add((new Label
         {
@@ -68,13 +68,13 @@ public class HabitsHomePage : Bannister.Views.ModeThemedPage
             Opacity = 0.9,
             HorizontalTextAlignment = TextAlignment.Center,
             Margin = new Thickness(0, 0, 0, 20)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         // Daily Habits Card
         var dailyCard = CreateFrequencyCard(
             "🌅 Daily Habits",
             "7 days to graduate",
-            ThemeKey.IndigoMutedButton, // Indigo
+            ThemeKey.SecondaryButtonBackground, // Indigo
             "Daily");
         _lblDailyCount = (Label)((VerticalStackLayout)((Frame)dailyCard).Content).Children[2];
         mainStack.Children.Add(dailyCard);
@@ -83,7 +83,7 @@ public class HabitsHomePage : Bannister.Views.ModeThemedPage
         var weeklyCard = CreateFrequencyCard(
             "📆 Weekly Habits",
             "4 weeks to graduate",
-            ThemeKey.TealButtonBackground, // Teal
+            ThemeKey.HighlightTealText, // Teal
             "Weekly");
         _lblWeeklyCount = (Label)((VerticalStackLayout)((Frame)weeklyCard).Content).Children[2];
         mainStack.Children.Add(weeklyCard);
@@ -92,7 +92,7 @@ public class HabitsHomePage : Bannister.Views.ModeThemedPage
         var monthlyCard = CreateFrequencyCard(
             "📅 Monthly Habits",
             "3 months to graduate",
-            ThemeKey.AccentPurpleButtonBackground, // Purple
+            ThemeKey.HighlightVioletText, // Purple
             "Monthly");
         _lblMonthlyCount = (Label)((VerticalStackLayout)((Frame)monthlyCard).Content).Children[2];
         mainStack.Children.Add(monthlyCard);
@@ -115,7 +115,7 @@ public class HabitsHomePage : Bannister.Views.ModeThemedPage
                    "• Graduate habits to unlock more!",
             FontSize = 14,
             LineHeight = 1.5
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoButton, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         mainStack.Children.Add(infoFrame);
 
         scrollView.Content = mainStack;
@@ -142,14 +142,14 @@ public class HabitsHomePage : Bannister.Views.ModeThemedPage
             Text = title,
             FontSize = 24,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         stack.Children.Add((new Label
         {
             Text = subtitle,
             FontSize = 14,
             Opacity = 0.9
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         // Count label (will be updated)
         stack.Children.Add((new Label
@@ -158,7 +158,7 @@ public class HabitsHomePage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             Opacity = 0.8,
             Margin = new Thickness(0, 8, 0, 0)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         // Arrow indicator
         stack.Children.Add((new Label
@@ -168,7 +168,7 @@ public class HabitsHomePage : Bannister.Views.ModeThemedPage
             Opacity = 0.7,
             HorizontalTextAlignment = TextAlignment.End,
             Margin = new Thickness(0, 8, 0, 0)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true));
 
         frame.Content = stack;
         return frame;

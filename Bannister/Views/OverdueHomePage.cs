@@ -60,7 +60,7 @@ public class OverdueHomePage : Bannister.Views.ModeThemedPage
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 10, 0, 0)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
         
         _categoriesLayout = new VerticalStackLayout { Spacing = 12 };
         mainStack.Children.Add(_categoriesLayout);
@@ -72,7 +72,7 @@ public class OverdueHomePage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 50,
             Margin = new Thickness(0, 10, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAddCategory.Clicked += OnAddCategoryClicked;
         mainStack.Children.Add(btnAddCategory);
         
@@ -83,7 +83,7 @@ public class OverdueHomePage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 50,
             Margin = new Thickness(0, 10, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnViewAll.Clicked += OnViewAllClicked;
         mainStack.Children.Add(btnViewAll);
         
@@ -123,7 +123,7 @@ public class OverdueHomePage : Bannister.Views.ModeThemedPage
         {
             CornerRadius = 12,
             Padding = 16
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, count > 0 ? ThemeKey.ErrorButtonBackground : (ThemeKey?)null);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, count > 0 ? ThemeKey.ErrorButtonBackground : (ThemeKey?)null);
         
         var grid = new Grid
         {
@@ -141,7 +141,7 @@ public class OverdueHomePage : Bannister.Views.ModeThemedPage
             Text = "📛 " + category,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
         
         leftStack.Children.Add((new Label
         {

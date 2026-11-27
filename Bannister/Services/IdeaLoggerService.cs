@@ -572,7 +572,7 @@ HeightRequest = 100, FontSize = 14
             Title = "LLM category",
             FontSize = 13,
             HorizontalOptions = LayoutOptions.Fill
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.AccentPurpleStrongText).ThemeColor(Picker.TitleColorProperty, ThemeKey.AccentPurpleStrongText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Picker.TextColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Picker.TitleColorProperty, ThemeKey.HighlightVioletText);
         if (isPhone) llmCategoryPicker.WidthRequest = -1;
         StylePhonePicker(llmCategoryPicker);
 
@@ -628,7 +628,7 @@ HeightRequest = 100, FontSize = 14
         var newBtn = (new Button
         {
             Text = "+ New",             CornerRadius = 6, Padding = new Thickness(10, 6), FontSize = 12, HeightRequest = 32
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         newBtn.Clicked += (s, e) =>
         {
             customEntry.IsVisible = !customEntry.IsVisible;
@@ -647,7 +647,7 @@ HeightRequest = 100, FontSize = 14
         {
             Text = "★",             CornerRadius = 6, Padding = new Thickness(8, 6), FontSize = 14,
             HeightRequest = 32, WidthRequest = 36
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightAmberButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         favBtn.Clicked += async (s, e) =>
         {
             string? catToFav = GetCurrentCategory();
@@ -693,7 +693,7 @@ HeightRequest = 100, FontSize = 14
             Padding = new Thickness(10, 6),
             FontSize = 12,
             HeightRequest = 32
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightOrange).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         reclassifyBtn.Clicked += async (_, _) =>
         {
             string? selectedCategory = null;
@@ -801,7 +801,7 @@ HeightRequest = 100, FontSize = 14
         };
         subRow.Children.Add(subPicker);
 
-        var newSubBtn = (new Button { Text = "+ Sub", CornerRadius = 6, Padding = new Thickness(10, 6), FontSize = 12, HeightRequest = 32 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralMutedButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var newSubBtn = (new Button { Text = "+ Sub", CornerRadius = 6, Padding = new Thickness(10, 6), FontSize = 12, HeightRequest = 32 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         subRow.Children.Add(newSubBtn);
         subSection.Children.Add(subRow);
 
@@ -967,7 +967,7 @@ HeightRequest = 100, FontSize = 14
         {
             selectedRating = r;
             foreach (var b in ratingButtons) { b.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator); b.ThemeColor(Button.TextColorProperty, ThemeKey.CardText1); }
-            btn.ThemeColor(VisualElement.BackgroundColorProperty, GetRatingColor(r, true)); btn.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText); selectedRatingBtn = btn;
+            btn.ThemeColor(VisualElement.BackgroundColorProperty, GetRatingColor(r, true)); btn.ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText); selectedRatingBtn = btn;
         }
 
         foreach (var r in new[] { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 })
@@ -977,7 +977,7 @@ HeightRequest = 100, FontSize = 14
                 Text = r.ToString(),
                 CornerRadius = 6, Margin = new Thickness(0, 0, 4, 4), Padding = new Thickness(8, 4),
                 FontSize = 12, WidthRequest = 40, HeightRequest = 32
-            }).ThemeColor(Button.TextColorProperty, r == selectedRating ? ThemeKey.OnColorText : ThemeKey.CardText1)
+            }).ThemeColor(Button.TextColorProperty, r == selectedRating ? ThemeKey.ButtonPrimaryText : ThemeKey.CardText1)
                 .ThemeColor(VisualElement.BackgroundColorProperty, r == selectedRating ? GetRatingColor(r, true) : ThemeKey.Separator);
             var cr = r;
             rb.Clicked += (s, e) => UpdateRatingSelection(rb, cr);
@@ -1014,8 +1014,8 @@ HeightRequest = 100, FontSize = 14
         }
 
         // ====== ACTION BUTTONS ======
-        var cancelBtn = (new Button { Text = "Cancel", CornerRadius = 6, Padding = new Thickness(20, 10) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
-        var saveBtn = (new Button { Text = "💾 Save Idea", CornerRadius = 6, Padding = new Thickness(20, 10), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var cancelBtn = (new Button { Text = "Cancel", CornerRadius = 6, Padding = new Thickness(20, 10) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
+        var saveBtn = (new Button { Text = "💾 Save Idea", CornerRadius = 6, Padding = new Thickness(20, 10), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         if (isPhone)
         {

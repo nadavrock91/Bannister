@@ -50,7 +50,7 @@ public class StatsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 44,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += async (_, _) => await AddTrackerAsync();
         mainStack.Children.Add(addBtn);
 

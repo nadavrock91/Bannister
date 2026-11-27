@@ -38,7 +38,7 @@ public class DailyLoginPromptDisplayPage : ContentPage
             FontSize = 13,
             Opacity = 0.8,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, SafeColor(prompt.FontColor, ThemeKey.OnColorText), ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, SafeColor(prompt.FontColor, ThemeKey.ButtonPrimaryText), ThemeKey.PageText1, classifyPageText: true));
 
         stack.Children.Add((new Label
         {
@@ -47,7 +47,7 @@ public class DailyLoginPromptDisplayPage : ContentPage
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, SafeColor(prompt.FontColor, ThemeKey.OnColorText), ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, SafeColor(prompt.FontColor, ThemeKey.ButtonPrimaryText), ThemeKey.PageText1, classifyPageText: true));
 
         var btnNext = (new Button
         {

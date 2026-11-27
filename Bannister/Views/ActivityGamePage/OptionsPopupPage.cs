@@ -68,15 +68,15 @@ public class OptionsPopupPage : ContentPage
         // Define all options
         var options = new[]
         {
-            ("🔧", "Run SQL (Dev)", AppColors.Get(ThemeKey.NeutralMutedButton)),
-            ("📊", "View Activity Log", AppColors.Get(ThemeKey.InfoLinkText)),
-            ("🔄", "Refresh", AppColors.Get(ThemeKey.SuccessLightText)),
-            ("✏️", "Manual EXP Adjustment", AppColors.Get(ThemeKey.WarningAccentText)),
-            ("📁", "Change Category (All on Page)", AppColors.Get(ThemeKey.WarningAccentText)),
-            ("💡", "Set All as Possible (All on Page)", AppColors.Get(ThemeKey.AccentPurpleButtonBackground)),
-            ("📤", "Export Data", AppColors.Get(ThemeKey.InfoLinkText)),
+            ("🔧", "Run SQL (Dev)", AppColors.Get(ThemeKey.NeutralDarkButton)),
+            ("📊", "View Activity Log", AppColors.Get(ThemeKey.InfoText)),
+            ("🔄", "Refresh", AppColors.Get(ThemeKey.SuccessButtonBackground)),
+            ("✏️", "Manual EXP Adjustment", AppColors.Get(ThemeKey.WarningText)),
+            ("📁", "Change Category (All on Page)", AppColors.Get(ThemeKey.WarningText)),
+            ("💡", "Set All as Possible (All on Page)", AppColors.Get(ThemeKey.HighlightVioletText)),
+            ("📤", "Export Data", AppColors.Get(ThemeKey.InfoText)),
             ("🔄", "Reset Load Prompts", AppColors.Get(ThemeKey.ErrorButtonBackground)),
-            ("⚡", "Test Load Prompts", AppColors.Get(ThemeKey.WarningAccentText)),
+            ("⚡", "Test Load Prompts", AppColors.Get(ThemeKey.WarningText)),
         };
 
         foreach (var (icon, label, color) in options)

@@ -35,7 +35,7 @@ public class SystemsLevelProgressSummaryPage : Bannister.Views.ModeThemedPage
             Text = " Systems Level Progress Summary",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentVioletButton, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true));
 
         stack.Children.Add((new Label
         {
@@ -47,13 +47,13 @@ public class SystemsLevelProgressSummaryPage : Bannister.Views.ModeThemedPage
         stack.Children.Add(BuildHubCard(
             "Monthly Summary",
             "This calendar month, ranked by level gained.",
-            ThemeKey.InfoStrongText,
+            ThemeKey.InfoText,
             async () => await Navigation.PushAsync(new SystemsMonthlyProgressPage(_auth, _games, _exp, _db))));
 
         stack.Children.Add(BuildHubCard(
             "Yearly Summary",
             "This calendar year, ranked by level gained.",
-            ThemeKey.AccentVioletButton,
+            ThemeKey.HighlightVioletText,
             async () => await Navigation.PushAsync(new SystemsYearlyProgressPage(_auth, _games, _exp, _db))));
 
         Content = new ScrollView { Content = stack };

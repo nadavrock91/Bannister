@@ -49,7 +49,7 @@ public class ToBeTestedPage : Bannister.Views.ModeThemedPage
                     Text = "To Be Tested",
                     FontSize = 28,
                     FontAttributes = FontAttributes.Bold
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                 (new Label
                 {
                     Text = "Activities you haven't tried in real life yet.",
@@ -103,7 +103,7 @@ public class ToBeTestedPage : Bannister.Views.ModeThemedPage
             Text = activity.Name,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
 
         var subtitle = (new Label
         {
@@ -130,7 +130,7 @@ public class ToBeTestedPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 40,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellowStrong).ThemeColor(Button.TextColorProperty, ThemeKey.WarningStrongText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         openButton.Clicked += async (_, _) => await OpenActivityGameAsync(activity);
 
         var buttonRow = new HorizontalStackLayout

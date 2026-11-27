@@ -57,7 +57,7 @@ public class PromptsHubPage : Bannister.Views.ModeThemedPage
         stack.Children.Add(BuildHubCard(
             "️ Prompts Generation",
             "Manage and use custom prompts for various tasks.",
-            ThemeKey.AccentPurpleStrongText,
+            ThemeKey.HighlightVioletText,
             async () => await Navigation.PushAsync(new PromptsPage(_auth, _prompts, _ideaLogger, _ideas))));
 
         stack.Children.Add(BuildHubCard(

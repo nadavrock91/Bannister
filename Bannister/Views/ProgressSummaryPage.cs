@@ -35,7 +35,7 @@ public class ProgressSummaryPage : Bannister.Views.ModeThemedPage
             Text = " Progress Summary",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentVioletButton, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true));
 
         stack.Children.Add((new Label
         {
@@ -47,7 +47,7 @@ public class ProgressSummaryPage : Bannister.Views.ModeThemedPage
         stack.Children.Add(BuildHubCard(
             "Systems Level Progress Summary",
             "Games ranked by level gained during a period.",
-            ThemeKey.AccentVioletButton,
+            ThemeKey.HighlightVioletText,
             async () => await Navigation.PushAsync(new SystemsLevelProgressSummaryPage(_auth, _games, _exp, _db))));
 
         Content = new ScrollView { Content = stack };

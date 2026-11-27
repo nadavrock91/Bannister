@@ -173,7 +173,7 @@ public class ChangePasswordPage : Bannister.Views.ModeThemedPage
             HeightRequest = 50,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnChange.Clicked += OnChangePasswordClicked;
         Grid.SetColumn(btnChange, 0);
         buttonGrid.Children.Add(btnChange);

@@ -153,7 +153,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
                     Text = "🪝 Hooks from Random Words",
                     FontSize = 22,
                     FontAttributes = FontAttributes.Bold
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                 (new Label
                 {
                     Text = "Generate scroll-stopping hook image prompts through a 4-stage variety amplifier. Stage 1 now samples from your persistent local word pool.",
@@ -230,7 +230,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             CornerRadius = 8,
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 42
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         getWordsButton.Clicked += OnGet1000WordsClicked;
 
         var manageWordsButton = (new Button
@@ -301,7 +301,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Fill
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningAmber).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         oneShotButton.Clicked += OnCopyOneShotPromptClicked;
 
         var subtitle = (new Label
@@ -327,7 +327,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
                 Spacing = 10,
                 Children = { oneShotButton, subtitle, toggleButton, expander }
             }
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAmber);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningText);
     }
 
     private Frame CreateStage1Section()
@@ -356,7 +356,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
                         Text = "Stage 1 — 100 Random Words",
                         FontSize = 16,
                         FontAttributes = FontAttributes.Bold
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                     (new Label
                     {
                         Text = "Sample 100 words locally from the active pool. This box feeds Stage 2 through {WORDS}.",
@@ -407,7 +407,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
                     Text = title,
                     FontSize = 16,
                     FontAttributes = FontAttributes.Bold
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                 (new Label
                 {
                     Text = subtitle,
@@ -527,7 +527,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             CornerRadius = 8,
             HeightRequest = 42,
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         button.Clicked += OnCopyImageGeneratorPromptClicked;
         return button;
     }
@@ -785,7 +785,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             CornerRadius = 8,
             HeightRequest = 42,
             HorizontalOptions = LayoutOptions.Fill
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var closeButton = (new Button
         {
@@ -831,7 +831,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             CornerRadius = 8,
             HeightRequest = 42,
             HorizontalOptions = LayoutOptions.Fill
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var closeButton = (new Button
         {

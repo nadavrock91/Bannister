@@ -19,10 +19,11 @@ internal sealed class ThemeColorsView : ContentView
     private readonly VerticalStackLayout _rows = new() { Spacing = 10 };
     private readonly Frame _preview = new() { Padding = 12, HasShadow = false };
     private readonly Label _status = new() { FontSize = 12 };
+    private readonly VerticalStackLayout _migration = new() { Spacing = 5 };
     private readonly SemaphoreSlim _writes = new(1, 1);
     private readonly Dictionary<string, Color> _colors = new();
     private int _loadVersion;
-    private readonly HashSet<string> _collapsed = new(new[] { "Cards", "Inputs", "Rows", "Status", "Buttons", "Highlights", "Brand" });
+    private readonly HashSet<string> _collapsed = new(new[] { "Cards", "Inputs", "Rows", "Status", "Buttons", "Highlights", "Timeline", "Media", "Brand" });
 
     private ActivityDisplayMode SelectedMode => _selectedMode;
 
@@ -67,8 +68,8 @@ internal sealed class ThemeColorsView : ContentView
                 Children =
                 {
                     new Label { Text = "UI Colors", FontSize = 20, FontAttributes = FontAttributes.Bold },
-                    new Label { Text = "Choose a mode, then enter #RRGGBB (or #AARRGGBB for opacity) or tap a preset. Changes save immediately.", FontSize = 12 },
-                    modeToggle, _modeNote, exchange, _status, _preview, _rows,
+                    new Label { Text = "Choose a mode, then enter #RRGGBB (or #AARRGGBB for opacity). Tap a swatch to open presets. Changes save immediately.", FontSize = 12 },
+                    modeToggle, _modeNote, exchange, _status, _migration, _preview, _rows,
                     new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, Children = { resetMode, resetAll } }
                 }
             }
@@ -124,6 +125,8 @@ internal sealed class ThemeColorsView : ContentView
         try
         {
             ModeThemeColors colors = await ReadAsync(mode);
+            if (version != _loadVersion) return;
+            await ShowMigrationAsync(mode, version);
             if (version != _loadVersion) return;
             _colors.Clear();
             foreach (var token in colors.Tokens) _colors[token.Key] = token.Value;
@@ -184,31 +187,67 @@ internal sealed class ThemeColorsView : ContentView
             }
             catch (Exception ex) { _status.Text = $"Could not save: {ex.Message}"; }
         };
-        var palette = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap };
-        palette.IsVisible = !definition.Fixed;
-        foreach (string hex in ModeTheme.PresetDefaults().Select(ModeTheme.ToHex))
+        var openPalette = new TapGestureRecognizer();
+        openPalette.Tapped += async (_, _) =>
         {
-            string choice = hex;
-            var preset = (new Button
+            if (definition.Fixed || _settings.IsReadOnly) return;
+            try
             {
-                Text = "", BackgroundColor = ModeTheme.ParseStoredHex(choice), WidthRequest = 24, HeightRequest = 24,
-                MinimumHeightRequest = 24, MinimumWidthRequest = 24, Margin = 2, Padding = 0,
-                CornerRadius = 4, BorderWidth = 1, IsEnabled = !_settings.IsReadOnly
-            }).ThemeColor(Button.BorderColorProperty, ThemeKey.Separator);
-            ModeThemedPage.SetPreserveColors(preset, true);
-            SemanticProperties.SetDescription(preset, $"{token}: {choice}");
-            preset.Clicked += (_, _) => entry.Text = choice;
-            palette.Children.Add(preset);
-        }
+                var popup = new ThemePresetPage(definition.Label);
+                await HostPage.Navigation.PushModalAsync(popup);
+                string? selected = await popup.Result;
+                if (selected != null)
+                {
+                    // Returning from a modal can rebuild these rows in OnAppearing. Save through
+                    // the shared path and reload rather than writing to the old row's Entry.
+                    await SaveColorsAsync(mode, new Dictionary<string, string> { [token] = selected });
+                    await LoadAsync();
+                    _status.Text = "Saved";
+                }
+            }
+            catch (Exception ex) { await ShowFailureAsync("Could not open palette", ex); }
+        };
+        swatch.GestureRecognizers.Add(openPalette);
+        SemanticProperties.SetDescription(swatch, definition.Fixed ? definition.Description : $"Choose a preset for {definition.Label}");
+        var pages = ThemeColorUsage.Pages(definition.Key);
+        string usedOn = "Used on: " + string.Join(", ", pages.Take(6)) + (pages.Count > 6 ? $", and {pages.Count - 6} more (tap for all)" : "");
+        var usage = new Label { Text = usedOn, FontSize = 12 }.ThemeColor(Label.TextColorProperty, ThemeKey.CardText2);
+        var showUsage = new TapGestureRecognizer();
+        showUsage.Tapped += async (_, _) => await HostPage.DisplayAlert(definition.Label + " — Used on", string.Join("\n", pages), "OK");
+        usage.GestureRecognizers.Add(showUsage);
         return new VerticalStackLayout
         {
             Spacing = 3,
             Children =
             {
                 new Label { Text = definition.Label + (definition.Fixed ? " (fixed)" : ""), FontSize = 14, FontAttributes = FontAttributes.Bold },
-                new HorizontalStackLayout { Spacing = 8, Children = { swatch, entry } }, palette, validation
+                new Label { Text = definition.Description, FontSize = 13 }, usage,
+                new HorizontalStackLayout { Spacing = 8, Children = { swatch, entry } }, validation
             }
         };
+    }
+
+    private async Task ShowMigrationAsync(ActivityDisplayMode mode, int version)
+    {
+        var report = await _settings.MigrateThemeOverridesAsync(_auth.CurrentUsername);
+        if (version != _loadVersion) return;
+        _migration.Children.Clear();
+        string selected = ThemeImportExport.ModeName(mode);
+        var decisions = report.Decisions.Where(d => d.Mode == selected).ToList();
+        if (decisions.Count == 0) return;
+        var details = new VerticalStackLayout { Spacing = 5, IsVisible = false };
+        foreach (var decision in decisions)
+            details.Children.Add(new Label
+            {
+                FontSize = 12,
+                Text = $"{decision.Action}: {decision.OldName} ({decision.Value}) → {decision.CoreName}" +
+                    (decision.Action == "Dropped" ? $"; kept {decision.KeptValue ?? "the default"}. {decision.Reason}" : ". " + decision.Reason)
+            });
+        var toggle = new Button { Text = $"Catalog migration: {decisions.Count(d => d.Action == "Moved")} moved, {decisions.Count(d => d.Action == "Dropped")} dropped — show details" };
+        toggle.Clicked += (_, _) => details.IsVisible = !details.IsVisible;
+        if (report.Deferred) _migration.Children.Add(new Label { Text = "Read-only device: these merges are previewed here and will be saved on the master device.", FontSize = 12 });
+        _migration.Children.Add(toggle);
+        _migration.Children.Add(details);
     }
 
     private async Task<int> SaveColorsAsync(ActivityDisplayMode mode, IReadOnlyDictionary<string, string> values)
@@ -341,7 +380,7 @@ internal sealed class ThemeColorsView : ContentView
         _preview.Content = new VerticalStackLayout
         {
             Spacing = 6,
-            Children = { Text("Primary text", "Text1", 18), Text("Secondary text", "Text2", 14), Text("Hint text", "Text3", 11), Text("Accent", "Accent", 14), card, input, button }
+            Children = { Text("Primary text", "PageText1", 18), Text("Secondary text", "PageText2", 14), Text("Hint text", "PageText3", 11), Text("Accent", "Accent", 14), card, input, button }
         };
     }
 }

@@ -35,7 +35,7 @@ public class VideoEditingHubPage : Bannister.Views.ModeThemedPage
             Text = "Video Editing",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightMintText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightTealText, ThemeKey.PageText1, classifyPageText: true));
 
         stack.Children.Add((new Label
         {
@@ -47,7 +47,7 @@ public class VideoEditingHubPage : Bannister.Views.ModeThemedPage
         stack.Children.Add(BuildHubCard(
             "\u2702\ufe0f Talking Head Shorts Cutter",
             "Pick a talking head video, import timestamped transcript analysis, review suggested shorts, and batch cut clips.",
-            ThemeKey.HighlightMintText,
+            ThemeKey.HighlightTealText,
             async () => await Navigation.PushAsync(new TalkingHeadCutterPage(_auth, _ffmpeg, _truncatePresets, _shortsProjects))));
 
         stack.Children.Add(BuildHubCard(

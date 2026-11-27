@@ -88,11 +88,11 @@ public class ExpChartDrawable : IDrawable
         areaPath.Close();
 
         // Fill with semi-transparent color
-        canvas.FillColor = AppColors.Get(ThemeKey.ChartAreaFill);
+        canvas.FillColor = AppColors.Get(ThemeKey.HighlightIndigo);
         canvas.FillPath(areaPath);
 
         // Draw the line on top
-        canvas.StrokeColor = AppColors.Get(ThemeKey.SecondaryAccentText);
+        canvas.StrokeColor = AppColors.Get(ThemeKey.HighlightIndigoText);
         canvas.StrokeSize = 3;
 
         PathF linePath = new PathF();
@@ -112,7 +112,7 @@ public class ExpChartDrawable : IDrawable
         // Draw points only if we have fewer than 60 data points
         if (data.Count <= 60)
         {
-            canvas.FillColor = AppColors.Get(ThemeKey.SecondaryAccentText);
+            canvas.FillColor = AppColors.Get(ThemeKey.HighlightIndigoText);
             for (int i = 0; i < data.Count; i++)
             {
                 float x = leftMargin + (chartWidth * i / Math.Max(1, data.Count - 1));

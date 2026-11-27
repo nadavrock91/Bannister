@@ -153,7 +153,7 @@ public class LevelOverTimeChartsPage : Bannister.Views.ModeThemedPage
                 Text = $"Level {currentLevel}",
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText1, classifyPageText: true));
 
             // Chart - takes most of the space
             var drawable = new LevelChartCompactDrawable(chartData);

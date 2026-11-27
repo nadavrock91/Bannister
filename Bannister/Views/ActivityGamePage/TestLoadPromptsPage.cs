@@ -23,7 +23,7 @@ internal class TestLoadPromptsPage : Bannister.Views.ModeThemedPage
             Text = "Test Load Prompts",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         foreach (string option in new[]
         {
@@ -41,7 +41,7 @@ internal class TestLoadPromptsPage : Bannister.Views.ModeThemedPage
                 Text = option,
                 HeightRequest = 48,
                 CornerRadius = 8
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoHoverButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             button.Clicked += async (_, _) => await CloseAsync(option);
             stack.Children.Add(button);
         }

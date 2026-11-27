@@ -76,7 +76,7 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 44
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _markDoneButton.Clicked += async (_, _) => await MarkDoneAsync();
 
         _navigationRow = new Grid
@@ -112,7 +112,7 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
                     Text = "Setup Guide",
                     FontSize = 28,
                     FontAttributes = FontAttributes.Bold
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                 (new Label
                 {
                     Text = "14 steps to your first deployed website. Follow in order - Bannister handles some steps for you.",
@@ -191,7 +191,7 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
                 CornerRadius = 9,
                 Padding = 0,
                 HasShadow = false
-            }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isCurrent ? ThemeKey.TealButtonBackground : ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, isDone && !isCurrent ? ThemeKey.TealButtonBackground : (ThemeKey?)null);
+            }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isCurrent ? ThemeKey.HighlightTealText : ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, isDone && !isCurrent ? ThemeKey.HighlightTealText : (ThemeKey?)null);
 
             _stepIndicator.Children.Add(dot);
         }
@@ -389,7 +389,7 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
                                 Text = "You're Set Up!",
                                 FontSize = 22,
                                 FontAttributes = FontAttributes.Bold
-                            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                             (new Label
                             {
                                 Text = "All 14 steps complete. From here, the recurring loop is: Codex edits files -> npm run dev to test -> git push to deploy. Bannister's task counter tracks your progress.",
@@ -422,8 +422,8 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
                 FontAttributes = FontAttributes.Bold,
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true)
-        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.TealButtonBackground).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true)
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightTealText).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText);
         Grid.SetColumn(badge, 0);
 
         var titleLabel = (new Label
@@ -433,7 +433,7 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             VerticalTextAlignment = TextAlignment.Center,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(titleLabel, 1);
 
         var titleRow = new Grid
@@ -614,7 +614,7 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
             HeightRequest = 40,
             FontSize = 13,
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         button.Clicked += async (_, _) => await Launcher.OpenAsync(url);
         return button;
     }
@@ -629,7 +629,7 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
             HeightRequest = 42,
             FontSize = 13,
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         button.Clicked += async (_, _) => await onClick();
         return button;
     }

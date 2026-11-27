@@ -77,7 +77,7 @@ public class LevelChartDrawable : IDrawable
         canvas.DrawLine(leftMargin, topMargin + chartHeight, leftMargin + chartWidth, topMargin + chartHeight); // X axis
 
         // Draw step line (for levels)
-        canvas.StrokeColor = AppColors.Get(ThemeKey.SuccessLightText);
+        canvas.StrokeColor = AppColors.Get(ThemeKey.SuccessButtonBackground);
         canvas.StrokeSize = 3;
 
         PathF path = new PathF();
@@ -107,7 +107,7 @@ public class LevelChartDrawable : IDrawable
         // Draw points only if we have fewer than 60 data points
         if (data.Count <= 60)
         {
-            canvas.FillColor = AppColors.Get(ThemeKey.SuccessLightText);
+            canvas.FillColor = AppColors.Get(ThemeKey.SuccessButtonBackground);
             for (int i = 0; i < data.Count; i++)
             {
                 float x = leftMargin + (chartWidth * i / Math.Max(1, data.Count - 1));

@@ -105,7 +105,7 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
             Text = "📝 Create Custom Scenario",
             CornerRadius = 8,
             HeightRequest = 50
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         createButton.Clicked += OnCreateScenario;
         Grid.SetColumn(createButton, 0);
         bottomGrid.Children.Add(createButton);
@@ -117,7 +117,7 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
             BorderWidth = 2,
             CornerRadius = 8,
             HeightRequest = 50
-        }).ThemeColor(Button.BorderColorProperty, ThemeKey.WarningAccentText).ThemeColor(Button.TextColorProperty, ThemeKey.WarningAccentText);
+        }).ThemeColor(Button.BorderColorProperty, ThemeKey.WarningText).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         manageButton.Clicked += OnManageCustom;
         Grid.SetColumn(manageButton, 1);
         bottomGrid.Children.Add(manageButton);
@@ -130,7 +130,7 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 50,
             WidthRequest = 100
-        }).ThemeColor(Button.BorderColorProperty, ThemeKey.SecondaryAccentText).ThemeColor(Button.TextColorProperty, ThemeKey.SecondaryAccentText);
+        }).ThemeColor(Button.BorderColorProperty, ThemeKey.HighlightIndigoText).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         statsButton.Clicked += OnViewStats;
         Grid.SetColumn(statsButton, 2);
         bottomGrid.Children.Add(statsButton);
@@ -264,7 +264,7 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
         {
             Text = stars,
             FontSize = 12
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowButton, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningButtonBackground, ThemeKey.PageText3, classifyPageText: true));
 
         // Level and EXP bar
         var levelExpStack = new VerticalStackLayout { Spacing = 4, Margin = new Thickness(0, 8, 0, 0) };
@@ -274,7 +274,7 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
             Text = $"Level {conversation.CurrentLevel}",
             FontSize = 13,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         levelExpStack.Children.Add(levelLabel);
 
         // EXP progress bar
@@ -313,7 +313,7 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
                 Text = "⭐ MAX LEVEL",
                 FontSize = 11,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowButton, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningButtonBackground, ThemeKey.PageText3, classifyPageText: true));
         }
 
         infoStack.Children.Add(levelExpStack);
@@ -326,7 +326,7 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
                 Text = $"✅ Practiced {conversation.TimesCompleted} time{(conversation.TimesCompleted == 1 ? "" : "s")}",
                 FontSize = 11,
                 Margin = new Thickness(0, 4, 0, 0)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText3, classifyPageText: true));
         }
 
         Grid.SetColumn(infoStack, 1);
@@ -338,7 +338,7 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
             Text = "▶",
             FontSize = 20,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(arrowLabel, 2);
         mainLayout.Children.Add(arrowLabel);
 

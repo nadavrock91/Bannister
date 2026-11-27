@@ -30,7 +30,7 @@ public partial class ActivityGamePage
             HasShadow = true,
             Margin = new Thickness(0, 0, 0, 12),
             IsVisible = false // Hidden by default, shown when there are level caps
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningText);
 
         var stack = new VerticalStackLayout { Spacing = 8 };
 
@@ -88,7 +88,7 @@ public partial class ActivityGamePage
                     CornerRadius = 8,
                     HasShadow = false,
                     BorderColor = Colors.Transparent
-                }).ThemeColor(VisualElement.BackgroundColorProperty, isBlocking ? ThemeKey.ErrorSelectedBackground : ThemeKey.SuccessBackground);
+                }).ThemeColor(VisualElement.BackgroundColorProperty, isBlocking ? ThemeKey.ErrorBackground : ThemeKey.SuccessBackground);
 
                 var itemGrid = new Grid
                 {
@@ -165,7 +165,7 @@ public partial class ActivityGamePage
                         FontSize = 28,
                         FontAttributes = FontAttributes.Bold,
                         VerticalOptions = LayoutOptions.Center
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorStrongText, ThemeKey.PageText1, classifyPageText: true);
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
                     fireRow.Children.Add(bigDaysLabel);
                     
                     blockingStack.Children.Add(fireRow);
@@ -186,7 +186,7 @@ public partial class ActivityGamePage
                         FontSize = 9,
                         FontAttributes = FontAttributes.Bold,
                         HorizontalOptions = LayoutOptions.End
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorStrongText, ThemeKey.PageText3, classifyPageText: true);
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText3, classifyPageText: true);
                     blockingStack.Children.Add(statusLabel);
                     
                     Grid.SetColumn(blockingStack, 1);
@@ -207,7 +207,7 @@ public partial class ActivityGamePage
                         FontSize = 11,
                         FontAttributes = FontAttributes.Bold,
                         HorizontalOptions = LayoutOptions.End
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText3, classifyPageText: true);
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText3, classifyPageText: true);
                     unlockedStack.Children.Add(streakLabel);
 
                     var statusLabel = (new Label
@@ -216,7 +216,7 @@ public partial class ActivityGamePage
                         FontSize = 9,
                         FontAttributes = FontAttributes.Bold,
                         HorizontalOptions = LayoutOptions.End
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessBrightText, ThemeKey.PageText3, classifyPageText: true);
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true);
                     unlockedStack.Children.Add(statusLabel);
                     
                     Grid.SetColumn(unlockedStack, 1);
@@ -283,7 +283,7 @@ public partial class ActivityGamePage
             Padding = new Thickness(6, 2),
             WidthRequest = 28,
             HeightRequest = 24
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _escalationResetButton.Clicked += OnEscalationResetClicked;
         Grid.SetColumn(_escalationResetButton, 1);
         headerGrid.Children.Add(_escalationResetButton);
@@ -297,7 +297,7 @@ public partial class ActivityGamePage
             Padding = new Thickness(6, 2),
             WidthRequest = 28,
             HeightRequest = 24
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _escalationToggleButton.Clicked += OnEscalationToggleClicked;
         Grid.SetColumn(_escalationToggleButton, 2);
         headerGrid.Children.Add(_escalationToggleButton);
@@ -310,7 +310,7 @@ public partial class ActivityGamePage
             WidthRequest = 30,
             Padding = 0,
             FontSize = 14
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         ToolTipProperties.SetText(setDurationBtn, "Set custom duration");
         setDurationBtn.Clicked += OnSetEscalationDurationClicked;
         Grid.SetColumn(setDurationBtn, 3);
@@ -325,7 +325,7 @@ public partial class ActivityGamePage
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText1, classifyPageText: true);
         stack.Children.Add(_escalationDaysLabel);
 
         // Vertical progress bar container (REDUCED HEIGHT)
@@ -351,7 +351,7 @@ public partial class ActivityGamePage
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
         };
-        _escalationProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessLightText);
+        _escalationProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessButtonBackground);
 
         progressContainer.Content = _escalationProgressBar;
         stack.Children.Add(progressContainer);
@@ -408,7 +408,7 @@ public partial class ActivityGamePage
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(_escalationDaysLabel, 0);
         Grid.SetRowSpan(_escalationDaysLabel, 2);
         grid.Children.Add(_escalationDaysLabel);
@@ -429,7 +429,7 @@ public partial class ActivityGamePage
         {
             Progress = 1.0,
             HeightRequest = 16
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessLightText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessButtonBackground);
         middleStack.Children.Add(_escalationProgressBar);
 
         var infoLabel = (new Label
@@ -452,7 +452,7 @@ public partial class ActivityGamePage
             WidthRequest = 40,
             HeightRequest = 40,
             Padding = 0
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _escalationResetButton.Clicked += OnEscalationResetClicked;
         Grid.SetColumn(_escalationResetButton, 2);
         Grid.SetRow(_escalationResetButton, 0);
@@ -467,7 +467,7 @@ public partial class ActivityGamePage
             WidthRequest = 40,
             HeightRequest = 40,
             Padding = 0
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _escalationToggleButton.Clicked += OnEscalationToggleClicked;
         Grid.SetColumn(_escalationToggleButton, 2);
         Grid.SetRow(_escalationToggleButton, 1);
@@ -481,7 +481,7 @@ public partial class ActivityGamePage
             WidthRequest = 30,
             Padding = 0,
             FontSize = 14
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         ToolTipProperties.SetText(setDurationBtn, "Set custom duration");
         setDurationBtn.Clicked += OnSetEscalationDurationClicked;
         Grid.SetColumn(setDurationBtn, 2);
@@ -542,13 +542,13 @@ public partial class ActivityGamePage
             int quarterDuration = _game?.EscalationDurationDays / 4 ?? 7;
             if (daysRemaining > halfDuration)
             {
-                textColor = ThemeKey.SuccessLightText;
-                barColor = ThemeKey.SuccessLightText;
+                textColor = ThemeKey.SuccessButtonBackground;
+                barColor = ThemeKey.SuccessButtonBackground;
             }
             else if (daysRemaining > quarterDuration)
             {
-                textColor = ThemeKey.WarningAccentText;
-                barColor = ThemeKey.WarningAccentText;
+                textColor = ThemeKey.WarningText;
+                barColor = ThemeKey.WarningText;
             }
             else if (daysRemaining > 0) // Red: 1-7 days
             {
@@ -557,8 +557,8 @@ public partial class ActivityGamePage
             }
             else // Black/Dark: 0 days (expired)
             {
-                textColor = ThemeKey.CardTextStrong;
-                barColor = ThemeKey.CardTextStrong;
+                textColor = ThemeKey.CardText1;
+                barColor = ThemeKey.CardText1;
             }
 
             _escalationDaysLabel.ThemeColor(Label.TextColorProperty, textColor, ThemeKey.PageText1, classifyPageText: true);

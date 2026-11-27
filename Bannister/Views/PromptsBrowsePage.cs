@@ -122,7 +122,7 @@ public class PromptsBrowsePage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             HeightRequest = 36,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += OnAddPromptClicked;
         headerRow.Children.Add(addBtn);
 
@@ -133,7 +133,7 @@ public class PromptsBrowsePage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             WidthRequest = 36,
             HeightRequest = 36
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         exportBtn.Clicked += OnExportClicked;
         headerRow.Children.Add(exportBtn);
 
@@ -144,7 +144,7 @@ public class PromptsBrowsePage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             WidthRequest = 36,
             HeightRequest = 36
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _showArchivedBtn.Clicked += OnShowArchivedClicked;
         headerRow.Children.Add(_showArchivedBtn);
 
@@ -181,7 +181,7 @@ public class PromptsBrowsePage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HasShadow = true,
             IsVisible = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.AccentPurpleText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightVioletText);
 
         var detailStack = new VerticalStackLayout { Spacing = 10 };
 
@@ -193,7 +193,7 @@ public class PromptsBrowsePage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.StartAndExpand,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true));
         var closeBtn = (new Button
         {
             Text = "✕",
@@ -356,9 +356,9 @@ public class PromptsBrowsePage : Bannister.Views.ModeThemedPage
         var actions = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap };
         var btnEdit = MiniBtn("✏️", ThemeKey.InfoButtonBackground); btnEdit.Clicked += OnEditClicked;
         var btnCopy = MiniBtn("📋", ThemeKey.WarningButtonBackground); btnCopy.Clicked += OnCopyClicked;
-        var btnMove = MiniBtn("📂", ThemeKey.AccentPurpleButtonBackground); btnMove.Clicked += OnMoveClicked;
-        var btnToggle = MiniBtn("⏸️", ThemeKey.NeutralMutedButton); btnToggle.Clicked += OnToggleClicked;
-        var btnArchive = MiniBtn("🗄️", ThemeKey.NeutralHoverButton); btnArchive.Clicked += OnArchiveClicked;
+        var btnMove = MiniBtn("📂", ThemeKey.HighlightVioletText); btnMove.Clicked += OnMoveClicked;
+        var btnToggle = MiniBtn("⏸️", ThemeKey.NeutralDarkButton); btnToggle.Clicked += OnToggleClicked;
+        var btnArchive = MiniBtn("🗄️", ThemeKey.NeutralDarkButton); btnArchive.Clicked += OnArchiveClicked;
         actions.Children.Add(btnEdit);
         actions.Children.Add(btnCopy);
         actions.Children.Add(btnMove);
@@ -384,7 +384,7 @@ public class PromptsBrowsePage : Bannister.Views.ModeThemedPage
         HeightRequest = 32,
         Padding = 0,
         Margin = new Thickness(0, 0, 4, 4)
-    }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+    }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
     #region Data Loading
 
@@ -444,7 +444,7 @@ public class PromptsBrowsePage : Bannister.Views.ModeThemedPage
     private async void OnShowArchivedClicked(object? sender, EventArgs e)
     {
         _showingArchived = !_showingArchived;
-        _showArchivedBtn.ThemeColor(VisualElement.BackgroundColorProperty, _showingArchived ? ThemeKey.WarningHoverButtonBackground : ThemeKey.DisabledButtonBackground);
+        _showArchivedBtn.ThemeColor(VisualElement.BackgroundColorProperty, _showingArchived ? ThemeKey.WarningButtonBackground : ThemeKey.DisabledButtonBackground);
         await RefreshPromptsAsync();
     }
 
@@ -540,18 +540,18 @@ public class PromptsBrowsePage : Bannister.Views.ModeThemedPage
 
         // Icons row
         var icons = new HorizontalStackLayout { Spacing = 2 };
-        if (prompt.Priority > 0) icons.Children.Add((new Label { Text = $"P{prompt.Priority}", FontSize = 7, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3, classifyPageText: true));
+        if (prompt.Priority > 0) icons.Children.Add((new Label { Text = $"P{prompt.Priority}", FontSize = 7, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true));
         if (!prompt.IsActive) icons.Children.Add(new Label { Text = "⏸", FontSize = 7 });
         if (!string.IsNullOrWhiteSpace(prompt.Examples))
         {
             var count = prompt.Examples.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
-            icons.Children.Add((new Label { Text = $"📝{count}", FontSize = 7 }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoLinkText, ThemeKey.PageText3, classifyPageText: true));
+            icons.Children.Add((new Label { Text = $"📝{count}", FontSize = 7 }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText3, classifyPageText: true));
         }
         icons.Children.Add((new Label
         { 
             Text = new string('★', prompt.Rating), 
             FontSize = 7
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightAmberButton, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningButtonBackground, ThemeKey.PageText3, classifyPageText: true));
         if (icons.Children.Count > 0) stack.Children.Add(icons);
 
         // Text (truncated)
@@ -709,7 +709,7 @@ public class PromptsBrowsePage : Bannister.Views.ModeThemedPage
         {
             bool isSelected = Math.Abs(probability - probValues[i]) < 0.01;
             _probButtons[i].ThemeColor(VisualElement.BackgroundColorProperty, isSelected ? ThemeKey.SuccessButtonBackground : ThemeKey.Separator);
-            _probButtons[i].ThemeColor(Button.TextColorProperty, isSelected ? ThemeKey.OnColorText : ThemeKey.CardText1);
+            _probButtons[i].ThemeColor(Button.TextColorProperty, isSelected ? ThemeKey.ButtonPrimaryText : ThemeKey.CardText1);
         }
     }
 
@@ -720,7 +720,7 @@ public class PromptsBrowsePage : Bannister.Views.ModeThemedPage
         {
             bool isSelected = priority == prioValues[i];
             _prioButtons[i].ThemeColor(VisualElement.BackgroundColorProperty, isSelected ? ThemeKey.WarningButtonBackground : ThemeKey.Separator);
-            _prioButtons[i].ThemeColor(Button.TextColorProperty, isSelected ? ThemeKey.OnColorText : ThemeKey.CardText1);
+            _prioButtons[i].ThemeColor(Button.TextColorProperty, isSelected ? ThemeKey.ButtonPrimaryText : ThemeKey.CardText1);
         }
     }
 

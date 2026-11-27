@@ -39,7 +39,7 @@ public class ContextMenuOrderPage : Bannister.Views.ModeThemedPage
             Text = "☰ Context Menu Order",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label
         {
             Text = "Use ▲ ▼ buttons to reorder items.",
@@ -63,7 +63,7 @@ public class ContextMenuOrderPage : Bannister.Views.ModeThemedPage
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold,
             Padding = new Thickness(16, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         saveBtn.Clicked += async (_, _) => await SaveOrderAsync();
         btnRow.Children.Add(saveBtn);
 
@@ -117,7 +117,7 @@ public class ContextMenuOrderPage : Bannister.Views.ModeThemedPage
                 Text = label,
                 FontSize = 13,
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 0, 0);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 0, 0);
 
             var upBtn = (new Button
             {

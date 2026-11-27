@@ -48,7 +48,7 @@ public class StreakAttemptsPage : Bannister.Views.ModeThemedPage
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningText);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
 
@@ -76,7 +76,7 @@ public class StreakAttemptsPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 45
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnNewStreak.Clicked += OnStartNewStreakClicked;
         mainStack.Children.Add(btnNewStreak);
 
@@ -119,7 +119,7 @@ public class StreakAttemptsPage : Bannister.Views.ModeThemedPage
     {
         var isActive = attempt.IsActive;
         int displayDays = GetAttemptDisplayDays(attempt);
-        var borderColor = isActive ? ThemeKey.SuccessLightText : ThemeKey.Separator;
+        var borderColor = isActive ? ThemeKey.SuccessButtonBackground : ThemeKey.Separator;
         var bgColor = isActive ? ThemeKey.SuccessBackground : ThemeKey.CardBackground;
 
         var frame = (new Frame
@@ -147,7 +147,7 @@ public class StreakAttemptsPage : Bannister.Views.ModeThemedPage
             Text = attempt.Status,
             FontSize = 14,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.SuccessLightText : ThemeKey.ErrorButtonBackground, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.SuccessButtonBackground : ThemeKey.ErrorButtonBackground, ThemeKey.PageText1, classifyPageText: true));
 
         stack.Children.Add(headerRow);
 
@@ -160,7 +160,7 @@ public class StreakAttemptsPage : Bannister.Views.ModeThemedPage
             FontSize = 36,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.WarningAccentText : ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.WarningText : ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true));
 
         daysRow.Children.Add((new Label
         {
@@ -192,7 +192,7 @@ public class StreakAttemptsPage : Bannister.Views.ModeThemedPage
                 FontSize = 12,
                 HeightRequest = 35,
                 Margin = new Thickness(0, 8, 0, 0)
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btnEnd.Clicked += async (s, e) => await OnEndStreakClicked(attempt);
             stack.Children.Add(btnEnd);
         }

@@ -45,13 +45,13 @@ public class GroupingsPage : Bannister.Views.ModeThemedPage
             Text = "📂 Activity Groupings",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         mainStack.Children.Add((new Label
         {
             Text = "Custom views across all games",
             FontSize = 14
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigo, ThemeKey.PageText1, classifyPageText: true));
 
         _listContainer = new VerticalStackLayout { Spacing = 10 };
         mainStack.Children.Add(_listContainer);
@@ -65,7 +65,7 @@ public class GroupingsPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 10, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SecondaryAccentText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         btnAdd.Clicked += OnAddGroupingClicked;
         mainStack.Children.Add(btnAdd);
 
@@ -87,7 +87,7 @@ public class GroupingsPage : Bannister.Views.ModeThemedPage
                 FontSize = 15,
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 40, 0, 0)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoStrong, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigo, ThemeKey.PageText1, classifyPageText: true));
             return;
         }
 

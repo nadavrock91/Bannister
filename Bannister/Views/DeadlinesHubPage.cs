@@ -31,7 +31,7 @@ public class DeadlinesHubPage : Bannister.Views.ModeThemedPage
             Text = "Deadlines",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true));
         root.Children.Add((new Label
         {
             Text = "Daily, weekly, monthly self-imposed deadlines.",
@@ -59,7 +59,7 @@ public class DeadlinesHubPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HasShadow = false,
             Padding = 14
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.AccentPurpleBorder);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightVioletText);
 
         frame.Content = new VerticalStackLayout
         {

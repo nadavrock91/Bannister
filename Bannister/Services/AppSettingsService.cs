@@ -1,4 +1,5 @@
 using Bannister.Models;
+using System.Text.Json;
 
 namespace Bannister.Services;
 
@@ -71,6 +72,48 @@ public class AppSettingsService
     }
 
     public bool IsReadOnly => _db.IsReadOnly;
+
+    public async Task<ThemeMigrationReport> MigrateThemeOverridesAsync(string username)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        if (_db.IsReadOnly)
+        {
+            var pending = ThemePaletteMigration.Plan(await GetByPrefixAsync(username, "theme_"), deferred: true);
+            if (pending.RetiredKeys.Count > 0) return pending.Report;
+            return ReadReport(await GetAsync(username, ThemePaletteMigration.ReportKey));
+        }
+
+        ThemeMigrationReport report = new(Array.Empty<ThemeOverrideDecision>());
+        await conn.RunInTransactionAsync(db =>
+        {
+            var rows = db.Table<AppSetting>().Where(x => x.Username == username).ToList();
+            var values = rows.OrderBy(x => x.Id).GroupBy(x => x.Key).ToDictionary(g => g.Key, g => g.Last().Value);
+            report = ReadReport(values.GetValueOrDefault(ThemePaletteMigration.ReportKey));
+            var plan = ThemePaletteMigration.Plan(values);
+            if (plan.RetiredKeys.Count == 0) return;
+            foreach (var (key, value) in plan.Updates)
+                db.Insert(new AppSetting { Username = username, Key = key, Value = value });
+            var retired = plan.RetiredKeys.ToHashSet();
+            foreach (var row in rows.Where(r => retired.Contains(r.Key))) db.Delete(row);
+            report = new(report.Decisions.Concat(plan.Report.Decisions).ToList());
+            var saved = rows.OrderBy(x => x.Id).LastOrDefault(r => r.Key == ThemePaletteMigration.ReportKey);
+            string json = JsonSerializer.Serialize(report);
+            if (saved == null) db.Insert(new AppSetting { Username = username, Key = ThemePaletteMigration.ReportKey, Value = json });
+            else { saved.Value = json; db.Update(saved); }
+        });
+        return report;
+    }
+
+    private static ThemeMigrationReport ReadReport(string? json)
+    {
+        try
+        {
+            var report = json == null ? null : JsonSerializer.Deserialize<ThemeMigrationReport>(json);
+            return report?.Decisions == null ? new(Array.Empty<ThemeOverrideDecision>()) : report;
+        }
+        catch (JsonException) { return new(Array.Empty<ThemeOverrideDecision>()); }
+    }
 
     public async Task DeleteByPrefixAsync(string username, string prefix)
     {

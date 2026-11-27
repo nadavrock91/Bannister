@@ -150,13 +150,13 @@ public class ManageScenariosPage : Bannister.Views.ModeThemedPage
             Text = $"Level {scenario.CurrentLevel}",
             FontSize = 12,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText3, classifyPageText: true));
 
         statsStack.Children.Add((new Label
         {
             Text = $"✅ {scenario.TimesCompleted}x practiced",
             FontSize = 12
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText3, classifyPageText: true));
 
         string stars = string.Concat(Enumerable.Repeat("⭐", scenario.DifficultyLevel)) +
                        string.Concat(Enumerable.Repeat("☆", 5 - scenario.DifficultyLevel));
@@ -185,7 +185,7 @@ public class ManageScenariosPage : Bannister.Views.ModeThemedPage
             Text = "✏️ Edit",
             CornerRadius = 8,
             FontSize = 13
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnEdit.Clicked += (s, e) => OnEditScenarioClicked(scenario);
         Grid.SetColumn(btnEdit, 0);
         buttonGrid.Children.Add(btnEdit);
@@ -195,7 +195,7 @@ public class ManageScenariosPage : Bannister.Views.ModeThemedPage
             Text = "🗑️ Delete",
             CornerRadius = 8,
             FontSize = 13
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnDelete.Clicked += (s, e) => OnDeleteScenarioClicked(scenario);
         Grid.SetColumn(btnDelete, 1);
         buttonGrid.Children.Add(btnDelete);

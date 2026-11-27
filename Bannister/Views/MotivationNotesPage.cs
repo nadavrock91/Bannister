@@ -47,7 +47,7 @@ public class MotivationNotesPage : Bannister.Views.ModeThemedPage
             Text = _source.Title,
             FontSize = 24,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         if (!string.IsNullOrWhiteSpace(_source.Description))
             _content.Children.Add((new Label
             {
@@ -62,7 +62,7 @@ public class MotivationNotesPage : Bannister.Views.ModeThemedPage
             {
                 Text = note.Content,
                 FontSize = 14
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
             var footer = new HorizontalStackLayout { Spacing = 8 };
             footer.Children.Add((new Label
             {
@@ -97,7 +97,7 @@ public class MotivationNotesPage : Bannister.Views.ModeThemedPage
             Text = "Add Note",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         _noteEditor = (new Editor
         {
             Placeholder = "Write an observation...",

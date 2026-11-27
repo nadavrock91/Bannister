@@ -77,7 +77,7 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
             Text = "+ Add Opening Line",
             CornerRadius = 8,
             FontSize = 13
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAddRoot.Clicked += (s, e) => OnAddNodeClicked(null);
         btnStack.Children.Add(btnAddRoot);
 
@@ -86,7 +86,7 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
             Text = "▶ Practice",
             CornerRadius = 8,
             FontSize = 13
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnPractice.Clicked += OnPracticeClicked;
         btnStack.Children.Add(btnPractice);
 
@@ -173,8 +173,8 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
         bool isTheirTurn = depth % 2 == 0; // Even depth = THEM, Odd depth = YOU
 
         // Colors: Purple for THEM, Blue for YOU
-        var borderColor = isTheirTurn ? ThemeKey.AccentPurpleButtonBackground : ThemeKey.InfoLinkText;
-        var bgColor = isTheirTurn ? ThemeKey.AccentPurpleBackground : ThemeKey.InfoBackground;
+        var borderColor = isTheirTurn ? ThemeKey.HighlightVioletText : ThemeKey.InfoText;
+        var bgColor = isTheirTurn ? ThemeKey.HighlightViolet : ThemeKey.InfoBackground;
 
         var frame = (new Frame
         {
@@ -192,7 +192,7 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
             Text = isTheirTurn ? "🗣️ THEM:" : "💬 YOU:",
             FontSize = 10,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, isTheirTurn ? ThemeKey.AccentPurpleText : ThemeKey.InfoText, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, isTheirTurn ? ThemeKey.HighlightVioletText : ThemeKey.InfoText, ThemeKey.PageText3, classifyPageText: true);
         stack.Children.Add(turnLabel);
 
         // Header with collapse button
@@ -201,7 +201,7 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
         // Collapse/Expand button (only if has children)
         if (hasChildren)
         {
-            var toggleColor = isTheirTurn ? ThemeKey.AccentPurpleButtonBackground : ThemeKey.InfoLinkText;
+            var toggleColor = isTheirTurn ? ThemeKey.HighlightVioletText : ThemeKey.InfoText;
             var btnToggle = (new Button
             {
                 Text = isCollapsed ? $"▶ ({childCount})" : "▼",
@@ -247,7 +247,7 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
             {
                 Text = $"🎯 Reached {node.TimesReached}x",
                 FontSize = 11
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText3, classifyPageText: true));
         }
 
         if (hasChildren)
@@ -257,7 +257,7 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
                 Text = $"💬 {childCount} response{(childCount == 1 ? "" : "s")}",
                 FontSize = 11,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText3, classifyPageText: true));
         }
 
         if (node.Notes != null)
@@ -267,7 +267,7 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
                 Text = $"📝 {node.Notes}",
                 FontSize = 11,
                 LineBreakMode = LineBreakMode.TailTruncation
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true));
         }
 
         if (node.IsTerminal)
@@ -296,7 +296,7 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
                 CornerRadius = 6,
                 FontSize = 11,
                 Padding = new Thickness(8, 4)
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btnAddChild.Clicked += (s, e) => OnAddNodeClicked(node.Id);
             buttonStack.Children.Add(btnAddChild);
         }
@@ -307,7 +307,7 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             FontSize = 11,
             Padding = new Thickness(8, 4)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnEdit.Clicked += (s, e) => OnEditNodeClicked(node);
         buttonStack.Children.Add(btnEdit);
 
@@ -317,7 +317,7 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             FontSize = 11,
             Padding = new Thickness(8, 4)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnDelete.Clicked += (s, e) => OnDeleteNodeClicked(node);
         buttonStack.Children.Add(btnDelete);
 

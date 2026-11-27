@@ -70,10 +70,10 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         // Update colors based on frequency
         string bgColor = _frequency switch
         {
-            "Daily" => AppColors.Hex(ThemeKey.IndigoMutedButton),   // Indigo
-            "Weekly" => AppColors.Hex(ThemeKey.TealButtonBackground),  // Teal
-            "Monthly" => AppColors.Hex(ThemeKey.AccentPurpleButtonBackground), // Purple
-            _ => AppColors.Hex(ThemeKey.IndigoMutedButton)
+            "Daily" => AppColors.Hex(ThemeKey.SecondaryButtonBackground),   // Indigo
+            "Weekly" => AppColors.Hex(ThemeKey.HighlightTealText),  // Teal
+            "Monthly" => AppColors.Hex(ThemeKey.HighlightVioletText), // Purple
+            _ => AppColors.Hex(ThemeKey.SecondaryButtonBackground)
         };
 
         string graduationText = _frequency switch
@@ -120,14 +120,14 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             Text = "🌅 Daily Habits",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1);
         mainStack.Children.Add(_lblHeader);
 
         _lblSubheader = (new Label
         {
             Text = "Complete every day for 7 days to graduate",
             Opacity = 0.9
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1);
         mainStack.Children.Add(_lblSubheader);
 
         _allowanceChartContainer = new VerticalStackLayout { Spacing = 8 };
@@ -146,7 +146,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 12,
             HasShadow = true,
             Margin = new Thickness(0, 8, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground);
 
         var allowanceTap = new TapGestureRecognizer();
         allowanceTap.Tapped += OnAllowanceTapped;
@@ -160,7 +160,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1);
         allowanceStack.Children.Add(_lblAllowance);
 
         _lblAvailableSlots = (new Label
@@ -169,7 +169,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             Opacity = 0.9,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1);
         allowanceStack.Children.Add(_lblAvailableSlots);
 
         // Countdown to allowance increase
@@ -179,7 +179,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             FontSize = 12,
             Opacity = 0.8,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3);
         allowanceStack.Children.Add(_lblAllowanceCountdown);
 
         // Week Concluded button (Daily frequency only)
@@ -191,7 +191,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             IsVisible = false,
             Margin = new Thickness(0, 8, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _btnWeekConcluded.Clicked += OnWeekConcludedClicked;
         allowanceStack.Children.Add(_btnWeekConcluded);
 
@@ -201,7 +201,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             FontSize = 11,
             Opacity = 0.6,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3));
 
         _allowanceFrame.Content = allowanceStack;
         mainStack.Children.Add(_allowanceFrame);
@@ -214,7 +214,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold,
             IsEnabled = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralHoverButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _btnAddHabit.Clicked += OnAddHabitClicked;
         mainStack.Children.Add(_btnAddHabit);
 
@@ -225,7 +225,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 16, 0, 8)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1);
         mainStack.Children.Add(_lblActiveHeader);
 
         _activeHabitsContainer = new VerticalStackLayout { Spacing = 8 };
@@ -238,7 +238,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 16, 0, 8)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1));
 
         _topPendingHabitsContainer = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_topPendingHabitsContainer);
@@ -260,7 +260,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1), 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1), 0, 0);
 
         _btnAddPending = (new Button
         {
@@ -269,7 +269,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             FontSize = 12,
             Padding = new Thickness(12, 6),
             HeightRequest = 36
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _btnAddPending.Clicked += OnAddPendingClicked;
         pendingHeader.Add(_btnAddPending, 1, 0);
 
@@ -285,7 +285,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 16, 0, 8)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1));
 
         _graduatedHabitsContainer = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_graduatedHabitsContainer);
@@ -312,7 +312,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
                    "💡 Use Pending to queue habits for later!",
             FontSize = 13,
             LineHeight = 1.4
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessStrongText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1);
         mainStack.Children.Add(infoFrame);
 
         scrollView.Content = mainStack;
@@ -592,7 +592,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
                 Opacity = 0.7,
                 FontSize = 14,
                 HorizontalTextAlignment = TextAlignment.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1));
         }
         else
         {
@@ -625,7 +625,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
                 Opacity = 0.7,
                 FontSize = 14,
                 HorizontalTextAlignment = TextAlignment.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1));
         }
         else
         {
@@ -649,7 +649,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
                 Opacity = 0.7,
                 FontSize = 14,
                 HorizontalTextAlignment = TextAlignment.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1));
         }
         else
         {
@@ -676,7 +676,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
                 Opacity = 0.7,
                 FontSize = 14,
                 HorizontalTextAlignment = TextAlignment.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1));
         }
         else
         {
@@ -945,7 +945,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             Text = statusText,
             FontSize = 12,
             FontAttributes = isReadyToGraduate ? FontAttributes.Bold : FontAttributes.None
-        }).ThemeColor(Label.TextColorProperty, isReadyToGraduate ? ThemeKey.SuccessLightText : ThemeKey.CardText2, ThemeKey.PageText3), 0, 3);
+        }).ThemeColor(Label.TextColorProperty, isReadyToGraduate ? ThemeKey.SuccessButtonBackground : ThemeKey.CardText2, ThemeKey.PageText3), 0, 3);
 
         // Action buttons
         var buttonStack = new HorizontalStackLayout { Spacing = 8 };
@@ -959,7 +959,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 40,
             Padding = 0,
             CornerRadius = 8
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnEditProgress.Clicked += async (s, e) => await EditHabitProgressAsync(habit);
         buttonStack.Children.Add(btnEditProgress);
 
@@ -972,7 +972,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 40,
             Padding = 0,
             CornerRadius = 8
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnMoveToPending.Clicked += async (s, e) => await MoveToPendingAsync(habit);
         buttonStack.Children.Add(btnMoveToPending);
 
@@ -1004,7 +1004,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             Padding = 12,
             CornerRadius = 10,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSelected);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet);
 
         var grid = new Grid
         {
@@ -1024,7 +1024,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText1), 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1), 0, 0);
 
         // Info stack
         var infoStack = new VerticalStackLayout { Spacing = 2 };
@@ -1047,7 +1047,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         {
             Text = $"{pendingDays} day{(pendingDays == 1 ? "" : "s")} pending",
             FontSize = 11
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText3));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText3));
         grid.Add(infoStack, 1, 0);
 
         // Action buttons
@@ -1064,7 +1064,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
                 HeightRequest = 32,
                 Padding = 0,
                 CornerRadius = 6
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btnUp.Clicked += async (s, e) =>
             {
                 await _newHabits.MovePendingHabitUpAsync(habit);
@@ -1084,7 +1084,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
                 HeightRequest = 32,
                 Padding = 0,
                 CornerRadius = 6
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btnDown.Clicked += async (s, e) =>
             {
                 await _newHabits.MovePendingHabitDownAsync(habit);
@@ -1101,7 +1101,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 32,
             CornerRadius = 6,
             IsEnabled = isTopPending || _topPendingCount < 3
-        }).ThemeColor(VisualElement.BackgroundColorProperty, isTopPending ? ThemeKey.AccentPurpleSurface : ThemeKey.HighlightYellowButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isTopPending ? ThemeKey.HighlightVioletText : ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnSpotlight.Clicked += async (_, _) =>
         {
             habit.IsTopPending = !isTopPending;
@@ -1120,7 +1120,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             Padding = 0,
             CornerRadius = 6,
             IsEnabled = availableSlots > 0
-        }).ThemeColor(VisualElement.BackgroundColorProperty, availableSlots > 0 ? ThemeKey.SuccessButtonBackground : ThemeKey.CardText3).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, availableSlots > 0 ? ThemeKey.SuccessButtonBackground : ThemeKey.CardText3).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnActivate.Clicked += async (s, e) => await ActivatePendingAsync(habit);
         buttonStack.Children.Add(btnActivate);
 
@@ -1133,7 +1133,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 32,
             Padding = 0,
             CornerRadius = 6
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnGraduate.Clicked += async (s, e) =>
             await GraduatePendingAsync(habit);
         buttonStack.Children.Add(btnGraduate);
@@ -1147,7 +1147,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 32,
             Padding = 0,
             CornerRadius = 6
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnDelete.Clicked += async (s, e) => await DeletePendingAsync(habit);
         buttonStack.Children.Add(btnDelete);
 

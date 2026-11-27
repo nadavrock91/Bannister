@@ -22,7 +22,7 @@ public partial class ActivityGamePage
                 if (lblCurrentLevel != null)
                 {
                     lblCurrentLevel.Text = "Negative EXP";
-                    lblCurrentLevel.ThemeColor(Label.TextColorProperty, ThemeKey.ErrorBrightText, ThemeKey.PageText1, classifyPageText: true);
+                    lblCurrentLevel.ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
                 }
                 if (lblExpToNext != null)
                     lblExpToNext.Text = $"{totalExp} EXP (below zero)";
@@ -31,7 +31,7 @@ public partial class ActivityGamePage
                 if (expProgressBar != null)
                 {
                     expProgressBar.Progress = 0;
-                    expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.ErrorBrightText);
+                    expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.ErrorText);
                 }
             });
 
@@ -48,7 +48,7 @@ public partial class ActivityGamePage
             if (lblCurrentLevel != null)
             {
                 lblCurrentLevel.Text = $"Level {level}";
-                lblCurrentLevel.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+                lblCurrentLevel.ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
             }
             if (lblExpToNext != null)
             {
@@ -62,7 +62,7 @@ public partial class ActivityGamePage
             {
                 double progress = expNeeded > 0 ? (double)expInto / expNeeded : 0;
                 expProgressBar.Progress = progress;
-                expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessLightText);
+                expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessButtonBackground);
             }
         });
 
@@ -232,7 +232,7 @@ public partial class ActivityGamePage
                 lblExpTotal.Text = $"Total EXP: {totalExp:N0}";
             }
             if (expProgressBar != null)
-                expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessLightText);
+                expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessButtonBackground);
 
             await AnimateExpBar(progressBefore, progressAfter, leveledUp);
             await RefreshExpAsync();

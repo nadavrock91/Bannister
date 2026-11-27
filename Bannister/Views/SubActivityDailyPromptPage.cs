@@ -56,7 +56,7 @@ public class SubActivityDailyPromptPage : ContentPage
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         content.Children.Add((new Label
         {
             Text = "All steps are marked Done by default. Change any that you didn't complete.",
@@ -92,7 +92,7 @@ public class SubActivityDailyPromptPage : ContentPage
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 46
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         submit.Clicked += async (_, _) => await SubmitAsync();
 
         var skip = (new Button
@@ -371,7 +371,7 @@ public class SubActivityDailyPromptPage : ContentPage
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 0, 0, 4)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         contentStack.Children.Add((new Label
         {

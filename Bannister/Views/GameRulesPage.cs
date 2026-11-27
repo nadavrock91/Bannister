@@ -61,13 +61,13 @@ public class GameRulesPage : Bannister.Views.ModeThemedPage
             Text = "📜 Rules of the Game",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         headerStack.Children.Add((new Label
         {
             Text = "Your personal clarifications and rules for the EXP system",
             FontSize = 14
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellow, ThemeKey.PageText1, classifyPageText: true));
 
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
@@ -80,7 +80,7 @@ public class GameRulesPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 48,
             Margin = new Thickness(16, 16, 16, 8)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addButton.Clicked += OnAddRuleClicked;
         mainStack.Children.Add(addButton);
 
@@ -168,7 +168,7 @@ public class GameRulesPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(orderLabel, 0);
         grid.Children.Add(orderLabel);
 

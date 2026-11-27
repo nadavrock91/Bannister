@@ -178,15 +178,15 @@ public partial class SetupGoalPage : Bannister.Views.ModeThemedPage
         {
             case "default":
                 btnImageDefault.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
-                btnImageDefault.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+                btnImageDefault.ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
                 break;
             case "library":
                 btnImageLibrary.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
-                btnImageLibrary.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+                btnImageLibrary.ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
                 break;
             case "own":
                 btnImageOwn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
-                btnImageOwn.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+                btnImageOwn.ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
                 break;
         }
 

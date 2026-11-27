@@ -95,7 +95,7 @@ public class OverdueCategoryPage : Bannister.Views.ModeThemedPage
         {
             CornerRadius = 12,
             Padding = 16
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.ErrorButtonBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.ErrorButtonBackground);
         
         var mainGrid = new Grid
         {
@@ -123,7 +123,7 @@ public class OverdueCategoryPage : Bannister.Views.ModeThemedPage
             Text = "📛 " + countdown.Name,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
         
         // Count with +/- buttons
         var countRow = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.End };
@@ -135,7 +135,7 @@ public class OverdueCategoryPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(8, 4),
             FontSize = 14,
             HeightRequest = 36
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnMinus.Clicked += async (s, e) =>
         {
             await _countdowns.DecrementManualCountAsync(countdown);
@@ -161,7 +161,7 @@ public class OverdueCategoryPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(8, 4),
             FontSize = 14,
             HeightRequest = 36
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnPlus.Clicked += async (s, e) =>
         {
             await _countdowns.IncrementManualCountAsync(countdown);

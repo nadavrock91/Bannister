@@ -78,7 +78,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
             Text = "Pick a source folder to begin",
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledBlueGrey, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledButtonBackground, ThemeKey.PageText1);
 
         var previewGrid = new Grid();
         previewGrid.Children.Add(_mediaElement);
@@ -93,7 +93,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
         _progressLabel = (new Label
         {
             FontSize = 12
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText3);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText3);
         var infoRow = new VerticalStackLayout
         {
             Padding = new Thickness(8, 4),
@@ -102,14 +102,14 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
 
         _openFolderBtn = CreateControlButton(" Source Folder", ThemeKey.ButtonPrimaryBackground);
         _openFolderBtn.Clicked += async (_, _) => await OnPickSourceFolderAsync();
-        _undoBtn = CreateControlButton("↩ Undo", ThemeKey.HighlightYellowDarkButton);
+        _undoBtn = CreateControlButton("↩ Undo", ThemeKey.WarningButtonBackground);
         _undoBtn.IsEnabled = false;
         _undoBtn.Clicked += async (_, _) => await OnUndoAsync();
-        _skipBtn = CreateControlButton("Next ▶", ThemeKey.NeutralMutedButton);
+        _skipBtn = CreateControlButton("Next ▶", ThemeKey.NeutralDarkButton);
         _skipBtn.Clicked += async (_, _) => await AdvanceAsync();
-        _backBtn = CreateControlButton("◀ Prev", ThemeKey.NeutralMutedButton);
+        _backBtn = CreateControlButton("◀ Prev", ThemeKey.NeutralDarkButton);
         _backBtn.Clicked += async (_, _) => await GoBackAsync();
-        var addFolderBtn = CreateControlButton("+ Add Folder", ThemeKey.SuccessDarkButtonBackground);
+        var addFolderBtn = CreateControlButton("+ Add Folder", ThemeKey.SuccessButtonBackground);
         addFolderBtn.Clicked += async (_, _) => await OnAddFolderAsync();
         _muteBtn = (new Button
         {
@@ -124,8 +124,8 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
             _muteVideos = !_muteVideos;
             _mediaElement.ShouldMute = _muteVideos;
             _muteBtn.Text = _muteVideos ? " Mute" : " Mute";
-            _muteBtn.ThemeColor(VisualElement.BackgroundColorProperty, _muteVideos ? ThemeKey.ErrorDeepText : ThemeKey.NeutralButtonBackground);
-            _muteBtn.ThemeColor(Button.TextColorProperty, _muteVideos ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
+            _muteBtn.ThemeColor(VisualElement.BackgroundColorProperty, _muteVideos ? ThemeKey.ErrorText : ThemeKey.NeutralButtonBackground);
+            _muteBtn.ThemeColor(Button.TextColorProperty, _muteVideos ? ThemeKey.ButtonPrimaryText : ThemeKey.NeutralButtonText);
         };
         var manageBtn = (new Button
         {
@@ -134,7 +134,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
             HeightRequest = 36,
             Padding = new Thickness(10, 0),
             CornerRadius = 8
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         manageBtn.Clicked += (_, _) =>
         {
             RebuildManageList();
@@ -155,7 +155,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
         {
             Text = "Source Folders:",
             FontSize = 11
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText3);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText3);
         _favRow = new HorizontalStackLayout { Spacing = 8 };
         var favoriteScroll = new ScrollView
         {
@@ -165,7 +165,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
         _statusLabel = (new Label
         {
             FontSize = 11
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledBlueGrey, ThemeKey.PageText3);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledButtonBackground, ThemeKey.PageText3);
         _buttonRow = new HorizontalStackLayout { Spacing = 8 };
         _buttonScroll = new ScrollView
         {
@@ -176,12 +176,12 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
         {
             Text = "Move to:",
             FontSize = 11
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText3);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText3);
         var copyLabel = (new Label
         {
             Text = "Copy to:",
             FontSize = 11
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText3);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText3);
         _copyButtonRow = new HorizontalStackLayout { Spacing = 8 };
         _copyButtonScroll = new ScrollView
         {
@@ -224,7 +224,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
             IsVisible = false,
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.OverlayStrong);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
         var manageCard = (new Frame
         {
             CornerRadius = 12,
@@ -277,7 +277,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
 
     private static Button CreateControlButton(string text, ThemeKey backgroundColor) => (new Button(){
         Text = text
-    }).ThemeColor(VisualElement.BackgroundColorProperty, backgroundColor).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+    }).ThemeColor(VisualElement.BackgroundColorProperty, backgroundColor).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
     protected override async void OnAppearing()
     {
@@ -527,7 +527,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
         {
             File.Copy(src, dest);
             _statusLabel.Text = $"Copied to {folder.Name}";
-            _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessStrongText, ThemeKey.PageText1);
+            _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1);
         }
         catch (Exception ex)
         {
@@ -620,7 +620,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
                 HeightRequest = 48,
                 Padding = new Thickness(16, 0),
                 FontSize = 13
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigoText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigoText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btn.Clicked += async (_, _) => await MoveCurrentFileAsync(folder);
             _buttonRow.Children.Add(btn);
         }
@@ -638,7 +638,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
                 HeightRequest = 48,
                 Padding = new Thickness(16, 0),
                 FontSize = 13
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessStrongText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btn.Clicked += async (_, _) => await CopyCurrentFileAsync(folder);
             _copyButtonRow.Children.Add(btn);
         }
@@ -662,7 +662,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
             {
                 Text = "No sets yet. Use '+ Set' to create one.",
                 FontSize = 12
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledBlueGrey, ThemeKey.PageText3));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledButtonBackground, ThemeKey.PageText3));
 
         foreach (var set in _sortSets)
         {
@@ -785,7 +785,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
                     HeightRequest = 28,
                     Padding = new Thickness(8, 0),
                     CornerRadius = 6
-                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
                 assignBtn.Clicked += async (_, _) =>
                 {
                     string? setChoice = await DisplayActionSheet(
@@ -907,7 +907,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
             HeightRequest = 32,
             Padding = new Thickness(10, 0),
             CornerRadius = 16
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningGoldenButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         saveBtn.Clicked += async (_, _) =>
         {
             if (string.IsNullOrWhiteSpace(_sourceFolder))
@@ -986,7 +986,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
                 HeightRequest = 32,
                 Padding = 0,
                 CornerRadius = 8
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightAmberStrong).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
             menuBtn.Clicked += async (_, _) =>
             {
                 string? action = await DisplayActionSheet(
@@ -1027,7 +1027,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
             HeightRequest = 32,
             Padding = new Thickness(10, 0),
             CornerRadius = 16
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addSetBtn.Clicked += async (_, _) =>
         {
             string? name = await DisplayPromptAsync("New Set", "Set name:");
@@ -1054,7 +1054,7 @@ public class FileSorterPage : Bannister.Views.ModeThemedPage
                 HeightRequest = 32,
                 Padding = new Thickness(10, 0),
                 CornerRadius = 16
-            }).ThemeColor(VisualElement.BackgroundColorProperty, isActive ? ThemeKey.ButtonPrimaryBackground : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, isActive ? ThemeKey.OnColorText : ThemeKey.CardText1);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, isActive ? ThemeKey.ButtonPrimaryBackground : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, isActive ? ThemeKey.ButtonPrimaryText : ThemeKey.CardText1);
             chip.Clicked += (_, _) =>
             {
                 _activeSetId = isActive ? null : set.Id;

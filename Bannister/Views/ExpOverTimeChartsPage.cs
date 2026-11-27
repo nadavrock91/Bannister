@@ -153,7 +153,7 @@ public class ExpOverTimeChartsPage : Bannister.Views.ModeThemedPage
                 Text = $"{totalExp:N0} EXP",
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true));
 
             // Chart - takes most of the space (using compact drawable)
             var drawable = new ExpChartCompactDrawable(chartData);

@@ -37,7 +37,35 @@ internal abstract class ThemeResultPage<T> : ContentPage
     }
 
     protected static Button Action(string text, ThemeKey background) => new Button { Text = text, Margin = 3 }
-        .ThemeColor(BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        .ThemeColor(BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
+}
+
+internal sealed class ThemePresetPage : ThemeResultPage<string?>
+{
+    public ThemePresetPage(string name) : base(null)
+    {
+        Title = "Choose " + name;
+        var palette = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap };
+        foreach (var color in ModeTheme.PresetDefaults())
+        {
+            string hex = ModeTheme.ToHex(color);
+            var swatch = new BoxView { Color = color, WidthRequest = 64, HeightRequest = 48 };
+            ModeThemedPage.SetPreserveColors(swatch, true);
+            var choice = new VerticalStackLayout { Spacing = 3, Margin = 8, Children = { swatch, new Label { Text = hex, FontSize = 12 } } };
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += async (_, _) => await CloseAsync(hex);
+            choice.GestureRecognizers.Add(tap);
+            SemanticProperties.SetDescription(choice, name + ": " + hex);
+            palette.Children.Add(choice);
+        }
+        var cancel = Action("Cancel", ThemeKey.NeutralDarkButton);
+        cancel.Clicked += async (_, _) => await CloseAsync(null);
+        Content = new ScrollView { Content = new VerticalStackLayout
+        {
+            Padding = 20, Spacing = 12,
+            Children = { new Label { Text = "Choose a preset for " + name, FontSize = 20, FontAttributes = FontAttributes.Bold }, palette, cancel }
+        } };
+    }
 }
 
 internal sealed class ThemePastePage : ThemeResultPage<string?>
@@ -70,7 +98,7 @@ internal sealed class ThemePastePage : ThemeResultPage<string?>
         };
         var review = Action("Review", ThemeKey.SecondaryButtonBackground);
         review.Clicked += async (_, _) => await CloseAsync(editor.Text ?? "");
-        var cancel = Action("Cancel", ThemeKey.NeutralHoverButton);
+        var cancel = Action("Cancel", ThemeKey.NeutralDarkButton);
         cancel.Clicked += async (_, _) => await CloseAsync(null);
         Content = new ScrollView
         {
@@ -94,7 +122,7 @@ internal sealed class ThemeReviewPage : ThemeResultPage<IReadOnlyList<ThemeColor
         Title = "Review UI Colors";
         var selected = parsed.Changes.ToDictionary(c => c.Definition.Name, _ => true);
         var warningText = new Label { FontSize = 12 }.ThemeColor(Label.TextColorProperty, ThemeKey.CardText2);
-        var apply = Action("Apply Selected", ThemeKey.SuccessDarkButtonBackground);
+        var apply = Action("Apply Selected", ThemeKey.SuccessButtonBackground);
         IReadOnlyList<ThemeColorChange> Selection() => parsed.Changes.Where(c => selected[c.Definition.Name]).ToList();
         void UpdateWarnings()
         {
@@ -131,7 +159,7 @@ internal sealed class ThemeReviewPage : ThemeResultPage<IReadOnlyList<ThemeColor
             rows.Children.Add(row);
         }
         apply.Clicked += async (_, _) => await CloseAsync(Selection());
-        var cancel = Action("Cancel", ThemeKey.NeutralHoverButton);
+        var cancel = Action("Cancel", ThemeKey.NeutralDarkButton);
         cancel.Clicked += async (_, _) => await CloseAsync(null);
         UpdateWarnings();
         Content = new Grid

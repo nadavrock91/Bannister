@@ -15,7 +15,7 @@ public class DailyLoginPrompt
 
     public string Text { get; set; } = "";
 
-    public string FontColor { get; set; } = AppColors.Hex(ThemeKey.OnColorText);
+    public string FontColor { get; set; } = AppColors.Hex(ThemeKey.ButtonPrimaryText);
 
     public string BackgroundColor { get; set; } = AppColors.Hex(ThemeKey.SecondaryButtonBackground);
 

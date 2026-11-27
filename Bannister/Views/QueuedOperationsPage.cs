@@ -71,7 +71,7 @@ public class QueuedOperationsPage : Bannister.Views.ModeThemedPage
             IsRunning = false,
             WidthRequest = 24,
             HeightRequest = 24
-        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.SecondaryAccentText);
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.HighlightIndigoText);
 
         _serverQueueTabButton = CreateTabButton("Server Queue", true);
         _serverQueueTabButton.Clicked += async (_, _) => await SwitchQueueAsync(false);
@@ -97,7 +97,7 @@ public class QueuedOperationsPage : Bannister.Views.ModeThemedPage
             Text = "Apply All",
             CornerRadius = 8,
             HeightRequest = 48
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _applyAllButton.Clicked += OnApplyAllClicked;
 
         _refreshButton = (new Button
@@ -105,7 +105,7 @@ public class QueuedOperationsPage : Bannister.Views.ModeThemedPage
             Text = "Refresh",
             CornerRadius = 8,
             HeightRequest = 48
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _refreshButton.Clicked += async (_, _) => await LoadAsync();
 
         Content = new Grid
@@ -178,7 +178,7 @@ public class QueuedOperationsPage : Bannister.Views.ModeThemedPage
         {
             FontSize = 12,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText3, classifyPageText: true);
         typeLabel.SetBinding(Label.TextProperty, nameof(OperationRow.OperationType));
 
         var badge = (new Label
@@ -187,7 +187,7 @@ public class QueuedOperationsPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(8, 3),
             HorizontalOptions = LayoutOptions.End,
             IsVisible = true
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralHoverButton);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton);
         badge.SetBinding(Label.TextProperty, nameof(OperationRow.StatusText));
 
         var title = (new Label
@@ -195,7 +195,7 @@ public class QueuedOperationsPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         title.SetBinding(Label.TextProperty, nameof(OperationRow.Summary));
 
         var meta = (new Label
@@ -513,7 +513,7 @@ public class QueuedOperationsPage : Bannister.Views.ModeThemedPage
     private static void SetTabStyle(Button button, bool selected)
     {
         button.ThemeColor(VisualElement.BackgroundColorProperty, selected ? ThemeKey.SecondaryButtonBackground : ThemeKey.HighlightIndigo);
-        button.ThemeColor(Button.TextColorProperty, selected ? ThemeKey.OnColorText : ThemeKey.HighlightIndigoButton);
+        button.ThemeColor(Button.TextColorProperty, selected ? ThemeKey.ButtonPrimaryText : ThemeKey.HighlightIndigoText);
     }
 
     private async Task ShowOperationDetailsAsync(QueuedOperation operation, string status)
@@ -579,7 +579,7 @@ public class QueuedOperationsPage : Bannister.Views.ModeThemedPage
         if (!string.IsNullOrWhiteSpace(statusText))
         {
             _statusLabel.Text = statusText;
-            _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+            _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         }
 
         UpdateButtons();
@@ -635,7 +635,7 @@ public class QueuedOperationsPage : Bannister.Views.ModeThemedPage
                 Text = "Create",
                 CornerRadius = 8,
                 HeightRequest = 44
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             createButton.Clicked += async (_, _) => await CompleteAsync(PendingActivityIdeaProcessAction.Create);
 
             var skipButton = (new Button
@@ -643,7 +643,7 @@ public class QueuedOperationsPage : Bannister.Views.ModeThemedPage
                 Text = "Skip",
                 CornerRadius = 8,
                 HeightRequest = 44
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             skipButton.Clicked += async (_, _) => await CompleteAsync(PendingActivityIdeaProcessAction.Skip);
 
             var cancelButton = (new Button
@@ -651,7 +651,7 @@ public class QueuedOperationsPage : Bannister.Views.ModeThemedPage
                 Text = "Cancel",
                 CornerRadius = 8,
                 HeightRequest = 44
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralHoverButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             cancelButton.Clicked += async (_, _) => await CompleteAsync(PendingActivityIdeaProcessAction.Cancel);
 
             var buttonGrid = new Grid
@@ -694,13 +694,13 @@ public class QueuedOperationsPage : Bannister.Views.ModeThemedPage
                                     Text = "Process Pending Activity Idea",
                                     FontSize = 20,
                                     FontAttributes = FontAttributes.Bold
-                                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                                 (new Label
                                 {
                                     Text = $"Pending idea 1 of {count}",
                                     FontSize = 13,
                                     FontAttributes = FontAttributes.Bold
-                                }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText1, classifyPageText: true),
+                                }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true),
                                 (new Label
                                 {
                                     Text = $"Game: {idea.Game}\nName: {idea.ActivityName}\nCategory: {idea.ActivityCategory}",

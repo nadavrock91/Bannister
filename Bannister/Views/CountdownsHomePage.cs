@@ -40,7 +40,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
             Text = "⏳ Countdowns",
             FontSize = 32,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
         
         mainStack.Children.Add((new Label
         {
@@ -53,7 +53,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
         {
             FontSize = 14,
             Margin = new Thickness(0, 0, 0, 10)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText1, classifyPageText: true);
         mainStack.Children.Add(_statsLabel);
         
         // Expired countdowns section (needs resolution)
@@ -62,7 +62,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
             CornerRadius = 12,
             Padding = 16,
             IsVisible = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningText);
         
         var expiredStack = new VerticalStackLayout { Spacing = 12 };
         expiredStack.Children.Add((new Label
@@ -70,7 +70,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
             Text = "⏰ Needs Resolution",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true));
         
         _expiredLayout = new VerticalStackLayout { Spacing = 8 };
         expiredStack.Children.Add(_expiredLayout);
@@ -85,7 +85,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 10, 0, 0)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
         
         _categoriesLayout = new VerticalStackLayout { Spacing = 12 };
         mainStack.Children.Add(_categoriesLayout);
@@ -97,7 +97,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 50,
             Margin = new Thickness(0, 10, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAddCategory.Clicked += OnAddCategoryClicked;
         mainStack.Children.Add(btnAddCategory);
         
@@ -108,7 +108,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 50,
             Margin = new Thickness(0, 20, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _overdueButton.Clicked += OnOverdueClicked;
         mainStack.Children.Add(_overdueButton);
         
@@ -119,7 +119,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 50,
             Margin = new Thickness(0, 10, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnViewAll.Clicked += OnViewAllClicked;
         mainStack.Children.Add(btnViewAll);
         
@@ -200,7 +200,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
             BorderColor = Colors.Transparent,
             CornerRadius = 12,
             Padding = 16
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground);
         
         var grid = new Grid
         {
@@ -218,7 +218,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
             Text = GetCategoryEmoji(category) + " " + category,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
         
         leftStack.Children.Add((new Label
         {
@@ -234,7 +234,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
             Text = "→",
             FontSize = 24,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(arrow, 1);
         grid.Children.Add(arrow);
         
@@ -253,7 +253,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
         {
             CornerRadius = 8,
             Padding = 12
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DarkErrorBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorText).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningText);
         
         var stack = new VerticalStackLayout { Spacing = 8 };
         
@@ -262,13 +262,13 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
             Text = countdown.Name,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
         
         stack.Children.Add((new Label
         {
             Text = $"Target: {countdown.TargetDate:MMM d, yyyy} • {countdown.DaysRemainingDisplay}",
             FontSize = 12
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true));
         
         var buttonStack = new HorizontalStackLayout { Spacing = 8 };
         
@@ -278,7 +278,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             Padding = new Thickness(12, 6),
             FontSize = 12
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnCorrect.Clicked += async (s, e) => await ResolveCountdown(countdown, true);
         buttonStack.Children.Add(btnCorrect);
         
@@ -288,7 +288,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             Padding = new Thickness(12, 6),
             FontSize = 12
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnPostpone.Clicked += async (s, e) => await PostponeCountdown(countdown);
         buttonStack.Children.Add(btnPostpone);
         
@@ -298,7 +298,7 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             Padding = new Thickness(12, 6),
             FontSize = 12
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnWrong.Clicked += async (s, e) => await ResolveCountdown(countdown, false);
         buttonStack.Children.Add(btnWrong);
         

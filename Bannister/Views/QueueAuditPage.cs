@@ -39,10 +39,10 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
 
 
         _databaseCountLabel = CreateSummaryLabel("Database: 0 ideas", ThemeKey.CardText1);
-        _pendingCountLabel = CreateSummaryLabel("Pending on server: 0", ThemeKey.WarningAmber);
+        _pendingCountLabel = CreateSummaryLabel("Pending on server: 0", ThemeKey.WarningText);
         _archiveCountLabel = CreateSummaryLabel("Archived (applied): 0", ThemeKey.SuccessText);
         _matchedCountLabel = CreateSummaryLabel("✅ Matched: 0", ThemeKey.SuccessText);
-        _unmatchedCountLabel = CreateSummaryLabel("⚠️ Not in database: 0", ThemeKey.WarningAmber);
+        _unmatchedCountLabel = CreateSummaryLabel("⚠️ Not in database: 0", ThemeKey.WarningText);
         _statusLabel = (new Label
         {
             FontSize = 13,
@@ -54,28 +54,28 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
         {
             Text = "Refresh",
             CornerRadius = 8
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _refreshButton.Clicked += async (_, _) => await LoadAuditAsync();
 
         _uploadPendingButton = (new Button
         {
             Text = "Upload Pending",
             CornerRadius = 8
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoSkyButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _uploadPendingButton.Clicked += OnUploadPendingClicked;
 
         _clearArchiveButton = (new Button
         {
             Text = "Clear Archive",
             CornerRadius = 8
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _clearArchiveButton.Clicked += OnClearArchiveClicked;
 
         _busyIndicator = (new ActivityIndicator
         {
             IsVisible = false,
             IsRunning = false
-        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.SecondaryAccentText);
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.HighlightIndigoText);
 
         var buttonGrid = new Grid
         {
@@ -363,7 +363,7 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
     {
         SetBusy(true);
         _statusLabel.Text = "Uploading pending operations...";
-        _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+        _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
 
         try
         {
@@ -397,7 +397,7 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
 
         SetBusy(true);
         _statusLabel.Text = "Clearing queue archive...";
-        _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+        _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
 
         try
         {
@@ -448,7 +448,7 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
 
     private static ThemeKey GetStatusColor(int status) => status switch
     {
-        0 => ThemeKey.WarningAmber,        1 => ThemeKey.InfoText,        2 => ThemeKey.SuccessText,        3 => ThemeKey.ErrorText,        _ => ThemeKey.CardText2    };
+        0 => ThemeKey.WarningText,        1 => ThemeKey.InfoText,        2 => ThemeKey.SuccessText,        3 => ThemeKey.ErrorText,        _ => ThemeKey.CardText2    };
 
     private sealed record DecodedIdeaOperation(
         QueuedOperation Operation,

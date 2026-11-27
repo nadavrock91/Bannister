@@ -68,7 +68,7 @@ public class CustomGameTopScoresPage : Bannister.Views.ModeThemedPage
             Text = Title,
             FontSize = 26,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         for (int i = 0; i < scores.Count; i++)
         {
@@ -86,7 +86,7 @@ public class CustomGameTopScoresPage : Bannister.Views.ModeThemedPage
             Spacing = 2,
             Children =
             {
-                (new Label { Text = score.FinalScore.ToString(), FontAttributes = FontAttributes.Bold, FontSize = 20 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                (new Label { Text = score.FinalScore.ToString(), FontAttributes = FontAttributes.Bold, FontSize = 20 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                 (new Label { Text = $"{(score.EndedAt ?? score.StartedAt).ToLocalTime():g}   Duration: {FormatDuration(duration)}", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true)
             }
         };
@@ -120,7 +120,7 @@ public class CustomGameTopScoresPage : Bannister.Views.ModeThemedPage
                     FontAttributes = FontAttributes.Bold,
                     FontSize = 18,
                     VerticalOptions = LayoutOptions.Center
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentVioletDeep, ThemeKey.PageText1, classifyPageText: true),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true),
                 details,
                 deleteButton
             }

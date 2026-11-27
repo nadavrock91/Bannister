@@ -37,7 +37,7 @@ public class MoneyManagementHubPage : Bannister.Views.ModeThemedPage
             Text = "Money Management",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessStrongText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true));
 
         stack.Children.Add((new Label
         {
@@ -49,21 +49,21 @@ public class MoneyManagementHubPage : Bannister.Views.ModeThemedPage
             "Monthly Expenses",
             "Track recurring monthly expenses and totals.",
             ThemeKey.SuccessBackground,
-            ThemeKey.SuccessStrongText,
+            ThemeKey.SuccessText,
             OnMonthlyExpensesClicked));
 
         stack.Children.Add(CreateHubCard(
             "Assets",
             "Track assets, units, and total worth.",
             ThemeKey.InfoBackground,
-            ThemeKey.InfoDeepText,
+            ThemeKey.InfoText,
             OnAssetsClicked));
 
         stack.Children.Add(CreateHubCard(
             "Data-Based Recurring Expenditures",
             "Trial-gate recurring costs — only keep what the data justifies.",
-            ThemeKey.AccentPurpleBackground,
-            ThemeKey.AccentPurpleStrongText,
+            ThemeKey.HighlightViolet,
+            ThemeKey.HighlightVioletText,
             OnRecurringExpendituresClicked));
 
         scroll.Content = stack;
@@ -111,7 +111,7 @@ public class MoneyManagementHubPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             Padding = new Thickness(18, 10),
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(VisualElement.BackgroundColorProperty, accent).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, accent).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         button.Clicked += clicked;
         Grid.SetColumn(button, 1);
         grid.Children.Add(button);

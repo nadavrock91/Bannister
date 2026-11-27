@@ -80,7 +80,7 @@ public class FullScreenImagePage : Bannister.Views.ModeThemedPage
         {
             Text = "Tap anywhere to close",
             FontSize = 13,
-            TextColor = AppColors.Get(ThemeKey.OnColorText).WithAlpha(0.6f),
+            TextColor = AppColors.Get(ThemeKey.ButtonPrimaryText).WithAlpha(0.6f),
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(0, 0, 0, 24)
@@ -89,7 +89,7 @@ public class FullScreenImagePage : Bannister.Views.ModeThemedPage
         var rootGrid = (new Grid
         {
             Children = { image, hint }
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground);
 
         var tap = new TapGestureRecognizer();
         tap.Tapped += async (_, _) => await Navigation.PopAsync();
@@ -151,21 +151,21 @@ public class FullScreenImagePage : Bannister.Views.ModeThemedPage
             };
             using var linePaint = new SKPaint
             {
-                Color = new SKColor(AppColors.Get(ThemeKey.OnColorText).ToUint()).WithAlpha(140),
+                Color = new SKColor(AppColors.Get(ThemeKey.ButtonPrimaryText).ToUint()).WithAlpha(140),
                 StrokeWidth = 2,
                 Style = SKPaintStyle.Stroke,
                 IsAntialias = true
             };
             using var textPaint = new SKPaint
             {
-                Color = new SKColor(AppColors.Get(ThemeKey.OnColorText).ToUint()),
+                Color = new SKColor(AppColors.Get(ThemeKey.ButtonPrimaryText).ToUint()),
                 TextSize = Math.Max(20, cellW / 8f),
                 IsAntialias = true,
                 FakeBoldText = true
             };
             using var shadowPaint = new SKPaint
             {
-                Color = new SKColor(AppColors.Get(ThemeKey.OverlayDark).ToUint()).WithAlpha(180),
+                Color = new SKColor(AppColors.Get(ThemeKey.Overlay).ToUint()).WithAlpha(180),
                 TextSize = textPaint.TextSize,
                 IsAntialias = true,
                 FakeBoldText = true
@@ -221,7 +221,7 @@ public class FullScreenImagePage : Bannister.Views.ModeThemedPage
         {
             Text = "Tap panels to toggle. Blue = selected.",
             FontSize = 13,
-            TextColor = AppColors.Get(ThemeKey.OnColorText).WithAlpha(0.8f),
+            TextColor = AppColors.Get(ThemeKey.ButtonPrimaryText).WithAlpha(0.8f),
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(0, 0, 0, 70)
@@ -237,7 +237,7 @@ public class FullScreenImagePage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(0, 0, 0, 16)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         // FIX: PopAsync first, THEN invoke callback so UI updates
         // land after the page is back in view
@@ -250,7 +250,7 @@ public class FullScreenImagePage : Bannister.Views.ModeThemedPage
         var rootGrid = (new Grid
         {
             Children = { displayImage, hint, closeBtn }
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground);
 
 #if WINDOWS
         var pointer = new PointerGestureRecognizer();
@@ -325,11 +325,11 @@ public class FullScreenImagePage : Bannister.Views.ModeThemedPage
         var handles = new List<Handle>();
         var dragLabel = (new Label
         {
-            BackgroundColor = AppColors.Get(ThemeKey.OverlayDark).WithAlpha(0.7f),
+            BackgroundColor = AppColors.Get(ThemeKey.Overlay).WithAlpha(0.7f),
             FontSize = 12,
             Padding = new Thickness(8, 4),
             IsVisible = false
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true);
 
         void BuildHandles()
         {
@@ -348,14 +348,14 @@ public class FullScreenImagePage : Bannister.Views.ModeThemedPage
             }
 
             for (int k = 1; k <= g.Cols; k++)
-                AddHandle(HandleKind.MainV, k, ThemeKey.InfoBrightText);
+                AddHandle(HandleKind.MainV, k, ThemeKey.InfoText);
             for (int k = 1; k <= g.MainRows; k++)
-                AddHandle(HandleKind.MainH, k, ThemeKey.InfoBrightText);
+                AddHandle(HandleKind.MainH, k, ThemeKey.InfoText);
             if (g.SeparateBottom)
             {
-                AddHandle(HandleKind.BottomH, 1, ThemeKey.HighlightGoldButton);
+                AddHandle(HandleKind.BottomH, 1, ThemeKey.WarningButtonBackground);
                 for (int k = 1; k <= g.BottomCols; k++)
-                    AddHandle(HandleKind.BottomV, k, ThemeKey.HighlightGoldButton);
+                    AddHandle(HandleKind.BottomV, k, ThemeKey.WarningButtonBackground);
             }
 
             overlay.Children.Add(dragLabel);
@@ -372,7 +372,7 @@ public class FullScreenImagePage : Bannister.Views.ModeThemedPage
         {
             Text = geometryHint,
             FontSize = 13,
-            TextColor = AppColors.Get(ThemeKey.OnColorText).WithAlpha(0.8f),
+            TextColor = AppColors.Get(ThemeKey.ButtonPrimaryText).WithAlpha(0.8f),
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(0, 0, 0, 70)
@@ -388,12 +388,12 @@ public class FullScreenImagePage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(0, 0, 0, 16)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var rootGrid = (new Grid
         {
             Children = { displayImage, overlay, hint, closeBtn }
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground);
 
         (double renderedW, double renderedH, double offsetX, double offsetY) GetFit(
             double viewW, double viewH)
@@ -507,28 +507,28 @@ public class FullScreenImagePage : Bannister.Views.ModeThemedPage
             };
             using var linePaint = new SKPaint
             {
-                Color = new SKColor(AppColors.Get(ThemeKey.OnColorText).ToUint()).WithAlpha(200),
+                Color = new SKColor(AppColors.Get(ThemeKey.ButtonPrimaryText).ToUint()).WithAlpha(200),
                 StrokeWidth = 2,
                 Style = SKPaintStyle.Stroke,
                 IsAntialias = true
             };
             using var yellowPaint = new SKPaint
             {
-                Color = new SKColor(AppColors.Get(ThemeKey.HighlightGoldButton).ToUint()).WithAlpha(230),
+                Color = new SKColor(AppColors.Get(ThemeKey.WarningButtonBackground).ToUint()).WithAlpha(230),
                 StrokeWidth = 3,
                 Style = SKPaintStyle.Stroke,
                 IsAntialias = true
             };
             using var textPaint = new SKPaint
             {
-                Color = new SKColor(AppColors.Get(ThemeKey.OnColorText).ToUint()),
+                Color = new SKColor(AppColors.Get(ThemeKey.ButtonPrimaryText).ToUint()),
                 TextSize = Math.Max(20, (g.ColEdges[1] - g.ColEdges[0]) / 8f),
                 IsAntialias = true,
                 FakeBoldText = true
             };
             using var shadowPaint = new SKPaint
             {
-                Color = new SKColor(AppColors.Get(ThemeKey.OverlayDark).ToUint()).WithAlpha(180),
+                Color = new SKColor(AppColors.Get(ThemeKey.Overlay).ToUint()).WithAlpha(180),
                 TextSize = textPaint.TextSize,
                 IsAntialias = true,
                 FakeBoldText = true
@@ -762,36 +762,36 @@ public class FullScreenImagePage : Bannister.Views.ModeThemedPage
             Text = "◀", FontSize = 20, CornerRadius = 8, WidthRequest = 52, HeightRequest = 52,
             HorizontalOptions = LayoutOptions.Start, VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(16, 0, 0, 80), IsVisible = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         var nudgeRight = (new Button
         {
             Text = "▶", FontSize = 20, CornerRadius = 8, WidthRequest = 52, HeightRequest = 52,
             HorizontalOptions = LayoutOptions.Start, VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(76, 0, 0, 80), IsVisible = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         var nudgeUp = (new Button
         {
             Text = "▲", FontSize = 20, CornerRadius = 8, WidthRequest = 52, HeightRequest = 52,
             HorizontalOptions = LayoutOptions.Start, VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(136, 0, 0, 80), IsVisible = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         var nudgeDown = (new Button
         {
             Text = "▼", FontSize = 20, CornerRadius = 8, WidthRequest = 52, HeightRequest = 52,
             HorizontalOptions = LayoutOptions.Start, VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(196, 0, 0, 80), IsVisible = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         var nudgeLabel = (new Label
         {
             Text = "", FontSize = 12,             HorizontalOptions = LayoutOptions.Start, VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(16, 0, 0, 140), IsVisible = false
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
         var cancelBtn = (new Button
         {
             Text = "✕", FontSize = 16, CornerRadius = 8, WidthRequest = 52, HeightRequest = 52,
             HorizontalOptions = LayoutOptions.Start, VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(256, 0, 0, 80), IsVisible = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralHoverButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         rootGrid.Children.Add(nudgeLeft);
         rootGrid.Children.Add(nudgeRight);
         rootGrid.Children.Add(nudgeUp);

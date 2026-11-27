@@ -63,7 +63,7 @@ public class StoryProductionHubPage : Bannister.Views.ModeThemedPage
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true));
 
         mainStack.Children.Add((new Label
         {
@@ -87,7 +87,7 @@ public class StoryProductionHubPage : Bannister.Views.ModeThemedPage
             "📝 Drafts",
             "Create and edit production scripts with visual breakdowns",
             ThemeKey.HighlightYellow,
-            ThemeKey.WarningStrongText);
+            ThemeKey.WarningText);
         draftsBtn.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await OnDraftsClicked())
@@ -121,8 +121,8 @@ public class StoryProductionHubPage : Bannister.Views.ModeThemedPage
         var assetLibraryBtn = CreateMenuButton(
             "📁 Asset Library",
             "Index and categorize reusable image and video files",
-            ThemeKey.HighlightMint,
-            ThemeKey.HighlightMintText);
+            ThemeKey.HighlightTeal,
+            ThemeKey.HighlightTealText);
         assetLibraryBtn.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await OnAssetLibraryClicked())
@@ -133,8 +133,8 @@ public class StoryProductionHubPage : Bannister.Views.ModeThemedPage
         var processesBtn = CreateMenuButton(
             "Writing Processes",
             "Define and manage writing process types for your projects",
-            ThemeKey.AccentPurpleBackground,
-            ThemeKey.AccentPurpleText);
+            ThemeKey.HighlightViolet,
+            ThemeKey.HighlightVioletText);
         processesBtn.GestureRecognizers.Clear();
         processesBtn.GestureRecognizers.Add(new TapGestureRecognizer
         {

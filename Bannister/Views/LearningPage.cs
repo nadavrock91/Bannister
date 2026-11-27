@@ -330,7 +330,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 50
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _btnBooks.Clicked += (s, e) => SwitchTab("Books");
         Grid.SetColumn(_btnBooks, 0);
         tabGrid.Children.Add(_btnBooks);
@@ -386,7 +386,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         {
             Text = "+ Add Book",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBookBtn.Clicked += OnAddBookClicked;
         Grid.SetColumn(addBookBtn, 0);
         bookButtonRow.Children.Add(addBookBtn);
@@ -396,7 +396,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             Text = "⚙️",
             WidthRequest = 50,
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         bookSettingsBtn.Clicked += OnBookSettingsClicked;
         Grid.SetColumn(bookSettingsBtn, 1);
         bookButtonRow.Children.Add(bookSettingsBtn);
@@ -418,7 +418,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         _bookFocusStatusLabel = (new Label
         {
             FontSize = 13
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessBrightText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1);
         bookFocusStack.Children.Add(_bookFocusStatusLabel);
         
         var bookFocusBtnRow = new HorizontalStackLayout { Spacing = 8 };
@@ -430,7 +430,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         editBookFocusBtn.Clicked += async (s, e) => await SetupBookFocusAsync();
         bookFocusBtnRow.Children.Add(editBookFocusBtn);
         
@@ -441,7 +441,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         editBookNumbersBtn.Clicked += async (s, e) => await EditBookFocusNumbersAsync();
         bookFocusBtnRow.Children.Add(editBookNumbersBtn);
         
@@ -452,7 +452,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         resetBookStreakBtn.Clicked += async (s, e) => await ResetBookFocusStreakAsync();
         bookFocusBtnRow.Children.Add(resetBookStreakBtn);
         
@@ -463,7 +463,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         clearBookFocusBtn.Clicked += async (s, e) => await ClearBookFocusAsync();
         bookFocusBtnRow.Children.Add(clearBookFocusBtn);
         
@@ -507,7 +507,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         {
             Text = "+ Add Video",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addVideoBtn.Clicked += OnAddVideoClicked;
         Grid.SetColumn(addVideoBtn, 0);
         buttonRow.Children.Add(addVideoBtn);
@@ -516,7 +516,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         {
             Text = "📋 Import Links",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         importBtn.Clicked += OnImportLinksClicked;
         Grid.SetColumn(importBtn, 1);
         buttonRow.Children.Add(importBtn);
@@ -705,7 +705,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             Padding = new Thickness(10, 0),
             FontSize = 12
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         settingsBtn.Clicked += OnVideoSettingsClicked;
         filterRow2.Children.Add(settingsBtn);
 
@@ -716,7 +716,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             Padding = new Thickness(10, 0),
             FontSize = 12
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralMutedButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         creatorCountsBtn.Clicked += async (s, e) => await ShowCreatorMonthlyStatsAsync();
         filterRow2.Children.Add(creatorCountsBtn);
 
@@ -748,7 +748,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         _videoFocusStatusLabel = (new Label
         {
             FontSize = 13
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoStrongText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1);
         focusStack.Children.Add(_videoFocusStatusLabel);
         
         var focusBtnRow = new HorizontalStackLayout { Spacing = 8 };
@@ -760,7 +760,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         editFocusBtn.Clicked += async (s, e) => await SetupVideoFocusAsync();
         focusBtnRow.Children.Add(editFocusBtn);
         
@@ -771,7 +771,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         editNumbersBtn.Clicked += async (s, e) => await EditVideoFocusNumbersAsync();
         focusBtnRow.Children.Add(editNumbersBtn);
         
@@ -782,7 +782,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         resetStreakBtn.Clicked += async (s, e) => await ResetVideoFocusStreakAsync();
         focusBtnRow.Children.Add(resetStreakBtn);
         
@@ -793,7 +793,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         clearFocusBtn.Clicked += async (s, e) => await ClearVideoFocusAsync();
         focusBtnRow.Children.Add(clearFocusBtn);
         
@@ -821,7 +821,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             FontSize = 12,
             Padding = new Thickness(12, 0),
             IsEnabled = false
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _prevPageBtn.Clicked += OnPrevPageClicked;
         Grid.SetColumn(_prevPageBtn, 0);
         paginationRow.Children.Add(_prevPageBtn);
@@ -844,7 +844,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             FontSize = 12,
             Padding = new Thickness(12, 0),
             IsEnabled = false
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _nextPageBtn.Clicked += OnNextPageClicked;
         Grid.SetColumn(_nextPageBtn, 2);
         paginationRow.Children.Add(_nextPageBtn);
@@ -870,7 +870,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         if (tab == "Books")
         {
             _btnBooks.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
-            _btnBooks.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            _btnBooks.ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             _btnVideos.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator);
             _btnVideos.ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
             _booksFrame.IsVisible = true;
@@ -879,7 +879,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         else
         {
             _btnVideos.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
-            _btnVideos.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            _btnVideos.ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             _btnBooks.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator);
             _btnBooks.ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
             _booksFrame.IsVisible = false;
@@ -950,7 +950,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1);
         Grid.SetColumn(orderLabel, 0);
         grid.Children.Add(orderLabel);
 
@@ -1260,7 +1260,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                     Text = $"🔒 {_lockedCreators.Count} creator(s) locked by rotation limits (select 'Locked' filter to view)",
                     FontSize = 11
                 }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText3)
-            }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.ErrorBrightText);
+            }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.ErrorText);
             _videosStack.Children.Add(lockedHeader);
         }
 
@@ -1378,9 +1378,9 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 10,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, isCreatorLocked && video.Status == "NotStarted" ? ThemeKey.ErrorBackground : video.Status == "Completed" ? ThemeKey.SuccessBackground : video.Status == "TopPicks" ? ThemeKey.HighlightYellow : video.Status == "ReadSummary" ? ThemeKey.InfoBackground : video.Status == "PendingWatched" ? ThemeKey.AccentPurpleBackground : ThemeKey.CardBackground);
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, isCreatorLocked && video.Status == "NotStarted" ? ThemeKey.ErrorBackground : video.Status == "Completed" ? ThemeKey.SuccessBackground : video.Status == "TopPicks" ? ThemeKey.HighlightYellow : video.Status == "ReadSummary" ? ThemeKey.InfoBackground : video.Status == "PendingWatched" ? ThemeKey.HighlightViolet : ThemeKey.CardBackground);
         if (isCreatorLocked && video.Status == "NotStarted")
-            frame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.ErrorBrightText);
+            frame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.ErrorText);
 
         var mainGrid = new Grid
         {
@@ -1432,11 +1432,11 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                 VerticalOptions = LayoutOptions.Center,
                 Shadow = new Shadow
                 {
-                    Brush = AppColors.Get(ThemeKey.Shadow),
+                    Brush = AppColors.Get(ThemeKey.Overlay),
                     Offset = new Point(1, 1),
                     Radius = 3
                 }
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1);
             thumbnailGrid.Children.Add(playOverlay);
             
             thumbnailFrame.Content = thumbnailGrid;
@@ -1541,8 +1541,8 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                     {
                         Text = $"{creatorMonthlyCount}/{creatorMonthlyLimit}",
                         FontSize = 9
-                    }).ThemeColor(Label.TextColorProperty, atLimit ? ThemeKey.ErrorText : nearLimit ? ThemeKey.WarningGoldenButton : ThemeKey.CardText2, ThemeKey.PageText3)
-                }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, atLimit ? ThemeKey.ErrorSelectedBackground : nearLimit ? ThemeKey.HighlightYellowStrong : ThemeKey.Separator);
+                    }).ThemeColor(Label.TextColorProperty, atLimit ? ThemeKey.ErrorText : nearLimit ? ThemeKey.WarningButtonBackground : ThemeKey.CardText2, ThemeKey.PageText3)
+                }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, atLimit ? ThemeKey.ErrorBackground : nearLimit ? ThemeKey.HighlightYellow : ThemeKey.Separator);
                 creatorRow.Children.Add(countBadge);
             }
             
@@ -1561,7 +1561,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                  : video.Status == "InProgress" ? "▶️ Watching" 
                  : "🎬 To Watch",
             FontSize = 10
-        }).ThemeColor(Label.TextColorProperty, video.Status == "Completed" ? ThemeKey.SuccessButtonBackground : video.Status == "TopPicks" ? ThemeKey.WarningGoldenButton : video.Status == "ReadSummary" ? ThemeKey.InfoButtonBackground : video.Status == "PendingWatched" ? ThemeKey.AccentPurpleButtonBackground : video.Status == "InProgress" ? ThemeKey.WarningButtonBackground : ThemeKey.CardText3, ThemeKey.PageText3);
+        }).ThemeColor(Label.TextColorProperty, video.Status == "Completed" ? ThemeKey.SuccessButtonBackground : video.Status == "TopPicks" ? ThemeKey.WarningButtonBackground : video.Status == "ReadSummary" ? ThemeKey.InfoButtonBackground : video.Status == "PendingWatched" ? ThemeKey.HighlightVioletText : video.Status == "InProgress" ? ThemeKey.WarningButtonBackground : ThemeKey.CardText3, ThemeKey.PageText3);
         statusRow.Children.Add(statusLabel);
 
         var durationText = FormatDurationFromSeconds(video.DurationSeconds);
@@ -1602,14 +1602,14 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         var row1 = new HorizontalStackLayout { Spacing = 4 };
         
         // Watch button
-        var watchBtn = CreateHoverButton("▶", ThemeKey.InfoButtonBackground, ThemeKey.InfoHoverButtonBackground, 12, "Watch Video");
+        var watchBtn = CreateHoverButton("▶", ThemeKey.InfoButtonBackground, ThemeKey.InfoButtonBackground, 12, "Watch Video");
         watchBtn.Clicked += async (s, e) => await OpenVideoAsync(video);
         row1.Children.Add(watchBtn);
 
         // Transcript button (only for YouTube videos)
         if (!string.IsNullOrEmpty(video.VideoId))
         {
-            var transcriptBtn = CreateHoverButton("📝", ThemeKey.WarningButtonBackground, ThemeKey.WarningHoverButtonBackground, 11, "Get Transcript");
+            var transcriptBtn = CreateHoverButton("📝", ThemeKey.WarningButtonBackground, ThemeKey.WarningButtonBackground, 11, "Get Transcript");
             transcriptBtn.Clicked += async (s, e) => await HandleTranscriptAsync(video);
             row1.Children.Add(transcriptBtn);
         }
@@ -1617,7 +1617,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         // Mark as watched button (only if not already watched)
         if (video.Status != "Completed")
         {
-            var watchedBtn = CreateHoverButton("✓", ThemeKey.SuccessButtonBackground, ThemeKey.SuccessHoverButtonBackground, 14, "Mark as Watched");
+            var watchedBtn = CreateHoverButton("✓", ThemeKey.SuccessButtonBackground, ThemeKey.SuccessButtonBackground, 14, "Mark as Watched");
             watchedBtn.Clicked += async (s, e) =>
             {
                 await _learning.CompleteVideoAsync(video.Id);
@@ -1630,7 +1630,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         // Mark as pending button (only if not already pending or watched)
         if (video.Status != "PendingWatched" && video.Status != "Completed" && video.Status != "ReadSummary")
         {
-            var pendingBtn = CreateHoverButton("👀", ThemeKey.AccentPurpleButtonBackground, ThemeKey.AccentPurpleSurface, 11, "Mark as Pending Watched");
+            var pendingBtn = CreateHoverButton("👀", ThemeKey.HighlightVioletText, ThemeKey.HighlightVioletText, 11, "Mark as Pending Watched");
             pendingBtn.Clicked += async (s, e) =>
             {
                 if (!await EnsureCanSetVideoPendingAsync(video))
@@ -1646,7 +1646,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         // Mark as top pick button (only if not already top pick or watched)
         if (video.Status != "TopPicks" && video.Status != "Completed")
         {
-            var topPicksBtn = CreateHoverButton("⭐", ThemeKey.WarningGoldenButton, ThemeKey.HighlightYellowDarkButton, 11, "Mark as Top Picks");
+            var topPicksBtn = CreateHoverButton("⭐", ThemeKey.WarningButtonBackground, ThemeKey.WarningButtonBackground, 11, "Mark as Top Picks");
             topPicksBtn.Clicked += async (s, e) =>
             {
                 video.Status = "TopPicks";
@@ -1663,14 +1663,14 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         var row2 = new HorizontalStackLayout { Spacing = 4 };
 
         // Category button
-        var categoryBtn = CreateHoverButton("📁", ThemeKey.NeutralMutedButton, ThemeKey.NeutralDarkButton, 11, "Change Category");
+        var categoryBtn = CreateHoverButton("📁", ThemeKey.NeutralDarkButton, ThemeKey.NeutralDarkButton, 11, "Change Category");
         categoryBtn.Clicked += async (s, e) => await ChangeCategoryAsync(video);
         row2.Children.Add(categoryBtn);
 
         // Read Summary button (only if not already read summary)
         if (video.Status != "ReadSummary" && video.Status != "Completed")
         {
-            var readSummaryBtn = CreateHoverButton("📖", ThemeKey.InfoButtonBackground, ThemeKey.InfoHoverButtonBackground, 11, "Mark as Read Summary");
+            var readSummaryBtn = CreateHoverButton("📖", ThemeKey.InfoButtonBackground, ThemeKey.InfoButtonBackground, 11, "Mark as Read Summary");
             readSummaryBtn.Clicked += async (s, e) =>
             {
                 video.Status = "ReadSummary";
@@ -1681,7 +1681,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         }
 
         // Delete button
-        var deleteBtn = CreateHoverButton("🗑", ThemeKey.ErrorButtonBackground, ThemeKey.ErrorStrongButtonBackground, 11, "Delete Video");
+        var deleteBtn = CreateHoverButton("🗑", ThemeKey.ErrorButtonBackground, ThemeKey.ErrorButtonBackground, 11, "Delete Video");
         deleteBtn.Clicked += async (s, e) =>
         {
             bool confirm = await DisplayAlert("Delete Video", $"Delete '{video.Title}'?", "Delete", "Cancel");
@@ -1694,7 +1694,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         row2.Children.Add(deleteBtn);
 
         // More menu button
-        var menuBtn = CreateHoverButton("⋮", ThemeKey.DisabledButtonBackground, ThemeKey.NeutralHoverButton, 14, "More Options");
+        var menuBtn = CreateHoverButton("⋮", ThemeKey.DisabledButtonBackground, ThemeKey.NeutralDarkButton, 14, "More Options");
         menuBtn.Clicked += async (s, e) => await ShowVideoMenuAsync(video);
         row2.Children.Add(menuBtn);
 
@@ -1723,7 +1723,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             HeightRequest = 32,
             Padding = 0,
             CornerRadius = 6
-        }).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText)
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText)
             .ThemeColor(Button.BackgroundColorProperty, normalColor);
         
         // Set tooltip if provided
@@ -2109,7 +2109,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 44,
             IsEnabled = false
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         categoryPicker.SelectedIndexChanged += (s, e) =>
         {
             btnUseSelected.IsEnabled = categoryPicker.SelectedIndex >= 0;
@@ -2142,7 +2142,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 44,
             IsEnabled = false
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         newCategoryEntry.TextChanged += (s, e) =>
         {
             btnCreateNew.IsEnabled = !string.IsNullOrWhiteSpace(newCategoryEntry.Text);
@@ -2169,7 +2169,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 44,
             LineBreakMode = LineBreakMode.TailTruncation
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         contentStack.Children.Add(btnMapChannel);
         
         contentStack.Children.Add((new BoxView
@@ -2191,7 +2191,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             WidthRequest = 130,
             HeightRequest = 44
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         bottomRow.Children.Add(btnUnsorted);
         
         var btnCancel = (new Button
@@ -2298,7 +2298,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             HorizontalOptions = LayoutOptions.Center,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1));
         
         contentStack.Children.Add((new Label
         {
@@ -2337,7 +2337,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 44,
             IsEnabled = false
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         categoryPicker.SelectedIndexChanged += (s, e) =>
         {
             btnMapToExisting.IsEnabled = categoryPicker.SelectedIndex >= 0;
@@ -2370,7 +2370,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 44,
             IsEnabled = false
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         newCategoryEntry.TextChanged += (s, e) =>
         {
             btnMapToNew.IsEnabled = !string.IsNullOrWhiteSpace(newCategoryEntry.Text);
@@ -2481,7 +2481,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText1));
         
         contentStack.Children.Add((new Label
         {
@@ -2511,7 +2511,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 48,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         contentStack.Children.Add(btnUseMapping);
         
         contentStack.Children.Add((new Label
@@ -2544,7 +2544,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 44,
             IsEnabled = false
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         categoryPicker.SelectedIndexChanged += (s, e) =>
         {
             btnUseDifferent.IsEnabled = categoryPicker.SelectedIndex >= 0;
@@ -3636,7 +3636,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         
         contentStack.Children.Add((new Label
         {
@@ -3659,10 +3659,10 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                  item.Status.SixMonthCount >= Math.Ceiling(focus.CreatorSixMonthLimit * 0.8) ||
                  item.Status.YearlyCount >= Math.Ceiling(focus.CreatorYearlyLimit * 0.8));
             var rowColor = atLimit
-                ? ThemeKey.ErrorStrongText
+                ? ThemeKey.ErrorText
                 : nearLimit
-                    ? ThemeKey.WarningStrongText
-                    : ThemeKey.CardTextStrong;
+                    ? ThemeKey.WarningText
+                    : ThemeKey.CardText1;
             
             var row = new HorizontalStackLayout { Spacing = 8 };
             
@@ -3695,7 +3695,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                     FontSize = 10,
                     FontAttributes = FontAttributes.Bold,
                     VerticalOptions = LayoutOptions.Center
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorStrongText, ThemeKey.PageText3));
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText3));
             }
             
             statsStack.Children.Add(row);
@@ -3709,7 +3709,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             Text = "Close",
             CornerRadius = 8,
             Margin = new Thickness(0, 12, 0, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         closeBtn.Clicked += (s, e) => tcs.TrySetResult(true);
         contentStack.Children.Add(closeBtn);
         
@@ -3947,14 +3947,14 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             Text = "Import",
             CornerRadius = 8,
             WidthRequest = 100
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         
         var cancelBtn = (new Button
         {
             Text = "Cancel",
             CornerRadius = 8,
             WidthRequest = 100
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var popup = (new Frame
         {
@@ -4314,14 +4314,14 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             Text = "Mark Selected as Top Picks",
             CornerRadius = 8,
             Padding = new Thickness(16, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningGoldenButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var skipButton = (new Button
         {
             Text = "Skip",
             CornerRadius = 8,
             Padding = new Thickness(16, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var card = (new Frame
         {
@@ -4557,7 +4557,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                     CornerRadius = 8,
                     HeightRequest = 44,
                     FontSize = 14
-                }).ThemeColor(Button.BackgroundColorProperty, isAction ? (option.StartsWith("⏹️") ? ThemeKey.ErrorButtonBackground : option.StartsWith("⏭️") ? ThemeKey.DisabledButtonBackground : ThemeKey.SuccessButtonBackground) : ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+                }).ThemeColor(Button.BackgroundColorProperty, isAction ? (option.StartsWith("⏹️") ? ThemeKey.ErrorButtonBackground : option.StartsWith("⏭️") ? ThemeKey.DisabledButtonBackground : ThemeKey.SuccessButtonBackground) : ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
                 btn.Clicked += (s, e) => tcs.TrySetResult(option);
                 categoryStack.Children.Add(btn);
             }
@@ -5414,7 +5414,7 @@ public class LearningSpeakersPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 40,
             Padding = new Thickness(16, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += async (s, e) => await AddSpeakerAsync();
         headerRow.Add(addBtn, 1, 0);
 
@@ -5424,7 +5424,7 @@ public class LearningSpeakersPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 40,
             Padding = new Thickness(16, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         importBtn.Clicked += async (s, e) => await ImportSpeakersAsync();
         headerRow.Add(importBtn, 2, 0);
         mainStack.Children.Add(headerRow);
@@ -5511,7 +5511,7 @@ public class LearningSpeakersPage : Bannister.Views.ModeThemedPage
             HeightRequest = 32,
             CornerRadius = 6,
             Padding = 0
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ErrorStrongButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         searchBtn.Clicked += async (s, e) => await SearchSpeakerAsync(speaker);
         buttonStack.Children.Add(searchBtn);
 
@@ -5626,13 +5626,13 @@ public class LearningSpeakersPage : Bannister.Views.ModeThemedPage
             Text = "Cancel",
             CornerRadius = 8,
             Padding = new Thickness(16, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         var importBtn = (new Button
         {
             Text = "Import",
             CornerRadius = 8,
             Padding = new Thickness(16, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         buttons.Children.Add(cancelBtn);
         buttons.Children.Add(importBtn);

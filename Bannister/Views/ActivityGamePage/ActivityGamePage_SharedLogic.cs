@@ -611,7 +611,7 @@ public partial class ActivityGamePage
             Text = "Update Streak Values",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         Entry? attemptEntry = null;
         if (attemptVM != null)
@@ -665,7 +665,7 @@ public partial class ActivityGamePage
         {
             Text = "Save",
             CornerRadius = 8
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         var buttons = new HorizontalStackLayout
         {
             Spacing = 10,
@@ -1138,7 +1138,7 @@ private async Task HandleEditCategory(Activity activity, ActivityGameViewModel? 
                 grouping.Name,
                 isIn ? "Tap to remove from this grouping" : "Tap to add to this grouping",
                 isIn ? ThemeKey.SuccessBackground : ThemeKey.SecondarySurface,
-                isIn ? ThemeKey.SuccessText : ThemeKey.AccentVioletButton,
+                isIn ? ThemeKey.SuccessText : ThemeKey.HighlightVioletText,
                 () => CompleteAsync(grouping.Id)));
         }
 
@@ -1147,7 +1147,7 @@ private async Task HandleEditCategory(Activity activity, ActivityGameViewModel? 
             "Create New Grouping",
             "Add this activity to a new custom group",
             ThemeKey.HighlightYellow,
-            ThemeKey.WarningGoldenButton,
+            ThemeKey.WarningButtonBackground,
             () => CompleteAsync(-1)));
 
         var doneButton = (new Button
@@ -1156,7 +1156,7 @@ private async Task HandleEditCategory(Activity activity, ActivityGameViewModel? 
             CornerRadius = 8,
             HeightRequest = 40,
             Margin = new Thickness(0, 8, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardTextStrong);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         doneButton.Clicked += async (_, _) => await CompleteAsync(null);
 
         var content = new VerticalStackLayout
@@ -1175,7 +1175,7 @@ private async Task HandleEditCategory(Activity activity, ActivityGameViewModel? 
                     FontSize = 18,
                     FontAttributes = FontAttributes.Bold,
                     LineBreakMode = LineBreakMode.WordWrap
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                 (new BoxView
                 {
                     HeightRequest = 1,
@@ -1250,7 +1250,7 @@ private async Task HandleEditCategory(Activity activity, ActivityGameViewModel? 
             Text = title,
             FontSize = 14,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         textStack.Children.Add((new Label
         {
             Text = subtitle,

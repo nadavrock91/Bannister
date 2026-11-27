@@ -57,11 +57,11 @@ public class DataGridView : ContentView
     {
         nameof(HeaderBackgroundColor) => ThemeKey.ButtonPrimaryBackground,
         nameof(HeaderTextColor) => ThemeKey.ButtonPrimaryText,
-        nameof(CellBackgroundColor) => ThemeKey.RowBackground,
+        nameof(CellBackgroundColor) => ThemeKey.CardBackground,
         nameof(CellTextColor) => ThemeKey.CardText1,
         nameof(AlternateRowColor) => ThemeKey.RowAltBackground,
-        nameof(SelectedCellColor) => ThemeKey.HighlightBlueStrong,
-        nameof(EditingCellColor) => ThemeKey.HighlightYellowStrong,
+        nameof(SelectedCellColor) => ThemeKey.HighlightIndigo,
+        nameof(EditingCellColor) => ThemeKey.HighlightYellow,
         nameof(BorderColor) => ThemeKey.Separator,
         _ => throw new ArgumentOutOfRangeException(nameof(role))
     };
@@ -359,7 +359,7 @@ public class DataGridView : ContentView
         {
             Text = "← Prev", FontSize = 12, HeightRequest = 30,
             CornerRadius = 6, Padding = new Thickness(10, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _btnPrev.Clicked += (s, e) => { if (_pageOffset >= PageSize) SaveAndNavigate(-PageSize); };
         _paginationBar.Add(_btnPrev, 0, 0);
 
@@ -373,7 +373,7 @@ public class DataGridView : ContentView
         {
             Text = "Next →", FontSize = 12, HeightRequest = 30,
             CornerRadius = 6, Padding = new Thickness(10, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _btnNext.Clicked += (s, e) => { if (_pageOffset + PageSize < _allRows.Count) SaveAndNavigate(PageSize); };
         _paginationBar.Add(_btnNext, 2, 0);
 
@@ -736,7 +736,7 @@ public class DataGridView : ContentView
         if (_selectedRow < 0 || _selectedCol < 0) return;
         _isEditing = true;
         _displayBox.IsReadOnly = false;
-        _displayBox.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellowSoft);
+        _displayBox.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow);
         _displayHeader.Text = $"✏️ EDITING — Row {_selectedRow + 1} • {_selectedColumnName}";
 
         int pageRow = AbsoluteToPageRow(_selectedRow);

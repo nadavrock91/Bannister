@@ -50,7 +50,7 @@ public class DailyLoginPromptsPage : Bannister.Views.ModeThemedPage
             Text = "+ Add",
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAdd.Clicked += async (s, e) => await AddPromptAsync();
         headerGrid.Add(btnAdd, 1);
 
@@ -223,7 +223,7 @@ public class DailyLoginPromptsPage : Bannister.Views.ModeThemedPage
             "Enter a hex font color:",
             "Next",
             "Cancel",
-            initialValue: AppColors.Hex(ThemeKey.OnColorText),
+            initialValue: AppColors.Hex(ThemeKey.ButtonPrimaryText),
             maxLength: 7);
 
         if (string.IsNullOrWhiteSpace(fontColor)) return;

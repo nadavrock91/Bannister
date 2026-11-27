@@ -70,7 +70,7 @@ public class MoneyManagementPage : Bannister.Views.ModeThemedPage
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessStrongText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true);
         header.Add(_summaryLabel, 0, 0);
 
         var addBtn = (new Button
@@ -80,7 +80,7 @@ public class MoneyManagementPage : Bannister.Views.ModeThemedPage
             HeightRequest = 38,
             CornerRadius = 6,
             Padding = new Thickness(14, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += async (s, e) => await AddExpenseAsync();
         header.Add(addBtn, 1, 0);
 
@@ -102,7 +102,7 @@ public class MoneyManagementPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(8, 4),
             FontSize = 13,
             HeightRequest = 38
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessStrongText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _currencyButton.Clicked += async (_, _) =>
         {
             var selectedLabel = await DisplayActionSheet(
@@ -207,9 +207,9 @@ public class MoneyManagementPage : Bannister.Views.ModeThemedPage
         var palette = new[]
         {
             AppColors.Get(ThemeKey.SuccessText), AppColors.Get(ThemeKey.InfoText), AppColors.Get(ThemeKey.HighlightPinkText),
-            AppColors.Get(ThemeKey.WarningText), AppColors.Get(ThemeKey.AccentPurpleStrongText), AppColors.Get(ThemeKey.HighlightTealText),
-            AppColors.Get(ThemeKey.HighlightLimeText), AppColors.Get(ThemeKey.AccentVioletStrongText), AppColors.Get(ThemeKey.WarningBurntText),
-            AppColors.Get(ThemeKey.HighlightMintText)
+            AppColors.Get(ThemeKey.WarningText), AppColors.Get(ThemeKey.HighlightVioletText), AppColors.Get(ThemeKey.HighlightTealText),
+            AppColors.Get(ThemeKey.SuccessText), AppColors.Get(ThemeKey.HighlightVioletText), AppColors.Get(ThemeKey.WarningText),
+            AppColors.Get(ThemeKey.HighlightTealText)
         };
 
         _pieDrawable.Slices = grouped
@@ -247,8 +247,8 @@ public class MoneyManagementPage : Bannister.Views.ModeThemedPage
         }
 
         var dataGrid = DataGridView.Create(headers, displayRows)
-            .WithHeaderStyle(AppColors.Get(ThemeKey.SuccessText), AppColors.Get(ThemeKey.OnColorText))
-            .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightLime))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.SuccessText), AppColors.Get(ThemeKey.ButtonPrimaryText))
+            .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightTeal))
             .WithColumnWidths(60, 220)
             .WithCellPadding(6)
             .WithFontSize(12, 12)

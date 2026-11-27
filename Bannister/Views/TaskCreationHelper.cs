@@ -113,7 +113,7 @@ public static class TaskCreationHelper
                         FontSize = 11,
                         Padding = new Thickness(8, 0),
                         HorizontalOptions = LayoutOptions.Fill
-                    }).ThemeColor(VisualElement.BackgroundColorProperty, cat == selectedCategory ? ThemeKey.HighlightIndigo : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, cat == selectedCategory ? ThemeKey.AccentPurpleText : ThemeKey.CardText1);
+                    }).ThemeColor(VisualElement.BackgroundColorProperty, cat == selectedCategory ? ThemeKey.HighlightIndigo : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, cat == selectedCategory ? ThemeKey.HighlightVioletText : ThemeKey.CardText1);
                     var capturedCat = cat;
                     catBtn.Clicked += (_, _) =>
                     {
@@ -180,12 +180,12 @@ public static class TaskCreationHelper
         {
             Text = "Create",
             CornerRadius = 8
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         var cancelBtn = (new Button
         {
             Text = "Cancel",
             CornerRadius = 8
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         Grid rootGrid;
         View? originalContent = null;
@@ -268,7 +268,7 @@ public static class TaskCreationHelper
                         Text = markAsTopCandidate ? "New Top Candidate" : "New Task",
                         FontSize = 18,
                         FontAttributes = FontAttributes.Bold
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText1, classifyPageText: true),
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true),
                     editor,
                     (new Label
                     {

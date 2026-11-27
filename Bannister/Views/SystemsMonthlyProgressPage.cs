@@ -45,7 +45,7 @@ public class SystemsMonthlyProgressPage : Bannister.Views.ModeThemedPage
             Text = " Monthly Progress",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoStrongText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true));
 
         stack.Children.Add((new Label
         {
@@ -114,8 +114,8 @@ public class SystemsMonthlyProgressPage : Bannister.Views.ModeThemedPage
 
     private static View BuildProgressRow(string gameName, int levelBefore, int levelAfter, int delta)
     {
-        var badgeColor = delta > 0 ? ThemeKey.SuccessText : ThemeKey.OnColorText;
-        var badgeTextColor = delta > 0 ? ThemeKey.OnColorText : ThemeKey.NeutralMutedButton;
+        var badgeColor = delta > 0 ? ThemeKey.SuccessText : ThemeKey.ButtonPrimaryText;
+        var badgeTextColor = delta > 0 ? ThemeKey.ButtonPrimaryText : ThemeKey.NeutralDarkButton;
 
         var row = new Grid
         {

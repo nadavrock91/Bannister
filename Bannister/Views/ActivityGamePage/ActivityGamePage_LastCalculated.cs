@@ -83,7 +83,7 @@ public partial class ActivityGamePage
         {
             btnShowAll.Text = "👁️ Showing All Days";
             btnShowAll.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
-            btnShowAll.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            btnShowAll.ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         }
         int navigableIndex = _navigableCategories.FindIndex(x =>
             string.Equals(x, _targetCategory, StringComparison.OrdinalIgnoreCase));
@@ -113,7 +113,7 @@ public partial class ActivityGamePage
         {
             await activitiesCollection.ScrollToAsync(card, ScrollToPosition.Center, true);
             Color oldBorder = card.BorderColor;
-            card.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
+            card.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningText);
             await Task.Delay(1600);
             card.BorderColor = oldBorder;
         }

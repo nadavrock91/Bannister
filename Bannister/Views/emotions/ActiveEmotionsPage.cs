@@ -52,7 +52,7 @@ public class ActiveEmotionsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 44,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += async (_, _) => await AddEmotionAsync();
         mainStack.Children.Add(addBtn);
 
@@ -364,5 +364,5 @@ public class ActiveEmotionsPage : Bannister.Views.ModeThemedPage
 
     private static ThemeKey GetCategoryColor(string category) => category switch
     {
-        "Joy" => ThemeKey.HighlightYellowSoft,        "Sadness" => ThemeKey.RowSelected,        "Anger" => ThemeKey.ErrorBackground,        "Fear" => ThemeKey.AccentPurpleBackground,        "Surprise" => ThemeKey.HighlightTeal,        "Disgust" => ThemeKey.HighlightLime,        "Love" => ThemeKey.HighlightPink,        "Anxiety" => ThemeKey.WarningBackground,        "Gratitude" => ThemeKey.SuccessBackground,        _ => ThemeKey.SecondarySurface    };
+        "Joy" => ThemeKey.HighlightYellow,        "Sadness" => ThemeKey.RowSelected,        "Anger" => ThemeKey.ErrorBackground,        "Fear" => ThemeKey.HighlightViolet,        "Surprise" => ThemeKey.HighlightTeal,        "Disgust" => ThemeKey.HighlightTeal,        "Love" => ThemeKey.HighlightPink,        "Anxiety" => ThemeKey.WarningBackground,        "Gratitude" => ThemeKey.SuccessBackground,        _ => ThemeKey.SecondarySurface    };
 }

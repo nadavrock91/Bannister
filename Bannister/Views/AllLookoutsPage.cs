@@ -39,7 +39,7 @@ public class AllLookoutsPage : Bannister.Views.ModeThemedPage
             Text = " All Lookouts",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label
         {
             Text = "Scenarios to watch for across all dates.",
@@ -54,7 +54,7 @@ public class AllLookoutsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Start,
             Padding = new Thickness(16, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += async (_, _) =>
             await AddLookoutAsync();
         stack.Children.Add(addBtn);
@@ -147,7 +147,7 @@ public class AllLookoutsPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             LineBreakMode = LineBreakMode.TailTruncation
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         string dateStr = lookout.DisplayDate.HasValue
             ? lookout.DisplayDate.Value.ToString("dd MMM yyyy")
@@ -156,7 +156,7 @@ public class AllLookoutsPage : Bannister.Views.ModeThemedPage
         {
             Text = dateStr,
             FontSize = 11
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText3, classifyPageText: true));
 
         if (!string.IsNullOrWhiteSpace(lookout.Notes))
             infoStack.Children.Add((new Label
@@ -176,7 +176,7 @@ public class AllLookoutsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 36,
             Padding = new Thickness(8, 0),
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         openBtn.Clicked += async (_, _) =>
         {
             var page = new LookoutScenarioPage(

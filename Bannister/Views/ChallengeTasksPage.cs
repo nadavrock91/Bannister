@@ -49,8 +49,8 @@ public class ChallengeTasksPage : Bannister.Views.ModeThemedPage
     private void BuildUI()
     {
         var mainStack = new VerticalStackLayout { Padding = 20, Spacing = 12 };
-        var accent = _isFocusMode ? ThemeKey.AccentPurpleText : ThemeKey.InfoText;
-        var pale = _isFocusMode ? ThemeKey.AccentPurpleBackground : ThemeKey.RowSelected;
+        var accent = _isFocusMode ? ThemeKey.HighlightVioletText : ThemeKey.InfoText;
+        var pale = _isFocusMode ? ThemeKey.HighlightViolet : ThemeKey.RowSelected;
 
         mainStack.Children.Add((new Label
         {
@@ -79,7 +79,7 @@ public class ChallengeTasksPage : Bannister.Views.ModeThemedPage
             HeightRequest = 28,
             FontSize = 10,
             Padding = new Thickness(6, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         editAllowanceButton.Clicked += async (_, _) => await EditAllowanceAsync();
         editRow.Children.Add(editAllowanceButton);
 
@@ -90,7 +90,7 @@ public class ChallengeTasksPage : Bannister.Views.ModeThemedPage
             HeightRequest = 28,
             FontSize = 10,
             Padding = new Thickness(6, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         editStreakButton.Clicked += async (_, _) => await EditStreakAsync();
         editRow.Children.Add(editStreakButton);
         mainStack.Children.Add(editRow);
@@ -125,7 +125,7 @@ public class ChallengeTasksPage : Bannister.Views.ModeThemedPage
             CornerRadius = 4,
             HeightRequest = 28,
             Padding = new Thickness(8, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addCandidate.Clicked += async (_, _) => await AddTopCandidateAsync();
         candidateButtons.Children.Add(addCandidate);
 
@@ -149,7 +149,7 @@ public class ChallengeTasksPage : Bannister.Views.ModeThemedPage
                 FontSize = 11,
                 CornerRadius = 4,
                 HeightRequest = 28
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSelected).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
             consult.Clicked += async (_, _) => await ConsultLlmAsync();
             mainStack.Children.Add(consult);
         }
@@ -277,9 +277,9 @@ public class ChallengeTasksPage : Bannister.Views.ModeThemedPage
             }).ToList();
 
             var commitmentGrid = DataGridView.Create(headers, rows)
-                .WithHeaderStyle(AppColors.Get(ThemeKey.SecondaryAccentText), AppColors.Get(ThemeKey.OnColorText))
+                .WithHeaderStyle(AppColors.Get(ThemeKey.HighlightIndigoText), AppColors.Get(ThemeKey.ButtonPrimaryText))
                 .WithHeaderTextProvider(index => headers[index])
-                .WithAlternateRowColor(AppColors.Get(ThemeKey.SecondaryLavenderSurface))
+                .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightViolet))
                 .WithColumnWidths(60, 220)
                 .WithCellPadding(6)
                 .WithFontSize(12, 12)
@@ -341,7 +341,7 @@ public class ChallengeTasksPage : Bannister.Views.ModeThemedPage
                 : $"\u25B6 \u2B50 Top Candidates ({candidates.Count})",
             FontSize = 12,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true);
         var headerTap = new TapGestureRecognizer();
         headerTap.Tapped += async (_, _) =>
         {
@@ -374,9 +374,9 @@ public class ChallengeTasksPage : Bannister.Views.ModeThemedPage
             }).ToList();
 
             return DataGridView.Create(headers, rows)
-                .WithHeaderStyle(AppColors.Get(ThemeKey.SecondaryAccentText), AppColors.Get(ThemeKey.OnColorText))
+                .WithHeaderStyle(AppColors.Get(ThemeKey.HighlightIndigoText), AppColors.Get(ThemeKey.ButtonPrimaryText))
                 .WithHeaderTextProvider(index => headers[index])
-                .WithAlternateRowColor(AppColors.Get(ThemeKey.SecondaryLavenderSurface))
+                .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightViolet))
                 .WithColumnWidths(1, 220)
                 .WithCellPadding(6)
                 .WithFontSize(12, 12)
@@ -570,7 +570,7 @@ public class ChallengeTasksPage : Bannister.Views.ModeThemedPage
             if (shown.Count == 0) list.Children.Add((new Label { Text = "No tasks match your search." }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
         }
         search.TextChanged += (_, e) => Rebuild(e.NewTextValue ?? "");
-        var cancel = (new Button { Text = "Cancel", BackgroundColor = Colors.Transparent }).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleText);
+        var cancel = (new Button { Text = "Cancel", BackgroundColor = Colors.Transparent }).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         cancel.Clicked += (_, _) =>
         {
             if (Content is Grid rootGrid)
@@ -581,7 +581,7 @@ public class ChallengeTasksPage : Bannister.Views.ModeThemedPage
         {
             Children =
             {
-                (new Label { Text = $"Pick Task — {categoryLabel}", FontSize = 18, FontAttributes = FontAttributes.Bold, Padding = 16 }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface),
+                (new Label { Text = $"Pick Task — {categoryLabel}", FontSize = 18, FontAttributes = FontAttributes.Bold, Padding = 16 }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText),
                 search,
                 new ScrollView { MaximumHeightRequest = 400, Content = list },
                 cancel
@@ -609,7 +609,7 @@ public class ChallengeTasksPage : Bannister.Views.ModeThemedPage
                 Text = $"{PriorityDot(task.Priority)} {(task.IsTopCandidate ? "\u2B50 " : "")}{task.Title}",
                 FontSize = 14, LineBreakMode = LineBreakMode.WordWrap
             }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, task.IsTopCandidate ? ThemeKey.WarningBackground : ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, task.IsTopCandidate ? ThemeKey.WarningAccentText : (ThemeKey?)null);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, task.IsTopCandidate ? ThemeKey.WarningBackground : ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, task.IsTopCandidate ? ThemeKey.WarningText : (ThemeKey?)null);
         var tap = new TapGestureRecognizer();
         tap.Tapped += (_, _) =>
         {
@@ -628,7 +628,7 @@ public class ChallengeTasksPage : Bannister.Views.ModeThemedPage
         _chartContainer.Children.Add((new Label
         {
             Text = "Focus Allowance History", FontSize = 14,
-            FontAttributes = FontAttributes.Bold         }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText1, classifyPageText: true));
+            FontAttributes = FontAttributes.Bold         }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true));
         var history = await _challengeService.GetChallengeHistoryAsync(_auth.CurrentUsername, 12);
         if (history.Count == 0)
         {
@@ -644,7 +644,7 @@ public class ChallengeTasksPage : Bannister.Views.ModeThemedPage
             var challenge = history[i];
             var barStack = new VerticalStackLayout { VerticalOptions = LayoutOptions.End, HorizontalOptions = LayoutOptions.Center };
             barStack.Children.Add(new Label { Text = challenge.CurrentAllowance.ToString(), FontSize = 9, HorizontalTextAlignment = TextAlignment.Center });
-            barStack.Children.Add((new BoxView { HeightRequest = Math.Max(8, challenge.CurrentAllowance / (double)max * 80), WidthRequest = 20, CornerRadius = 4 }).ThemeColor(BoxView.ColorProperty, ThemeKey.AccentPurpleSurface));
+            barStack.Children.Add((new BoxView { HeightRequest = Math.Max(8, challenge.CurrentAllowance / (double)max * 80), WidthRequest = 20, CornerRadius = 4 }).ThemeColor(BoxView.ColorProperty, ThemeKey.HighlightVioletText));
             grid.Add(barStack, i, 0);
             grid.Add((new Label { Text = challenge.StartedAt.ToString("M/d"), FontSize = 8, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true), i, 1);
         }

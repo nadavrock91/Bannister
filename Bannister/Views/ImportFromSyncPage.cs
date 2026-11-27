@@ -29,14 +29,14 @@ public class ImportFromSyncPage : ContentPage
             Text = "Import Database",
             CornerRadius = 8,
             HeightRequest = 48
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         importButton.Clicked += OnImportClicked;
 
         var cancelButton = (new Button
         {
             Text = "Cancel",
             BackgroundColor = Colors.Transparent
-        }).ThemeColor(Button.TextColorProperty, ThemeKey.SecondaryAccentText);
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         cancelButton.Clicked += async (_, _) => await CompleteAsync(null);
 
         Content = new ScrollView

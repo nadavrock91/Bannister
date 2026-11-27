@@ -74,13 +74,13 @@ public class StreakDashboardPage : Bannister.Views.ModeThemedPage
             Text = "🔥 Streak Dashboard",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         headerStack.Children.Add((new Label
         {
             Text = "Track consecutive days of activity usage",
             FontSize = 13
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellow, ThemeKey.PageText1, classifyPageText: true));
 
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
@@ -205,7 +205,7 @@ public class StreakDashboardPage : Bannister.Views.ModeThemedPage
             HasShadow = false,
             WidthRequest = 210,
             Margin = new Thickness(0, 0, 10, 10)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, completed > 0 ? ThemeKey.SuccessLightText : ThemeKey.Separator);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, completed > 0 ? ThemeKey.SuccessButtonBackground : ThemeKey.Separator);
 
         var stack = new VerticalStackLayout { Spacing = 2 };
         stack.Children.Add((new Label
@@ -214,7 +214,7 @@ public class StreakDashboardPage : Bannister.Views.ModeThemedPage
             FontSize = 26,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label
         {
             Text = $"{targetDays} in a row completed",
@@ -395,7 +395,7 @@ public class StreakDashboardPage : Bannister.Views.ModeThemedPage
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, hasActiveStreak ? ThemeKey.SuccessBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, hasActiveStreak ? ThemeKey.SuccessLightText : ThemeKey.Separator);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, hasActiveStreak ? ThemeKey.SuccessBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, hasActiveStreak ? ThemeKey.SuccessButtonBackground : ThemeKey.Separator);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
 
@@ -430,7 +430,7 @@ public class StreakDashboardPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 30,
             Padding = new Thickness(4, 0)
-        }).ThemeColor(Button.TextColorProperty, ThemeKey.SecondaryAccentText);
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         btnExpand.Clicked += (s, e) =>
         {
             // Toggle expanded state
@@ -462,7 +462,7 @@ public class StreakDashboardPage : Bannister.Views.ModeThemedPage
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true));
         }
 
         headerStack.Children.Add(titleRow);
@@ -497,7 +497,7 @@ public class StreakDashboardPage : Bannister.Views.ModeThemedPage
                 FontSize = 24,
                 FontAttributes = FontAttributes.Bold,
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true));
 
             streakRow.Children.Add((new Label
             {
@@ -543,7 +543,7 @@ public class StreakDashboardPage : Bannister.Views.ModeThemedPage
                 HeightRequest = 28,
                 Padding = new Thickness(8, 0),
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorStrongButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btnEnd.Clicked += async (s, e) => await EndStreakAsync(activeStreak);
             streakRow.Children.Add(btnEnd);
 
@@ -581,7 +581,7 @@ public class StreakDashboardPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(12, 0),
             HorizontalOptions = LayoutOptions.Start,
             Margin = new Thickness(40, 4, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAddPast.Clicked += async (s, e) => await ShowAddPastStreakMenuAsync(activity);
         headerStack.Children.Add(btnAddPast);
 
@@ -595,7 +595,7 @@ public class StreakDashboardPage : Bannister.Views.ModeThemedPage
         var chkAutoIncrement = (new CheckBox
         {
             IsChecked = activity.IsStreakAutoIncrement
-        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
+        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessButtonBackground);
         chkAutoIncrement.CheckedChanged += async (s, e) =>
         {
             activity.IsStreakAutoIncrement = e.Value;
@@ -638,7 +638,7 @@ public class StreakDashboardPage : Bannister.Views.ModeThemedPage
     {
         var isActive = attempt.IsActive;
         int displayDays = GetAttemptDisplayDays(activity, attempt);
-        var borderColor = isActive ? ThemeKey.SuccessLightText : ThemeKey.DisabledButtonBackground;
+        var borderColor = isActive ? ThemeKey.SuccessButtonBackground : ThemeKey.DisabledButtonBackground;
         var bgColor = isActive ? ThemeKey.SuccessBackground : ThemeKey.SecondarySurface;
 
         var frame = (new Frame
@@ -673,7 +673,7 @@ public class StreakDashboardPage : Bannister.Views.ModeThemedPage
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.WarningAccentText : ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.WarningText : ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         // "days" label
         stack.Children.Add((new Label
@@ -692,7 +692,7 @@ public class StreakDashboardPage : Bannister.Views.ModeThemedPage
                 FontSize = 10,
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 4, 0, 0)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true));
         }
         else
         {

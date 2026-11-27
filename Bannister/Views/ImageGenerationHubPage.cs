@@ -28,7 +28,7 @@ public class ImageGenerationHubPage : Bannister.Views.ModeThemedPage
             Text = "Image Generation",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         stack.Children.Add((new Label
         {
@@ -83,7 +83,7 @@ public class ImageGenerationHubPage : Bannister.Views.ModeThemedPage
                             FontSize = 24,
                             FontAttributes = FontAttributes.Bold,
                             HorizontalTextAlignment = TextAlignment.Center
-                        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                         (new Label
                         {
                             Text = "Image Generation is available only when Owner Mode is unlocked.",
@@ -109,7 +109,7 @@ public class ImageGenerationHubPage : Bannister.Views.ModeThemedPage
             Text = title,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         textStack.Children.Add((new Label
         {

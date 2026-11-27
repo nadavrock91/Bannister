@@ -85,7 +85,7 @@ WidthRequest = 280
         {
             Text = "+ New Project", FontSize = 12, HeightRequest = 36,
             CornerRadius = 6, Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         newBtn.Clicked += OnNewProjectClicked;
         pickerRow.Children.Add(newBtn);
 
@@ -141,7 +141,7 @@ CharacterSpacing = 1
             Text = "💾 Save Concept", FontSize = 13, HeightRequest = 38,
             CornerRadius = 6, Padding = new Thickness(16, 0),
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _saveStoryBtn.Clicked += OnSaveStoryClicked;
         storyStack.Children.Add(_saveStoryBtn);
 
@@ -162,7 +162,7 @@ CharacterSpacing = 1,
         var hookBtn = CreateWorkflowButton(
             "🎬 Generate Hook First Frame",
             "Get 10 ideas for a compelling opening frame that works as thumbnail and video start",
-            ThemeKey.WarningAmber);
+            ThemeKey.WarningText);
         hookBtn.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await OnHookFirstFrameClicked())
@@ -173,7 +173,7 @@ CharacterSpacing = 1,
         var clipBtn = CreateWorkflowButton(
             "🎞️ Generate Clip Start Frame",
             "Get 10 ideas for the opening frame of a specific scene/clip",
-            ThemeKey.AccentPurpleText);
+            ThemeKey.HighlightVioletText);
         clipBtn.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await OnClipStartFrameClicked())

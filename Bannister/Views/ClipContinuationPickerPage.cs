@@ -48,7 +48,7 @@ public class ClipContinuationPickerPage : Bannister.Views.ModeThemedPage
             ShouldMute = false,
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground);
         _player.MediaEnded += OnMediaEndedAsync;
 
         _noClipsLabel = (new Label
@@ -57,7 +57,7 @@ public class ClipContinuationPickerPage : Bannister.Views.ModeThemedPage
             HorizontalTextAlignment = TextAlignment.Center,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true);
 
         var preview = new Grid();
         preview.Children.Add(_player);
@@ -68,26 +68,26 @@ public class ClipContinuationPickerPage : Bannister.Views.ModeThemedPage
             FontSize = 13,
             HorizontalTextAlignment = TextAlignment.Center,
             Padding = 8
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBackground);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground);
         _stitchingLabel = (new Label
         {
             Text = "",
             FontSize = 11,
             HorizontalOptions = LayoutOptions.Center,
             IsVisible = false
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightAmberStrong, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellow, ThemeKey.PageText3, classifyPageText: true);
         var statusArea = (new VerticalStackLayout
         {
             Children = { _statusLabel, _stitchingLabel }
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground);
 
         _pickBaseBtn = CreateButton(" Base Clip", ThemeKey.ButtonPrimaryBackground);
         _pickFolderBtn = CreateButton(" Continuations Folder", ThemeKey.NeutralButtonText);
         _playPauseBtn = CreateButton("⏸ Pause", ThemeKey.NeutralDarkButton);
         _playPauseBtn.IsEnabled = false;
-        _removeBtn = CreateButton("✕ Remove", ThemeKey.ErrorDeepText);
+        _removeBtn = CreateButton("✕ Remove", ThemeKey.ErrorText);
         _removeBtn.IsEnabled = false;
-        _nextBtn = CreateButton("⏭ Next", ThemeKey.SuccessStrongText);
+        _nextBtn = CreateButton("⏭ Next", ThemeKey.SuccessText);
         _nextBtn.IsEnabled = false;
         _copyToFolderBtn = (new Button
         {
@@ -97,12 +97,12 @@ public class ClipContinuationPickerPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(12, 0),
             FontSize = 13,
             IsEnabled = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _countLabel = (new Label
         {
             FontSize = 12,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true);
 
         _pickBaseBtn.Clicked += async (_, _) => await OnPickBaseAsync();
         _pickFolderBtn.Clicked += async (_, _) => await OnPickFolderAsync();
@@ -128,7 +128,7 @@ public class ClipContinuationPickerPage : Bannister.Views.ModeThemedPage
                     Children = { _removeBtn, _nextBtn, _copyToFolderBtn, _countLabel }
                 }
             }
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground);
 
         var root = new Grid
         {
@@ -148,7 +148,7 @@ public class ClipContinuationPickerPage : Bannister.Views.ModeThemedPage
 
     private static Button CreateButton(string text, ThemeKey backgroundColor) => (new Button(){
         Text = text
-    }).ThemeColor(VisualElement.BackgroundColorProperty, backgroundColor).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+    }).ThemeColor(VisualElement.BackgroundColorProperty, backgroundColor).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
     private async Task OnPickBaseAsync()
     {

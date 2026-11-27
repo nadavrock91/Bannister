@@ -121,11 +121,11 @@ public class DatabasesPage : Bannister.Views.ModeThemedPage
             IsVisible = false
         };
 
-        var btnPrev = (new Button { Text = "← Previous", CornerRadius = 6, FontSize = 13, HeightRequest = 34 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var btnPrev = (new Button { Text = "← Previous", CornerRadius = 6, FontSize = 13, HeightRequest = 34 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnPrev.Clicked += async (s, e) => { if (_offset >= PageSize) { _offset -= PageSize; await LoadRowsAsync(); } };
         _paginationBar.Add(btnPrev, 0, 0);
 
-        var btnNext = (new Button { Text = "Next →", CornerRadius = 6, FontSize = 13, HeightRequest = 34 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var btnNext = (new Button { Text = "Next →", CornerRadius = 6, FontSize = 13, HeightRequest = 34 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnNext.Clicked += async (s, e) => { if (_offset + PageSize < _totalCount) { _offset += PageSize; await LoadRowsAsync(); } };
         _paginationBar.Add(btnNext, 1, 0);
 
@@ -233,7 +233,7 @@ public class DatabasesPage : Bannister.Views.ModeThemedPage
 
         _toolbarContainer.Children.Clear();
         _gridContainer.Children.Clear();
-        _gridContainer.Children.Add((new ActivityIndicator { IsRunning = true }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.SecondaryAccentText));
+        _gridContainer.Children.Add((new ActivityIndicator { IsRunning = true }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.HighlightIndigoText));
 
         try
         {
@@ -275,8 +275,8 @@ public class DatabasesPage : Bannister.Views.ModeThemedPage
             var tbl = _currentTableName;
 
             var dataGrid = DataGridView.Create(_columns, displayRows)
-                .WithHeaderStyle(AppColors.Get(ThemeKey.SecondaryAccentText), AppColors.Get(ThemeKey.OnColorText))
-                .WithAlternateRowColor(AppColors.Get(ThemeKey.SecondaryLavenderSurface))
+                .WithHeaderStyle(AppColors.Get(ThemeKey.HighlightIndigoText), AppColors.Get(ThemeKey.ButtonPrimaryText))
+                .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightViolet))
                 .WithColumnWidths(60, 200)
                 .WithCellPadding(6)
                 .WithFontSize(12, 12)
@@ -304,7 +304,7 @@ public class DatabasesPage : Bannister.Views.ModeThemedPage
         catch (Exception ex)
         {
             _gridContainer.Children.Clear();
-            _gridContainer.Children.Add((new Label { Text = $"Error: {ex.Message}" }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorPureText, ThemeKey.PageText1, classifyPageText: true));
+            _gridContainer.Children.Add((new Label { Text = $"Error: {ex.Message}" }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true));
         }
     }
 

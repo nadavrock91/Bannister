@@ -91,7 +91,7 @@ public class HomePopupsSettingsPage : Bannister.Views.ModeThemedPage
         {
             IsToggled = primary,
             OnColor = AppColors.Get(ThemeKey.SuccessText),
-            ThumbColor = AppColors.Get(ThemeKey.OnColorText)
+            ThumbColor = AppColors.Get(ThemeKey.ButtonPrimaryText)
         };
         primarySwitch.Toggled += async (_, e) =>
         {
@@ -102,7 +102,7 @@ public class HomePopupsSettingsPage : Bannister.Views.ModeThemedPage
         {
             IsToggled = secondary,
             OnColor = AppColors.Get(ThemeKey.InfoText),
-            ThumbColor = AppColors.Get(ThemeKey.OnColorText)
+            ThumbColor = AppColors.Get(ThemeKey.ButtonPrimaryText)
         };
         secondarySwitch.Toggled += async (_, e) =>
         {
@@ -115,7 +115,7 @@ public class HomePopupsSettingsPage : Bannister.Views.ModeThemedPage
             IsToggled = seenToday,
             IsEnabled = hasSeenTodayGate,
             OnColor = AppColors.Get(ThemeKey.DisabledButtonBackground),
-            ThumbColor = AppColors.Get(ThemeKey.OnColorText)
+            ThumbColor = AppColors.Get(ThemeKey.ButtonPrimaryText)
         };
         seenTodaySwitch.Toggled += async (_, e) =>
         {

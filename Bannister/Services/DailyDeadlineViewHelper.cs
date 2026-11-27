@@ -235,7 +235,7 @@ public static class DailyDeadlineViewHelper
                 HorizontalOptions = LayoutOptions.Start
             };
         }
-        return (new Label { Text = activity.Name, FontSize = 14, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
+        return (new Label { Text = activity.Name, FontSize = 14, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
     }
 
     private static HorizontalStackLayout BuildButtonRow(

@@ -80,7 +80,7 @@ public class LevelChartCompactDrawable : IDrawable
         canvas.DrawLine(leftMargin, topMargin + chartHeight, leftMargin + chartWidth, topMargin + chartHeight); // X axis
 
         // Draw step line (for levels)
-        canvas.StrokeColor = AppColors.Get(ThemeKey.SuccessLightText);
+        canvas.StrokeColor = AppColors.Get(ThemeKey.SuccessButtonBackground);
         canvas.StrokeSize = 2;
 
         PathF path = new PathF();
@@ -109,7 +109,7 @@ public class LevelChartCompactDrawable : IDrawable
         // Draw points only if we have fewer than 30 data points (compact view)
         if (data.Count <= 30)
         {
-            canvas.FillColor = AppColors.Get(ThemeKey.SuccessLightText);
+            canvas.FillColor = AppColors.Get(ThemeKey.SuccessButtonBackground);
             for (int i = 0; i < data.Count; i++)
             {
                 float x = leftMargin + (chartWidth * i / Math.Max(1, data.Count - 1));
@@ -241,11 +241,11 @@ public class ExpChartCompactDrawable : IDrawable
         areaPath.Close();
 
         // Fill with semi-transparent color
-        canvas.FillColor = AppColors.Get(ThemeKey.ChartAreaFill);
+        canvas.FillColor = AppColors.Get(ThemeKey.HighlightIndigo);
         canvas.FillPath(areaPath);
 
         // Draw the line on top
-        canvas.StrokeColor = AppColors.Get(ThemeKey.SecondaryAccentText);
+        canvas.StrokeColor = AppColors.Get(ThemeKey.HighlightIndigoText);
         canvas.StrokeSize = 2;
 
         PathF linePath = new PathF();
@@ -265,7 +265,7 @@ public class ExpChartCompactDrawable : IDrawable
         // Draw points only if we have fewer than 30 data points (compact view)
         if (data.Count <= 30)
         {
-            canvas.FillColor = AppColors.Get(ThemeKey.SecondaryAccentText);
+            canvas.FillColor = AppColors.Get(ThemeKey.HighlightIndigoText);
             for (int i = 0; i < data.Count; i++)
             {
                 float x = leftMargin + (chartWidth * i / Math.Max(1, data.Count - 1));

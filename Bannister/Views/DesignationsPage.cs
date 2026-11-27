@@ -81,7 +81,7 @@ public class DesignationsPage : Bannister.Views.ModeThemedPage
         _systemPicker.SelectedIndexChanged += async (s, e) => await OnSystemChangedAsync();
         systemRow.Add(_systemPicker, 1, 0);
 
-        var addSystemBtn = CreateActionButton("+ Add System", ThemeKey.SuccessDarkButtonBackground, ThemeKey.OnColorText);
+        var addSystemBtn = CreateActionButton("+ Add System", ThemeKey.SuccessButtonBackground, ThemeKey.ButtonPrimaryText);
         addSystemBtn.IsVisible = !_designations.IsReadOnly;
         addSystemBtn.Clicked += async (s, e) => await AddSystemAsync();
         systemRow.Add(addSystemBtn, 2, 0);
@@ -128,7 +128,7 @@ public class DesignationsPage : Bannister.Views.ModeThemedPage
         }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         filterRow.Add(_statusLabel, 2, 0);
 
-        var addDesignationBtn = CreateActionButton("+ Add Designation", ThemeKey.SuccessDarkButtonBackground, ThemeKey.OnColorText);
+        var addDesignationBtn = CreateActionButton("+ Add Designation", ThemeKey.SuccessButtonBackground, ThemeKey.ButtonPrimaryText);
         addDesignationBtn.IsVisible = !_designations.IsReadOnly;
         addDesignationBtn.Clicked += async (s, e) => await AddDesignationAsync();
         filterRow.Add(addDesignationBtn, 3, 0);
@@ -259,7 +259,7 @@ public class DesignationsPage : Bannister.Views.ModeThemedPage
         }
 
         var dataGrid = DataGridView.Create(headers, displayRows)
-            .WithHeaderStyle(AppColors.Get(ThemeKey.HighlightIndigoText), AppColors.Get(ThemeKey.OnColorText))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.HighlightIndigoText), AppColors.Get(ThemeKey.ButtonPrimaryText))
             .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightIndigo))
             .WithColumnWidths(70, 240)
             .WithCellPadding(6)

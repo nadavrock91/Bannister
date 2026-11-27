@@ -44,7 +44,7 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
             Text = "Motivation Sources",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         var export = MakeButton("Export Strength Questionnaire", ThemeKey.InfoBackground, ThemeKey.InfoText);
         export.Clicked += async (_, _) => await ExportStrengthQuestionnaireAsync();
         _content.Children.Add(export);
@@ -81,14 +81,14 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
             Text = source.Title,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         if (source.StrengthScore.HasValue)
         {
             int score = source.StrengthScore.Value;
-            ThemeKey badgeColor = score <= 20 ? ThemeKey.ErrorStrongText
-                : score <= 40 ? ThemeKey.WarningAmber
-                : score <= 60 ? ThemeKey.WarningGoldenButton
-                : score <= 80 ? ThemeKey.SuccessText : ThemeKey.AccentPurpleText;
+            ThemeKey badgeColor = score <= 20 ? ThemeKey.ErrorText
+                : score <= 40 ? ThemeKey.WarningText
+                : score <= 60 ? ThemeKey.WarningButtonBackground
+                : score <= 80 ? ThemeKey.SuccessText : ThemeKey.HighlightVioletText;
             body.Children.Add((new Border
             {
                 Content = (new Label
@@ -96,7 +96,7 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
                     Text = $"Strength: {score}/100",
                     FontSize = 12,
                     HorizontalTextAlignment = TextAlignment.Center
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3, classifyPageText: true),
                 StrokeThickness = 0,
                 Padding = new Thickness(8, 4),
                 HorizontalOptions = LayoutOptions.Start
@@ -109,7 +109,7 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
                 FontSize = 13
             }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         var actions = new HorizontalStackLayout { Spacing = 8 };
-        var edit = MakeButton("Edit", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoButton);
+        var edit = MakeButton("Edit", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoText);
         edit.Clicked += async (_, _) =>
         {
             var title = await DisplayPromptAsync(
@@ -222,7 +222,7 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
                 WidthRequest = 48,
                 HeightRequest = 180,
                 StrokeThickness = 1
-            }).ThemeColor(Border.StrokeProperty, ThemeKey.DisabledBlueGrey).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
+            }).ThemeColor(Border.StrokeProperty, ThemeKey.DisabledButtonBackground).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
             var bar = new VerticalStackLayout
             {
                 Spacing = 3,
@@ -263,7 +263,7 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
             Text = "Motivation Fuel",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         section.Children.Add(new ScrollView
         {
             Orientation = ScrollOrientation.Horizontal,
@@ -273,12 +273,12 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
         return section;
     }
 
-    private static ThemeKey StrengthColor(int score) => score <= 20 ? ThemeKey.ErrorStrongText : score <= 40 ? ThemeKey.WarningAmber : score <= 60 ? ThemeKey.WarningGoldenButton : score <= 80 ? ThemeKey.SuccessText : ThemeKey.AccentPurpleText;
+    private static ThemeKey StrengthColor(int score) => score <= 20 ? ThemeKey.ErrorText : score <= 40 ? ThemeKey.WarningText : score <= 60 ? ThemeKey.WarningButtonBackground : score <= 80 ? ThemeKey.SuccessText : ThemeKey.HighlightVioletText;
 
     private View BuildAddForm()
     {
         var form = new VerticalStackLayout { Spacing = 8 };
-        form.Children.Add((new Label { Text = "Add Source", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        form.Children.Add((new Label { Text = "Add Source", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         _titleEntry = (new Entry { Placeholder = "Title" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
         _descriptionEditor = (new Editor { Placeholder = "Description (optional)", HeightRequest = 110, AutoSize = EditorAutoSizeOption.Disabled }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
         form.Children.Add(_titleEntry);
@@ -388,7 +388,7 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
                 Spacing = 12,
                 Children =
                 {
-                    (new Label { Text = "Paste the LLM results:", FontSize = 16 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                    (new Label { Text = "Paste the LLM results:", FontSize = 16 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                     editor,
                     save
                 }

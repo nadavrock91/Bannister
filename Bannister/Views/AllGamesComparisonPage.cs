@@ -127,7 +127,7 @@ public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessLightText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessButtonBackground);
 
         var stack = new VerticalStackLayout { Spacing = 12 };
 
@@ -145,7 +145,7 @@ public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
         foreach (var game in _allGames)
         {
             var (level, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, game.GameId);
-            barContainer.Children.Add(CreateGameBar(game.DisplayName, level, ThemeKey.SuccessLightText));
+            barContainer.Children.Add(CreateGameBar(game.DisplayName, level, ThemeKey.SuccessButtonBackground));
         }
 
         scrollView.Content = barContainer;
@@ -311,17 +311,17 @@ public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
         var colors = new[]
         {
             ThemeKey.InfoButtonBackground, // Blue
-            ThemeKey.AccentPurpleButtonBackground, // Purple
+            ThemeKey.HighlightVioletText, // Purple
             ThemeKey.WarningButtonBackground, // Orange
-            ThemeKey.TealButtonBackground, // Teal
-            ThemeKey.PinkButtonBackground, // Pink
-            ThemeKey.HighlightIndigoStrongText, // Indigo
-            ThemeKey.BrownLightButtonBackground, // Brown
-            ThemeKey.NeutralMutedButton, // Blue Grey
-            ThemeKey.LimeButtonBackground, // Light Green
-            ThemeKey.HighlightAmberButton, // Amber
-            ThemeKey.HighlightCyanButton, // Cyan
-            ThemeKey.DeepOrangeButtonBackground, // Deep Orange
+            ThemeKey.HighlightTealText, // Teal
+            ThemeKey.HighlightPinkText, // Pink
+            ThemeKey.HighlightIndigoText, // Indigo
+            ThemeKey.NeutralDarkButton, // Brown
+            ThemeKey.NeutralDarkButton, // Blue Grey
+            ThemeKey.SuccessButtonBackground, // Light Green
+            ThemeKey.WarningButtonBackground, // Amber
+            ThemeKey.HighlightTealText, // Cyan
+            ThemeKey.WarningButtonBackground, // Deep Orange
         };
 
         return colors[month.Month % colors.Length];

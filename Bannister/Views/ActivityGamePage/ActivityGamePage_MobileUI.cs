@@ -83,7 +83,7 @@ public partial class ActivityGamePage
             Text = "Level 1",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         infoStack.Children.Add(lblCurrentLevel);
 
         // EXP Progress Bar
@@ -91,7 +91,7 @@ public partial class ActivityGamePage
         {
             Progress = 0,
             HeightRequest = 16
-        }).ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessLightText).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator);
+        }).ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator);
         infoStack.Children.Add(expProgressBar);
 
         // EXP to Next Level
@@ -149,7 +149,7 @@ public partial class ActivityGamePage
             Text = "Calculate EXP",
             CornerRadius = 8,
             FontSize = 13
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnCalculateExp.Clicked += OnCalculateClicked;
         stack.Children.Add(btnCalculateExp);
 
@@ -178,7 +178,7 @@ public partial class ActivityGamePage
             Text = "Select All",
             CornerRadius = 8,
             FontSize = 13
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentVioletButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnSelectAll.Clicked += OnSelectAllClicked;
         stack.Children.Add(btnSelectAll);
 
@@ -187,7 +187,7 @@ public partial class ActivityGamePage
             Text = "Clear Selection",
             CornerRadius = 8,
             FontSize = 13
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnClear.Clicked += OnClearSelectionClicked;
         stack.Children.Add(btnClear);
 
@@ -198,7 +198,7 @@ public partial class ActivityGamePage
             Text = "+ Add Activity",
             CornerRadius = 8,
             FontSize = 13
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAdd.Clicked += OnAddActivityClicked;
         stack.Children.Add(btnAdd);
         AddPendingActivityIdeaControls(stack);
@@ -208,7 +208,7 @@ public partial class ActivityGamePage
             Text = "Manage",
             CornerRadius = 8,
             FontSize = 13
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnManage.Clicked += OnManageClicked;
         stack.Children.Add(btnManage);
 
@@ -217,7 +217,7 @@ public partial class ActivityGamePage
             Text = "📊 View Activity Log",
             CornerRadius = 8,
             FontSize = 13
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnViewLog.Clicked += OnViewLogClicked;
         stack.Children.Add(btnViewLog);
 
@@ -227,7 +227,7 @@ public partial class ActivityGamePage
             Text = "⚙️ Options",
             CornerRadius = 8,
             FontSize = 13
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralMutedButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnOptions.Clicked += OnOptionsClicked;
         stack.Children.Add(btnOptions);
 

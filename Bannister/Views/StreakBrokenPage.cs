@@ -93,7 +93,7 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
             Padding = 20,
             CornerRadius = 12,
             HasShadow = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorSelectedBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.ErrorButtonBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.ErrorButtonBackground);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
         
@@ -111,7 +111,7 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorStrongText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true));
 
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
@@ -141,7 +141,7 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
             Text = "🔥 7 day streak was broken",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.DeepOrangeButtonBackground, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningButtonBackground, ThemeKey.PageText1, classifyPageText: true);
         activityStack.Children.Add(_streakInfoLabel);
 
         _missedDateLabel = (new Label
@@ -168,7 +168,7 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HasShadow = false,
             IsVisible = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningText);
 
         _levelDownLabel = (new Label
         {
@@ -198,7 +198,7 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 50
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _acceptButton.Clicked += OnAcceptPenaltyClicked;
         mainStack.Children.Add(_acceptButton);
 
@@ -209,7 +209,7 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             CornerRadius = 8,
             HeightRequest = 50
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _dayDidntCountButton.Clicked += OnDayDidntCountClicked;
         mainStack.Children.Add(_dayDidntCountButton);
 
@@ -229,7 +229,7 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             CornerRadius = 8,
             HeightRequest = 50
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _dayDidntCountWeeklyButton.Clicked += OnDayDidntCountWeeklyClicked;
         mainStack.Children.Add(_dayDidntCountWeeklyButton);
 
@@ -249,7 +249,7 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             CornerRadius = 8,
             HeightRequest = 50
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _forgotButton.Clicked += OnForgotToClickClicked;
         mainStack.Children.Add(_forgotButton);
 
@@ -355,7 +355,7 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
             {
                 Text = "▼ show name",
                 FontSize = 10
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoStrongText, ThemeKey.PageText3, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText3, classifyPageText: true);
             var tap = new TapGestureRecognizer();
             tap.Tapped += (_, _) =>
             {

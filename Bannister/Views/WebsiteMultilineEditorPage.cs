@@ -117,7 +117,7 @@ public class WebsiteMultilineEditorPage : ContentPage
             CornerRadius = 8,
             HeightRequest = 44,
             FontSize = 14
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         saveButton.Clicked += async (_, _) => await CloseAsync(_editor.Text ?? string.Empty);
 
         var buttonGrid = new Grid
@@ -145,7 +145,7 @@ public class WebsiteMultilineEditorPage : ContentPage
                         Text = title,
                         FontSize = 24,
                         FontAttributes = FontAttributes.Bold
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                     (new Label
                     {
                         Text = subtitle,

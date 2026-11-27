@@ -377,7 +377,7 @@ Output ONLY the C# code block.
         var newProjectButton = CreateSecondaryButton("New Project");
         newProjectButton.Clicked += async (_, _) => await ClearProjectStateAsync();
 
-        var copyIdeasButton = CreatePrimaryButton("Copy Ideas Prompt to Clipboard", ThemeKey.HighlightSkyText);
+        var copyIdeasButton = CreatePrimaryButton("Copy Ideas Prompt to Clipboard", ThemeKey.InfoText);
         copyIdeasButton.Clicked += async (_, _) => await CopyIdeasPromptAsync();
 
         _ideaTitleEntry = (new Entry
@@ -392,18 +392,18 @@ Output ONLY the C# code block.
             MinimumHeightRequest = 200
         }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Editor.TextColorProperty, ThemeKey.InputText).ThemeColor(Editor.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        var saveIdeaButton = CreatePrimaryButton("Save Idea", ThemeKey.SuccessDarkButtonBackground);
+        var saveIdeaButton = CreatePrimaryButton("Save Idea", ThemeKey.SuccessButtonBackground);
         saveIdeaButton.Clicked += async (_, _) => await SaveIdeaAsync();
 
         _deleteIdeaButton = CreateDangerButton("Delete Idea");
         _deleteIdeaButton.IsVisible = false;
         _deleteIdeaButton.Clicked += async (_, _) => await DeleteIdeaAsync();
 
-        var copyDomainPromptButton = CreatePrimaryButton("Copy Domain Names Prompt to Clipboard", ThemeKey.HighlightSkyText);
+        var copyDomainPromptButton = CreatePrimaryButton("Copy Domain Names Prompt to Clipboard", ThemeKey.InfoText);
         copyDomainPromptButton.Clicked += async (_, _) => await CopyDomainNamesPromptAsync();
 
-        var goToGoDaddyButton = CreatePrimaryButton("Go to GoDaddy", ThemeKey.HighlightSkyText);
-        goToGoDaddyButton.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var goToGoDaddyButton = CreatePrimaryButton("Go to GoDaddy", ThemeKey.InfoText);
+        goToGoDaddyButton.ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         goToGoDaddyButton.FontAttributes = FontAttributes.Bold;
         goToGoDaddyButton.Clicked += async (_, _) => await Launcher.OpenAsync("https://www.godaddy.com/en");
 
@@ -412,7 +412,7 @@ Output ONLY the C# code block.
             Placeholder = "e.g. hookbrain.com"
         }).ThemeColor(Entry.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Entry.TextColorProperty, ThemeKey.InputText).ThemeColor(Entry.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        var saveProjectFromDomainButton = CreatePrimaryButton("Save as Project", ThemeKey.SuccessDarkButtonBackground);
+        var saveProjectFromDomainButton = CreatePrimaryButton("Save as Project", ThemeKey.SuccessButtonBackground);
         saveProjectFromDomainButton.Clicked += async (_, _) => await SaveProjectFromPurchasedDomainAsync();
 
         _domainSection = new VerticalStackLayout
@@ -472,7 +472,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _workflowCopyNextTaskPromptButton.Clicked += async (_, _) => await CopyNextTaskPromptAsync();
 
         _pasteQaReportWorkflowButton = (new Button
@@ -481,7 +481,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightSky).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyAccentText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _pasteQaReportWorkflowButton.Clicked += OnPasteQaReportClicked;
 
         _copyQaTemplateBtn = (new Button
@@ -490,7 +490,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightLime).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightLimeText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightTeal).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
         _copyQaTemplateBtn.Clicked += async (_, _) =>
         {
             string constraints = "";
@@ -532,7 +532,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightYellowStrong).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightYellowText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightYellowText);
         _pickFromQaBtn.Clicked += OnPickFromQaClicked;
 
         _investigateBtn = (new Button
@@ -541,7 +541,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightOrange).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         _investigateBtn.Clicked += OnInvestigateStuckClicked;
 
         _copyBatchPromptButton = (new Button
@@ -550,7 +550,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 46,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleStrongText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         _copyBatchPromptButton.Clicked += OnCopyBatchPromptClicked;
 
         _pasteTaskPlanButton = (new Button
@@ -559,7 +559,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 46,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _pasteTaskPlanButton.Clicked += async (_, _) => await PasteTaskPlanAsync();
 
         _cleanTaskPlanButton = (new Button
@@ -569,7 +569,7 @@ Output ONLY the C# code block.
             HeightRequest = 40,
             FontSize = 13,
             IsVisible = false
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         _cleanTaskPlanButton.Clicked += async (_, _) => await ShowCleanTaskPlanAsync();
 
         _pasteCleanedPlanButton = (new Button
@@ -618,7 +618,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 46,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _copyCodexPromptButton.Clicked += async (_, _) => await CopyCodexPromptAsync();
 
         _pasteCodexResultButton = (new Button
@@ -627,7 +627,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 46,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _pasteCodexResultButton.Clicked += async (_, _) => await PasteCodexResultAsync();
 
         _editTaskTitleButton = CreateWorkflowSmallButton("Edit Task Title");
@@ -645,10 +645,10 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _commitAndPushButton.Clicked += async (_, _) => await CommitAndPushAsync();
 
-        _verifyDeploymentButton = CreatePrimaryButton("Deployment Verified", ThemeKey.SuccessDarkButtonBackground);
+        _verifyDeploymentButton = CreatePrimaryButton("Deployment Verified", ThemeKey.SuccessButtonBackground);
         _verifyDeploymentButton.Clicked += async (_, _) => await DeploymentVerifiedAsync();
 
         _deploymentFailedButton = CreateDangerButton("Deployment Failed (Revert)");
@@ -663,7 +663,7 @@ Output ONLY the C# code block.
         _deploymentErrorButton = CreateSecondaryButton("Deployment Error");
         _deploymentErrorButton.Clicked += async (_, _) => await HandleDeploymentErrorAsync();
 
-        _verifyCodexOutputButton = CreatePrimaryButton("Verify Codex Output Against QA", ThemeKey.AccentPurpleDarkButtonBackground);
+        _verifyCodexOutputButton = CreatePrimaryButton("Verify Codex Output Against QA", ThemeKey.HighlightVioletText);
         _verifyCodexOutputButton.Clicked += async (_, _) => await VerifyCodexOutputAsync();
 
         _viewBatchHistoryButton = CreateSecondaryButton("View Batch History");
@@ -672,7 +672,7 @@ Output ONLY the C# code block.
         _manageBlockedItemsButton = CreateSecondaryButton("Manage Blocked Items");
         _manageBlockedItemsButton.Clicked += async (_, _) => await ManageBlockedItemsAsync();
 
-        _addMissingButton = CreatePrimaryButton("Add Missing Feature", ThemeKey.WarningDarkButtonBackground);
+        _addMissingButton = CreatePrimaryButton("Add Missing Feature", ThemeKey.WarningButtonBackground);
         _addMissingButton.Clicked += async (_, _) => await StartAddMissingFlowAsync();
 
         _missingFocusQAButton = CreateSecondaryButton("Copy Missing Progress QA");
@@ -681,10 +681,10 @@ Output ONLY the C# code block.
         _missingFocusQAPasteButton = CreateSecondaryButton("Paste Progress QA Result");
         _missingFocusQAPasteButton.Clicked += async (_, _) => await PasteMissingProgressQAAsync();
 
-        _missingFocusNextTaskButton = CreatePrimaryButton("Copy Next Missing Task", ThemeKey.WarningDarkButtonBackground);
+        _missingFocusNextTaskButton = CreatePrimaryButton("Copy Next Missing Task", ThemeKey.WarningButtonBackground);
         _missingFocusNextTaskButton.Clicked += async (_, _) => await CopyNextMissingTaskAsync();
 
-        _markMissingDoneButton = CreatePrimaryButton("Mark Missing Done", ThemeKey.SuccessDarkButtonBackground);
+        _markMissingDoneButton = CreatePrimaryButton("Mark Missing Done", ThemeKey.SuccessButtonBackground);
         _markMissingDoneButton.Clicked += async (_, _) => await MarkMissingDoneAsync();
 
         _abandonMissingButton = CreateSecondaryButton("Abandon Missing Focus");
@@ -802,7 +802,7 @@ Output ONLY the C# code block.
             HeightRequest = 36,
             FontSize = 12,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleLightButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _workflowExportStuckBtn.Clicked += async (_, _) => await ExportStuckAnalysisAsync();
 
         _workflowPasteStuckBtn = (new Button
@@ -812,7 +812,7 @@ Output ONLY the C# code block.
             HeightRequest = 36,
             FontSize = 12,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleBorder).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _workflowPasteStuckBtn.Clicked += async (_, _) => await PasteStuckAnalysisAsync();
 
         _stuckAnalysisStepRow = new HorizontalStackLayout
@@ -827,7 +827,7 @@ Output ONLY the C# code block.
                     FontSize = 12,
                     FontAttributes = FontAttributes.Bold,
                     VerticalOptions = LayoutOptions.Center
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText3),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText3),
                 _workflowExportStuckBtn,
                 _workflowPasteStuckBtn
             }
@@ -851,7 +851,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleBorder).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _pasteCommitStatementButton.Clicked += async (_, _) => await PasteCommitStatementAsync();
 
         _viewCommitLogButton = (new Button
@@ -860,7 +860,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleBorder).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _viewCommitLogButton.Clicked += async (_, _) => await ViewCommitLogAsync();
 
         _exportStuckAnalysisButton = (new Button
@@ -869,7 +869,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleLightButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _exportStuckAnalysisButton.Clicked += async (_, _) => await ExportStuckAnalysisAsync();
 
         _pasteStuckAnalysisButton = (new Button
@@ -878,7 +878,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleLightButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _pasteStuckAnalysisButton.Clicked += async (_, _) => await PasteStuckAnalysisAsync();
 
         _stuckRatingLabel = new Label
@@ -916,7 +916,7 @@ Output ONLY the C# code block.
             Text = "Dev Commit Log (Owner Mode)",
             FontSize = 15,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1);
 
         var commitButtonRow = new HorizontalStackLayout
         {
@@ -930,7 +930,7 @@ Output ONLY the C# code block.
             IsVisible = false,
             Children =
             {
-                (new BoxView { HeightRequest = 1, Margin = new Thickness(0, 8, 0, 0) }).ThemeColor(BoxView.ColorProperty, ThemeKey.AccentPurpleBorder),
+                (new BoxView { HeightRequest = 1, Margin = new Thickness(0, 8, 0, 0) }).ThemeColor(BoxView.ColorProperty, ThemeKey.HighlightVioletText),
                 ownerDevHeader,
                 commitButtonRow,
                 _exportStuckAnalysisButton,
@@ -997,7 +997,7 @@ Output ONLY the C# code block.
         {
             FontSize = 28,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
         _projectIdeaReferenceLabel = (new Label
         {
             FontSize = 13,
@@ -1032,7 +1032,7 @@ Output ONLY the C# code block.
             Text = "Copy Vision Refinement Prompt",
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _copyVisionRefinementPromptButton.Clicked += async (_, _) => await CopyVisionRefinementPromptAsync();
 
         _pasteVisionRefinedButton = (new Button
@@ -1041,7 +1041,7 @@ Output ONLY the C# code block.
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _pasteVisionRefinedButton.Clicked += async (_, _) => await PasteVisionRefinedAsync();
 
         var visionSection = new VerticalStackLayout
@@ -1068,8 +1068,8 @@ Output ONLY the C# code block.
             FontSize = 48,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
-        _incrementButton = CreatePrimaryButton("+1 Task", ThemeKey.SuccessDarkButtonBackground);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
+        _incrementButton = CreatePrimaryButton("+1 Task", ThemeKey.SuccessButtonBackground);
         _incrementButton.FontSize = 20;
         _incrementButton.HeightRequest = 58;
         _incrementButton.Clicked += async (_, _) => await OnIncrementClickedAsync();
@@ -1113,7 +1113,7 @@ Output ONLY the C# code block.
             }
         };
 
-        _setNewTargetButton = CreatePrimaryButton("Set New Target", ThemeKey.SuccessDarkButtonBackground);
+        _setNewTargetButton = CreatePrimaryButton("Set New Target", ThemeKey.SuccessButtonBackground);
         _setNewTargetButton.Clicked += async (_, _) => await OnSetNewTargetClickedAsync();
 
         _celebrationFrame = (new Frame
@@ -1132,7 +1132,7 @@ Output ONLY the C# code block.
                         Text = "🎉 Target reached!",
                         FontSize = 18,
                         FontAttributes = FontAttributes.Bold
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessStrongText, ThemeKey.PageText1),
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1),
                     _setNewTargetButton
                 }
             }
@@ -1168,7 +1168,7 @@ Output ONLY the C# code block.
             HeightRequest = 32,
             FontSize = 12,
             Padding = new Thickness(10, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _editSiteUrlButton.Clicked += async (_, _) => await EditSiteUrlAsync();
 
         _deployDashboardLabel = (new Label
@@ -1185,7 +1185,7 @@ Output ONLY the C# code block.
             HeightRequest = 32,
             FontSize = 12,
             Padding = new Thickness(10, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _editDeployDashboardButton.Clicked += async (_, _) => await EditDeployDashboardAsync();
 
         _deployCommandLabel = (new Label
@@ -1202,7 +1202,7 @@ Output ONLY the C# code block.
             HeightRequest = 32,
             FontSize = 12,
             Padding = new Thickness(10, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _editDeployCommandButton.Clicked += async (_, _) => await EditDeployCommandAsync();
 
         _promptConstraintsLabel = (new Label
@@ -1258,7 +1258,7 @@ Output ONLY the C# code block.
             FontFamily = "Consolas",
             FontSize = 11,
             IsVisible = false
-        }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.BrandMediaBackground).ThemeColor(Editor.TextColorProperty, ThemeKey.BrandMediaText);
+        }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.MediaBackground).ThemeColor(Editor.TextColorProperty, ThemeKey.MediaText);
 
         _cancelDeployButton = (new Button
         {
@@ -1267,7 +1267,7 @@ Output ONLY the C# code block.
             HeightRequest = 36,
             FontSize = 12,
             IsVisible = false
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _cancelDeployButton.Clicked += (_, _) =>
         {
             _deployCts?.Cancel();
@@ -1288,12 +1288,12 @@ Output ONLY the C# code block.
                         Text = "Deploy Output",
                         FontSize = 13,
                         FontAttributes = FontAttributes.Bold
-                    }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaText, ThemeKey.PageText1),
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.MediaText, ThemeKey.PageText1),
                     _deployLogEditor,
                     _cancelDeployButton
                 }
             }
-        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.BrandMediaConsoleBorder).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.BrandMediaBackground);
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.MediaBackground);
 
         _copyCodexCommandButton = (new Button
         {
@@ -1301,7 +1301,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 42,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _copyCodexCommandButton.Clicked += async (_, _) => await CopyCodexCommandAsync();
 
         _openTerminalButton = (new Button
@@ -1331,7 +1331,7 @@ Output ONLY the C# code block.
             Text = "Copy Update Summary Prompt",
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _copySummaryPromptButton.Clicked += async (_, _) => await CopyUpdateSummaryPromptAsync();
 
         _pasteSummaryResultButton = (new Button
@@ -1340,7 +1340,7 @@ Output ONLY the C# code block.
             CornerRadius = 8,
             HeightRequest = 42,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _pasteSummaryResultButton.Clicked += async (_, _) => await PasteSummaryResultAsync();
 
         var projectSummarySection = new VerticalStackLayout
@@ -1438,7 +1438,7 @@ Output ONLY the C# code block.
             Padding = new Thickness(12, 0),
             HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         setupGuideButton.Clicked += async (_, _) => await Navigation.PushAsync(new WebsiteBuilderSetupGuidePage(_auth, _projectService));
 
         var mainScroll = new ScrollView
@@ -1491,7 +1491,7 @@ Output ONLY the C# code block.
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1), 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1), 0, 0);
         grid.Add(setupGuideButton, 1, 0);
         return grid;
     }
@@ -1616,7 +1616,7 @@ Output ONLY the C# code block.
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 12, 0, 0)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
     }
 
     private static Button CreatePrimaryButton(string text, ThemeKey backgroundColor)
@@ -1638,7 +1638,7 @@ Output ONLY the C# code block.
             Text = text,
             CornerRadius = 8,
             HeightRequest = 42
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
     }
 
     private static Button CreateWorkflowSmallButton(string text)
@@ -2149,7 +2149,7 @@ Output ONLY the C# code block.
                 break;
 
             case WebsiteWorkflowState.ReadyToExecute:
-                ApplyWorkflowBanner(ThemeKey.HighlightYellow, ThemeKey.WarningStrongText, ThemeKey.WarningText, "🟠", "Ready to execute in Codex",
+                ApplyWorkflowBanner(ThemeKey.HighlightYellow, ThemeKey.WarningText, ThemeKey.WarningText, "🟠", "Ready to execute in Codex",
                     $"Task: {project.PendingTaskTitle}. Copy the Codex prompt, run it in Codex, then paste the result.");
                 _cleanTaskPlanButton.IsVisible = true;
                 _pasteCleanedPlanButton.IsVisible = true;
@@ -2162,7 +2162,7 @@ Output ONLY the C# code block.
                 break;
 
             case WebsiteWorkflowState.ReadyToCommit:
-                ApplyWorkflowBanner(ThemeKey.SuccessBackground, ThemeKey.SuccessText, ThemeKey.SuccessStrongText, "🟢", "Ready to commit",
+                ApplyWorkflowBanner(ThemeKey.SuccessBackground, ThemeKey.SuccessText, ThemeKey.SuccessText, "🟢", "Ready to commit",
                     $"Commit: {project.PendingCommitMessage}. Tap Commit and Push to finish.");
                 // Reset retry mode when entering ReadyToCommit fresh
                 if (!_deployRetryMode)
@@ -2176,7 +2176,7 @@ Output ONLY the C# code block.
                 break;
 
             case WebsiteWorkflowState.VerifyDeployment:
-                ApplyWorkflowBanner(ThemeKey.InfoBackground, ThemeKey.InfoText, ThemeKey.InfoDeepText, "🔵", "Verify Vercel deployment",
+                ApplyWorkflowBanner(ThemeKey.InfoBackground, ThemeKey.InfoText, ThemeKey.InfoText, "🔵", "Verify Vercel deployment",
                     $"Task '{project.PendingTaskTitle}' was committed and pushed. Check the Vercel dashboard to confirm successful deployment before continuing.");
                 bool hasDeployUrl = !string.IsNullOrWhiteSpace(project.DeploymentUrl);
                 _checkDeploymentButton.IsVisible = hasDeployUrl;
@@ -2786,7 +2786,7 @@ Output ONLY the C# code block.
         {
             Text = "Save",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         saveBtn.Clicked += (_, _) =>
         {
             parent.Children.Remove(overlay);
@@ -2797,7 +2797,7 @@ Output ONLY the C# code block.
         {
             Text = "Cancel",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         cancelBtn.Clicked += (_, _) =>
         {
             parent.Children.Remove(overlay);
@@ -2817,7 +2817,7 @@ Output ONLY the C# code block.
                 Spacing = 12,
                 Children =
                 {
-                    (new Label { Text = " Paste QA Report", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    (new Label { Text = " Paste QA Report", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                     (new Label
                     {
                         Text = "Saves per-project. Batch Prompt uses this stored report to pick 5 random items across BROKEN, ROUGH, MISSING with equal probability.",
@@ -2925,7 +2925,7 @@ Output ONLY the C# code block.
         {
             Text = " Copy investigation prompt",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         copyBtn.Clicked += async (_, _) =>
         {
@@ -2984,7 +2984,7 @@ Output ONLY the C# code block.
         {
             Text = "Cancel",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         cancelBtn.Clicked += (_, _) =>
         {
@@ -3021,7 +3021,7 @@ Output ONLY the C# code block.
                 Spacing = 10,
                 Children =
                 {
-                    (new Label { Text = " Investigate Stuck Symptom", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    (new Label { Text = " Investigate Stuck Symptom", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                     (new Label
                     {
                         Text = "Break out of the fix-loop. Ask Codex to diagnose a recurring issue without making changes.",
@@ -3052,7 +3052,7 @@ Output ONLY the C# code block.
             return;
         }
 
-        var overlay = (new Grid { }).ThemeColor(Grid.BackgroundColorProperty, ThemeKey.OverlayMedium);
+        var overlay = (new Grid { }).ThemeColor(Grid.BackgroundColorProperty, ThemeKey.Overlay);
         var templateKey = GetInvestigationPromptStorageKey();
         string currentTemplate;
         try
@@ -3076,7 +3076,7 @@ Output ONLY the C# code block.
         {
             Text = "Save",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         saveBtn.Clicked += async (_, _) =>
         {
             var value = editor.Text ?? "";
@@ -3107,7 +3107,7 @@ Output ONLY the C# code block.
         {
             Text = "Reset to Default",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightOrange).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         resetBtn.Clicked += async (_, _) =>
         {
             var confirm = await DisplayAlert(
@@ -3133,7 +3133,7 @@ Output ONLY the C# code block.
         {
             Text = "Cancel",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         cancelBtn.Clicked += (_, _) =>
         {
             parent.Children.Remove(overlay);
@@ -3160,7 +3160,7 @@ Output ONLY the C# code block.
                 Spacing = 10,
                 Children =
                 {
-                    (new Label { Text = "Edit Investigation Template", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    (new Label { Text = "Edit Investigation Template", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                     (new Label
                     {
                         Text = "Keep both placeholders: {SYMPTOM_DESCRIPTION} and {RELATED_PATHS}.",
@@ -3231,7 +3231,7 @@ Output ONLY the C# code block.
         {
             Text = "Parse and pick",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightYellowDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         Button BuildCancelButton()
         {
@@ -3239,7 +3239,7 @@ Output ONLY the C# code block.
             {
                 Text = "Cancel",
                 CornerRadius = 8
-            }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             button.Clicked += (_, _) =>
             {
                 parent.Children.Remove(overlay);
@@ -3260,7 +3260,7 @@ Output ONLY the C# code block.
             Spacing = 10,
             Children =
             {
-                (new Label { Text = " Pick 5 from QA report", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                (new Label { Text = " Pick 5 from QA report", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                 (new Label
                 {
                     Text = "Paste the QA report below. Bannister will parse it, extract every BROKEN, ROUGH, and MISSING item, and pick 5 at random with equal probability across categories.",
@@ -3306,7 +3306,7 @@ Output ONLY the C# code block.
             {
                 Text = "Re-pick",
                 CornerRadius = 8
-            }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightYellowStrong).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightYellowText);
+            }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightYellowText);
             repickBtn.Clicked += (_, _) =>
             {
                 _pickedItems = PickFive(_parsedItems);
@@ -3317,7 +3317,7 @@ Output ONLY the C# code block.
             {
                 Text = "Copy arc prompt",
                 CornerRadius = 8
-            }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             copyBtn.Clicked += async (_, _) =>
             {
                 var prompt = AssembleArcPromptWithPicks(_pickedItems, BuildConstraintsBlock(project));
@@ -3341,7 +3341,7 @@ Output ONLY the C# code block.
             {
                 Text = "Back to paste",
                 CornerRadius = 8
-            }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             backBtn.Clicked += (_, _) =>
             {
                 card.Content = pasteContent;
@@ -3359,7 +3359,7 @@ Output ONLY the C# code block.
                 Spacing = 10,
                 Children =
                 {
-                    (new Label { Text = " Picked 5 items", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    (new Label { Text = " Picked 5 items", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                     (new Label
                     {
                         Text = $"Found {_parsedItems.Count} items total: {brokenCount} BROKEN, {roughCount} ROUGH, {missingCount} MISSING",
@@ -3577,9 +3577,9 @@ Output ONLY the C# code block.
     {
         var badgeColor = item.Category switch
         {
-            "BROKEN" => ThemeKey.ErrorBrightText,
-            "ROUGH" => ThemeKey.WarningSoftText,
-            "MISSING" => ThemeKey.InfoBrightText,
+            "BROKEN" => ThemeKey.ErrorText,
+            "ROUGH" => ThemeKey.WarningText,
+            "MISSING" => ThemeKey.InfoText,
             _ => ThemeKey.DisabledButtonBackground
         };
 
@@ -3594,7 +3594,7 @@ Output ONLY the C# code block.
                 Text = item.Category,
                 FontSize = 10,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3)
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3)
         }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, badgeColor);
 
         var bodyLabel = (new Label
@@ -3989,13 +3989,13 @@ Output ONLY the C# code block.
         {
             Text = "Generate Task Prompt",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var cancelBtn = (new Button
         {
             Text = "Cancel",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         submitBtn.Clicked += (_, _) =>
         {
@@ -5310,7 +5310,7 @@ Output ONLY the C# code block.
         {
             Text = "Close",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         closeBtn.Clicked += (_, _) =>
         {
             parent.Children.Remove(overlay);
@@ -5521,7 +5521,7 @@ Output ONLY the C# code block.
         {
             Text = "Close",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         closeBtn.Clicked += (_, _) =>
         {
             parent.Children.Remove(overlay);
@@ -6160,12 +6160,12 @@ Output ONLY the C# code block.
         {
             Text = "Apply Analysis",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleLightButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         var cancelBtn = (new Button
         {
             Text = "Cancel",
             CornerRadius = 8
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         applyBtn.Clicked += (_, _) =>
         {
             if (Content is Grid grid) grid.Children.Remove(overlay);
@@ -6186,7 +6186,7 @@ Output ONLY the C# code block.
             Text = "Paste Stuck Analysis Result",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1));
         cardContent.Children.Add((new Label
         {
             Text = "Paste the full LLM response. Bannister will parse the JSON block and update the stuck risk display.",

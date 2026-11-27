@@ -113,7 +113,7 @@ public class AttemptListItemViewModel : INotifyPropertyChanged
             if (_attempt != null)
             {
                 if (_attempt.IsActive)
-                    return AppColors.Get(ThemeKey.SuccessLightText); // Green
+                    return AppColors.Get(ThemeKey.SuccessButtonBackground); // Green
                 else if (_attempt.FailedAt.HasValue)
                     return AppColors.Get(ThemeKey.ErrorButtonBackground); // Red
                 else

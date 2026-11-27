@@ -245,7 +245,7 @@ public class SlideshowPage : Bannister.Views.ModeThemedPage
             CornerRadius = 12,
             FontAttributes = FontAttributes.Bold,
             FontSize = 16
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightPinkText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightPinkText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _generateButton.Clicked += OnGenerateClicked;
 
         _progressIndicator = (new ActivityIndicator
@@ -458,7 +458,7 @@ public class SlideshowPage : Bannister.Views.ModeThemedPage
         Padding = 14,
         HasShadow = false,
         Content = content
-    }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightPinkStrong);
+    }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightPink);
 
     private static Label SectionTitle(string text) => (new Label(){
         Text = text,
@@ -471,5 +471,5 @@ public class SlideshowPage : Bannister.Views.ModeThemedPage
         CornerRadius = 8,
         HeightRequest = 38,
         FontSize = 12
-    }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+    }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 }

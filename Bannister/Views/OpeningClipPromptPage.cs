@@ -85,7 +85,7 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
             Text = " Opening Clip Prompts",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         stack.Children.Add((new Label
         {
             Text = "Bannister builds a retention-optimised prompt for 5 Grok " +
@@ -135,7 +135,7 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
                     Text = "Image Session",
                     FontSize = 17,
                     FontAttributes = FontAttributes.Bold
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                 reset,
                 _sessionStripContainer
             }
@@ -180,7 +180,7 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
             HeightRequest = 38,
             HorizontalOptions = LayoutOptions.Start,
             Padding = new Thickness(14, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _templateSaveButton.Clicked += async (_, _) =>
             await SaveTemplateFormAsync();
         v.Children.Add(_templateNameEntry);
@@ -396,7 +396,7 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _buildButton.Clicked += async (_, _) => await BuildAndCopyPromptAsync();
         v.Children.Add(_buildButton);
         _outputStatusLabel = (new Label
@@ -427,7 +427,7 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 44
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _pasteResponseButton.Clicked += async (_, _) =>
             await PasteLLMResponseAsync();
         v.Children.Add(_pasteResponseButton);
@@ -494,7 +494,7 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
                 Text = item.Text,
                 FontSize = 13,
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1), 0, 0);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1), 0, 0);
 
             var editBtn = (new Button
             {
@@ -816,10 +816,10 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
                                 ? FontAttributes.Bold
                                 : FontAttributes.None,
                             HorizontalTextAlignment = TextAlignment.Center
-                        }).ThemeColor(Label.TextColorProperty, item.IsActive ? ThemeKey.HighlightIndigoButton : ThemeKey.CardText2, ThemeKey.PageText3)
+                        }).ThemeColor(Label.TextColorProperty, item.IsActive ? ThemeKey.HighlightIndigoText : ThemeKey.CardText2, ThemeKey.PageText3)
                     }
                 }
-            }).ThemeColor(VisualElement.BackgroundColorProperty, item.IsActive ? ThemeKey.HighlightIndigo : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, item.IsActive ? ThemeKey.SecondaryAccentText : ThemeKey.Separator);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, item.IsActive ? ThemeKey.HighlightIndigo : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, item.IsActive ? ThemeKey.HighlightIndigoText : ThemeKey.Separator);
             var tap = new TapGestureRecognizer();
             tap.Tapped += async (_, _) =>
             {
@@ -872,7 +872,7 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
                     Text = "Active thumbnail",
                     FontSize = 12,
                     FontAttributes = FontAttributes.Bold
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoButton, ThemeKey.PageText3),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText3),
                 (new Label
                 {
                     Text = $"{active.CopyCount} copied",
@@ -1029,7 +1029,7 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
                 Padding = 14,
                 CornerRadius = 10,
                 HasShadow = false
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightIndigoStrong);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightIndigo);
             var inner = new VerticalStackLayout { Spacing = 6 };
 
             // Number + title (longer, describes what happens)
@@ -1049,7 +1049,7 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
                     FontSize = 12,
                     FontAttributes = FontAttributes.Italic,
                     LineBreakMode = LineBreakMode.WordWrap
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText3));
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText3));
 
             // Separator
             inner.Children.Add((new BoxView
@@ -1074,7 +1074,7 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
                 HeightRequest = 36,
                 HorizontalOptions = LayoutOptions.Start,
                 Padding = new Thickness(14, 0)
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             copyBtn.Clicked += async (_, _) =>
             {
                 await Clipboard.SetTextAsync(_parsedPrompts[capturedI]);
@@ -1126,7 +1126,7 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
             Text = "Done",
             CornerRadius = 8,
             Margin = new Thickness(16, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         confirmBtn.Clicked += async (_, _) =>
         {
             tcs.TrySetResult(editor.Text ?? "");

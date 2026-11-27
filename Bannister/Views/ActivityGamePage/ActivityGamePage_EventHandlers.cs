@@ -115,11 +115,11 @@ public partial class ActivityGamePage
 
         // Update labels immediately
         lblCurrentLevel.Text = $"Level {levelAfter}";
-        lblCurrentLevel.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+        lblCurrentLevel.ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         lblExpToNext.Text = $"{expIntoAfter} / {expNeededAfter} EXP";
         lblExpTotal.Text = $"Total EXP: {totalExpValue:N0}";
         if (expProgressBar != null)
-            expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessLightText);
+            expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessButtonBackground);
 
         await AnimateExpBar(progressBefore, progressAfter, leveledUp);
         await RefreshExpAsync();
@@ -744,7 +744,7 @@ public partial class ActivityGamePage
         {
             btnShowAll.Text = "👁️ Showing ALL";
             btnShowAll.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground);
-            btnShowAll.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            btnShowAll.ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         }
         else
         {
@@ -1436,7 +1436,7 @@ internal class SqlResultPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         copyButton.Clicked += async (_, _) =>
         {
             await Clipboard.SetTextAsync(resultText);
@@ -1591,8 +1591,8 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
             Padding = new Thickness(22, 16, 22, 22)
         };
 
-        buttonStack.Children.Add(BuildButton("Set to Auto", ThemeKey.SuccessButtonBackground, ThemeKey.OnColorText, "Set to Auto"));
-        buttonStack.Children.Add(BuildButton("Postpone", ThemeKey.HighlightGoldButton, ThemeKey.CardText1, "Postpone"));
+        buttonStack.Children.Add(BuildButton("Set to Auto", ThemeKey.SuccessButtonBackground, ThemeKey.ButtonPrimaryText, "Set to Auto"));
+        buttonStack.Children.Add(BuildButton("Postpone", ThemeKey.WarningButtonBackground, ThemeKey.CardText1, "Postpone"));
         buttonStack.Children.Add(BuildButton("Skip", ThemeKey.NeutralButtonBackground, ThemeKey.CardText2, null));
 
         Grid.SetRow(buttonStack, 4);
@@ -1630,7 +1630,7 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
             {
                 Text = "▼ show name",
                 FontSize = 10
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoStrongText, ThemeKey.PageText3, classifyPageText: true);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText3, classifyPageText: true);
             var tap = new TapGestureRecognizer();
             tap.Tapped += (_, _) =>
             {
@@ -1649,7 +1649,7 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
     }
 
     private static string? ResolveImagePath(string? storedPath)
@@ -1797,7 +1797,7 @@ internal class AutoAwardPostponePromptPage : ContentPage
             FontSize = 17,
             FontAttributes = FontAttributes.Bold,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         contentStack.Children.Add((new Label
         {
@@ -1860,7 +1860,7 @@ internal class AutoAwardPostponePromptPage : ContentPage
             Text = "Save",
             CornerRadius = 8,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         saveManual.Clicked += OnManualSaveClicked;
         Grid.SetColumn(saveManual, 1);
         manualRow.Children.Add(saveManual);
@@ -1911,7 +1911,7 @@ internal class AutoAwardPostponePromptPage : ContentPage
             HeightRequest = 44,
             FontSize = 15,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightGoldButton).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         button.Clicked += (s, e) =>
         {
             System.Diagnostics.Debug.WriteLine($"auto-award postpone threshold clicked: {threshold}");

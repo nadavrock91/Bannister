@@ -94,7 +94,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
         {
             Text = "← Prev", FontSize = 13, HeightRequest = 38,
             CornerRadius = 6, Padding = new Thickness(14, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         prevBtn.Clicked += async (s, e) => { GoToPreviousMonth(); await LoadMonthAsync(); };
         navRow.Add(prevBtn, 0, 0);
 
@@ -118,7 +118,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
         {
             Text = "Next →", FontSize = 13, HeightRequest = 38,
             CornerRadius = 6, Padding = new Thickness(14, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         nextBtn.Clicked += async (s, e) => { GoToNextMonth(); await LoadMonthAsync(); };
         navRow.Add(nextBtn, 3, 0);
 
@@ -126,7 +126,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
         {
             Text = "📥 Import", FontSize = 12, HeightRequest = 38,
             CornerRadius = 6, Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrownLightButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         importBtn.Clicked += OnImportClicked;
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
         navRow.Add(importBtn, 4, 0);
@@ -135,7 +135,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
         {
             Text = "🧹 Dedup", FontSize = 12, HeightRequest = 38,
             CornerRadius = 6, Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrownButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         dedupBtn.Clicked += OnDedupClicked;
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
         navRow.Add(dedupBtn, 5, 0);
@@ -147,7 +147,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
             HeightRequest = 38,
             CornerRadius = 6,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         allLookuoutsBtn.Clicked += async (_, _) =>
         {
             var page = new AllLookoutsPage(
@@ -162,7 +162,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
         {
             Text = "📦 Move", FontSize = 12, HeightRequest = 38,
             CornerRadius = 6, Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         moveBtn.Clicked += OnMoveTasksClicked;
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
         navRow.Add(moveBtn, 7, 0);
@@ -172,7 +172,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
             Text = "Postponed Tasks", FontSize = 12, HeightRequest = 38,
             CornerRadius = 6, Padding = new Thickness(12, 0),
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningAmber);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         postponedBtn.Clicked += async (s, e) => await Navigation.PushAsync(new PostponedTasksManagementPage(_auth, _postponedTaskService));
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
         navRow.Add(postponedBtn, 8, 0);
@@ -181,7 +181,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
         {
             Text = "Routines", FontSize = 12, HeightRequest = 38,
             CornerRadius = 6, Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         routinesBtn.Clicked += async (s, e) => await Navigation.PushAsync(new RoutinesPage(_auth, _routineService));
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
         navRow.Add(routinesBtn, 9, 0);
@@ -206,7 +206,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
             HeightRequest = 38,
             CornerRadius = 6,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         remindersBtn.Clicked += async (_, _) =>
         {
             var page = new DailyRemindersPage(
@@ -261,7 +261,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             Padding = new Thickness(12, 0),
             IsEnabled = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         ToolTipProperties.SetText(_placeSelectedTaskButton, "Move the selected not yet placed task to a calendar date");
         _placeSelectedTaskButton.Clicked += async (s, e) => await MoveSelectedUnplacedTaskToDateAsync();
         unplacedHeader.Add(_placeSelectedTaskButton, 1, 0);
@@ -467,22 +467,22 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
         else if (activeTasks > 0)
         {
             bg = ThemeKey.HighlightYellow;
-            border = ThemeKey.WarningAmberButtonBackground;
+            border = ThemeKey.WarningButtonBackground;
         }
         else if (lookouts > 0)
         {
-            bg = ThemeKey.AccentPurpleBackground;
-            border = ThemeKey.AccentPurpleStrongText;
+            bg = ThemeKey.HighlightViolet;
+            border = ThemeKey.HighlightVioletText;
         }
         else if (postponedTasks > 0)
         {
             bg = ThemeKey.WarningBackground;
-            border = ThemeKey.WarningAmber;
+            border = ThemeKey.WarningText;
         }
         else if (doneTasks > 0)
         {
             bg = ThemeKey.SuccessBackground;
-            border = ThemeKey.SuccessLightText;
+            border = ThemeKey.SuccessButtonBackground;
         }
         else
         {
@@ -522,7 +522,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
             {
                 Text = $"✓ {doneTasks}",
                 FontSize = 11
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText3));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText3));
         }
 
         if (lookouts > 0)
@@ -532,7 +532,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
                 Text = $"Lookouts {lookouts}",
                 FontSize = 11,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText3));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText3));
         }
 
         if (postponedTasks > 0)
@@ -542,7 +542,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
                 Text = $"Postponed {postponedTasks}",
                 FontSize = 11,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAmber, ThemeKey.PageText3));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3));
         }
 
         if (activeTasks == 0 && doneTasks == 0 && lookouts == 0 && postponedTasks == 0)
@@ -610,8 +610,8 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
             .ToList();
 
         var dataGrid = DataGridView.Create(headers, displayRows)
-            .WithHeaderStyle(AppColors.Get(ThemeKey.InfoText), AppColors.Get(ThemeKey.OnColorText))
-            .WithAlternateRowColor(AppColors.Get(ThemeKey.SecondaryLavenderSurface))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.InfoText), AppColors.Get(ThemeKey.ButtonPrimaryText))
+            .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightViolet))
             .WithColumnWidths(60, 240)
             .WithCellPadding(6)
             .WithFontSize(12, 12)
@@ -765,7 +765,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
             CornerRadius = 6,
             Padding = new Thickness(16, 0),
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         var cancelButton = (new Button
         {
             Text = "Cancel",
@@ -773,7 +773,7 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
             HeightRequest = 38,
             CornerRadius = 6,
             Padding = new Thickness(16, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         buttonRow.Children.Add(moveButton);
         buttonRow.Children.Add(cancelButton);
         stack.Children.Add(buttonRow);
@@ -920,16 +920,16 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
             {
                 HorizontalOptions = LayoutOptions.Fill,
                 VerticalOptions = LayoutOptions.Fill
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.OverlayStrong);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
             var progressStack = new VerticalStackLayout
             {
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 Spacing = 12
             };
-            var spinner = (new ActivityIndicator { IsRunning = true, HeightRequest = 40, WidthRequest = 40 }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.OnColorText);
-            var progressLabel = (new Label { Text = "Importing...", FontSize = 16, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
-            var progressDetail = (new Label { Text = "0 / ?", FontSize = 13, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightBlueStrong, ThemeKey.PageText1);
+            var spinner = (new ActivityIndicator { IsRunning = true, HeightRequest = 40, WidthRequest = 40 }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.ButtonPrimaryText);
+            var progressLabel = (new Label { Text = "Importing...", FontSize = 16, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1);
+            var progressDetail = (new Label { Text = "0 / ?", FontSize = 13, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigo, ThemeKey.PageText1);
             progressStack.Children.Add(spinner);
             progressStack.Children.Add(progressLabel);
             progressStack.Children.Add(progressDetail);
@@ -1163,11 +1163,11 @@ public class CalendarPage : Bannister.Views.ModeThemedPage
         this.Content = progressWrapper;
         progressWrapper.Children.Add(originalContent);
 
-        var overlay = (new Grid { HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.OverlayStrong);
+        var overlay = (new Grid { HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
         var pStack = new VerticalStackLayout { HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center, Spacing = 12 };
-        pStack.Children.Add((new ActivityIndicator { IsRunning = true, HeightRequest = 40, WidthRequest = 40 }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.OnColorText));
-        pStack.Children.Add((new Label { Text = "Moving tasks...", FontSize = 16, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
-        var pDetail = (new Label { Text = $"0 / {tasksToMove.Count}", FontSize = 13, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightBlueStrong, ThemeKey.PageText1);
+        pStack.Children.Add((new ActivityIndicator { IsRunning = true, HeightRequest = 40, WidthRequest = 40 }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.ButtonPrimaryText));
+        pStack.Children.Add((new Label { Text = "Moving tasks...", FontSize = 16, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1));
+        var pDetail = (new Label { Text = $"0 / {tasksToMove.Count}", FontSize = 13, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigo, ThemeKey.PageText1);
         pStack.Children.Add(pDetail);
         overlay.Children.Add(pStack);
         progressWrapper.Children.Add(overlay);
@@ -1244,15 +1244,15 @@ CornerRadius = 12, Padding = 20,
 
         var modeRow = new HorizontalStackLayout { Spacing = 6 };
 
-        var bothBtn = (new Button { Text = "📅 Both Dates", FontSize = 11, HeightRequest = 32, CornerRadius = 6, Padding = new Thickness(10, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
-        var afterBtn = (new Button { Text = "→ All From Start", FontSize = 11, HeightRequest = 32, CornerRadius = 6, Padding = new Thickness(10, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
-        var beforeBtn = (new Button { Text = "← All Up To End", FontSize = 11, HeightRequest = 32, CornerRadius = 6, Padding = new Thickness(10, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var bothBtn = (new Button { Text = "📅 Both Dates", FontSize = 11, HeightRequest = 32, CornerRadius = 6, Padding = new Thickness(10, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
+        var afterBtn = (new Button { Text = "→ All From Start", FontSize = 11, HeightRequest = 32, CornerRadius = 6, Padding = new Thickness(10, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
+        var beforeBtn = (new Button { Text = "← All Up To End", FontSize = 11, HeightRequest = 32, CornerRadius = 6, Padding = new Thickness(10, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         void UpdateModeUI()
         {
             bothBtn.ThemeColor(VisualElement.BackgroundColorProperty, currentMode == "both" ? ThemeKey.ButtonPrimaryBackground : ThemeKey.DisabledButtonBackground);
-            afterBtn.ThemeColor(VisualElement.BackgroundColorProperty, currentMode == "after" ? ThemeKey.WarningDarkButtonBackground : ThemeKey.DisabledButtonBackground);
-            beforeBtn.ThemeColor(VisualElement.BackgroundColorProperty, currentMode == "before" ? ThemeKey.AccentPurpleDarkButtonBackground : ThemeKey.DisabledButtonBackground);
+            afterBtn.ThemeColor(VisualElement.BackgroundColorProperty, currentMode == "after" ? ThemeKey.WarningButtonBackground : ThemeKey.DisabledButtonBackground);
+            beforeBtn.ThemeColor(VisualElement.BackgroundColorProperty, currentMode == "before" ? ThemeKey.HighlightVioletText : ThemeKey.DisabledButtonBackground);
 
             startPicker.IsEnabled = currentMode != "before";
             endPicker.IsEnabled = currentMode != "after";
@@ -1282,8 +1282,8 @@ CornerRadius = 12, Padding = 20,
 
         // Buttons
         var btnRow = new HorizontalStackLayout { Spacing = 10, Margin = new Thickness(0, 10, 0, 0) };
-        var moveBtn = (new Button { Text = "📦 Move Tasks", FontSize = 13, HeightRequest = 40, CornerRadius = 6, Padding = new Thickness(16, 0), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
-        var cancelBtn = (new Button { Text = "Cancel", FontSize = 13, HeightRequest = 40, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var moveBtn = (new Button { Text = "📦 Move Tasks", FontSize = 13, HeightRequest = 40, CornerRadius = 6, Padding = new Thickness(16, 0), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
+        var cancelBtn = (new Button { Text = "Cancel", FontSize = 13, HeightRequest = 40, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnRow.Children.Add(moveBtn);
         btnRow.Children.Add(cancelBtn);
         stack.Children.Add(btnRow);
@@ -1421,16 +1421,16 @@ CornerRadius = 12, Padding = 20,
             {
                 HorizontalOptions = LayoutOptions.Fill,
                 VerticalOptions = LayoutOptions.Fill
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.OverlayStrong);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
             var progressStack = new VerticalStackLayout
             {
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 Spacing = 12
             };
-            progressStack.Children.Add((new ActivityIndicator { IsRunning = true, HeightRequest = 40, WidthRequest = 40 }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.OnColorText));
-            var progressLabel = (new Label { Text = "Deleting duplicates...", FontSize = 16, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
-            var progressDetail = (new Label { Text = $"0 / {tasksToDelete.Count}", FontSize = 13, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightBlueStrong, ThemeKey.PageText1);
+            progressStack.Children.Add((new ActivityIndicator { IsRunning = true, HeightRequest = 40, WidthRequest = 40 }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.ButtonPrimaryText));
+            var progressLabel = (new Label { Text = "Deleting duplicates...", FontSize = 16, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1);
+            var progressDetail = (new Label { Text = $"0 / {tasksToDelete.Count}", FontSize = 13, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigo, ThemeKey.PageText1);
             progressStack.Children.Add(progressLabel);
             progressStack.Children.Add(progressDetail);
             progressOverlay.Children.Add(progressStack);
@@ -1494,14 +1494,14 @@ CornerRadius = 12, Padding = 20,
         stack.Children.Add((new Label
         {
             Text = $"🧹 Duplicate {current} of {total}", FontSize = 16, FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownText, ThemeKey.PageText1));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
         // Full task text
         stack.Children.Add((new Label { Text = "Task:", FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3));
         var taskFrame = (new Frame
         {
             Padding = 10, CornerRadius = 6, HasShadow = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningLightButtonBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningButtonBackground);
         taskFrame.Content = new ScrollView
         {
             Content = (new Label { Text = taskTitle, FontSize = 13, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
@@ -1529,9 +1529,9 @@ CornerRadius = 12, Padding = 20,
         // Buttons
         var btnRow = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(0, 8, 0, 0) };
 
-        var keepBtn = (new Button { Text = "✅ Keep", FontSize = 12, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(14, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
-        var skipBtn = (new Button { Text = "⏭️ Skip", FontSize = 12, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(14, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
-        var cancelBtn = (new Button { Text = "Cancel All", FontSize = 12, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(14, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var keepBtn = (new Button { Text = "✅ Keep", FontSize = 12, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(14, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
+        var skipBtn = (new Button { Text = "⏭️ Skip", FontSize = 12, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(14, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
+        var cancelBtn = (new Button { Text = "Cancel All", FontSize = 12, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(14, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         btnRow.Children.Add(keepBtn);
         btnRow.Children.Add(skipBtn);
@@ -1604,7 +1604,7 @@ CornerRadius = 12, Padding = 20,
         {
             Text = "Select All", FontSize = 12, HeightRequest = 30,
             CornerRadius = 6, Padding = new Thickness(10, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         selectAllBtn.Clicked += (s, e) => { foreach (var (cb, _) in checkboxes) cb.IsChecked = true; };
         toggleRow.Children.Add(selectAllBtn);
 
@@ -1612,7 +1612,7 @@ CornerRadius = 12, Padding = 20,
         {
             Text = "Deselect All", FontSize = 12, HeightRequest = 30,
             CornerRadius = 6, Padding = new Thickness(10, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         deselectAllBtn.Clicked += (s, e) => { foreach (var (cb, _) in checkboxes) cb.IsChecked = false; };
         toggleRow.Children.Add(deselectAllBtn);
         mainStack.Children.Add(toggleRow);
@@ -1632,8 +1632,8 @@ CornerRadius = 12, Padding = 20,
         mainStack.Children.Add(scrollView);
 
         var btnRow = new HorizontalStackLayout { Spacing = 12, HorizontalOptions = LayoutOptions.End, Margin = new Thickness(0, 8, 0, 0) };
-        var cancelBtn = (new Button { Text = "Cancel", CornerRadius = 6, Padding = new Thickness(16, 8) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
-        var confirmBtn = (new Button { Text = "✅ Confirm", CornerRadius = 6, Padding = new Thickness(16, 8), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var cancelBtn = (new Button { Text = "Cancel", CornerRadius = 6, Padding = new Thickness(16, 8) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
+        var confirmBtn = (new Button { Text = "✅ Confirm", CornerRadius = 6, Padding = new Thickness(16, 8), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnRow.Children.Add(cancelBtn);
         btnRow.Children.Add(confirmBtn);
         mainStack.Children.Add(btnRow);
@@ -1733,18 +1733,18 @@ BorderColor = Colors.Transparent,
         headerStack.Children.Add((new Label
         {
             Text = _date.ToString("dddd"), FontSize = 14
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightBlueStrong, ThemeKey.PageText1));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigo, ThemeKey.PageText1));
         headerStack.Children.Add((new Label
         {
             Text = _date.ToString("MMMM d, yyyy"), FontSize = 22,
-            FontAttributes = FontAttributes.Bold         }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
+            FontAttributes = FontAttributes.Bold         }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1));
 
         bool isToday = _date == DateTime.Today;
         bool isPast = _date < DateTime.Today;
         if (isToday)
-            headerStack.Children.Add((new Label { Text = "Today", FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoPaleText, ThemeKey.PageText1));
+            headerStack.Children.Add((new Label { Text = "Today", FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.MediaText, ThemeKey.PageText1));
         else if (isPast)
-            headerStack.Children.Add((new Label { Text = "Past", FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledBlueGrey, ThemeKey.PageText1));
+            headerStack.Children.Add((new Label { Text = "Past", FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledButtonBackground, ThemeKey.PageText1));
 
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
@@ -1757,7 +1757,7 @@ BorderColor = Colors.Transparent,
             Text = "+ Add Task", FontSize = 14, HeightRequest = 44,
             CornerRadius = 8, Padding = new Thickness(20, 0),
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += OnAddTaskClicked;
         actionRow.Children.Add(addBtn);
 
@@ -1768,7 +1768,7 @@ BorderColor = Colors.Transparent,
             HeightRequest = 44,
             CornerRadius = 8,
             Padding = new Thickness(16, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         ToolTipProperties.SetText(addLookoutBtn, "Add a scenario lookout for this date");
         addLookoutBtn.Clicked += async (s, e) => await AddLookoutAsync();
         actionRow.Children.Add(addLookoutBtn);
@@ -1780,7 +1780,7 @@ BorderColor = Colors.Transparent,
             HeightRequest = 44,
             CornerRadius = 8,
             Padding = new Thickness(16, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         ToolTipProperties.SetText(moveAllUnplacedBtn, "Move every active task on this date to not yet placed");
         moveAllUnplacedBtn.Clicked += async (s, e) => await MoveAllActiveTasksToNotYetPlacedAsync();
         actionRow.Children.Add(moveAllUnplacedBtn);
@@ -1793,7 +1793,7 @@ BorderColor = Colors.Transparent,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 8, 0, 4)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1);
         mainStack.Children.Add(_lookoutsHeader);
 
         _lookoutsStack = new VerticalStackLayout { Spacing = 6 };
@@ -1805,7 +1805,7 @@ BorderColor = Colors.Transparent,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 8, 0, 4)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAmber, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1);
         mainStack.Children.Add(_postponedHeader);
 
         _postponedStack = new VerticalStackLayout { Spacing = 6 };
@@ -1839,7 +1839,7 @@ Margin = new Thickness(0, 8, 0, 4)
         {
             Text = "✓ Completed (0)", FontSize = 16, FontAttributes = FontAttributes.Bold,
 Margin = new Thickness(0, 12, 0, 4)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText1);
         mainStack.Children.Add(_completedHeader);
 
         _completedStack = new VerticalStackLayout { Spacing = 6 };
@@ -1944,7 +1944,7 @@ Margin = new Thickness(0, 12, 0, 4)
             CornerRadius = 8,
             Padding = 12,
             HasShadow = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.AccentPurpleStrongText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightVioletText);
 
         var grid = new Grid
         {
@@ -1968,7 +1968,7 @@ Margin = new Thickness(0, 12, 0, 4)
         {
             Text = $"{items.Count} list item(s)",
             FontSize = 11
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText3));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText3));
         if (!string.IsNullOrWhiteSpace(lookout.Notes))
         {
             textStack.Children.Add((new Label
@@ -1991,7 +1991,7 @@ Margin = new Thickness(0, 12, 0, 4)
             HeightRequest = 30,
             CornerRadius = 4,
             Padding = 0
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         ToolTipProperties.SetText(openBtn, "Open lookout list");
         openBtn.Clicked += async (s, e) => await OpenLookoutAsync(lookout);
         buttonStack.Children.Add(openBtn);
@@ -2104,19 +2104,19 @@ Margin = new Thickness(0, 12, 0, 4)
         }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 10 };
-        stack.Children.Add((new Label { Text = "Change Lookout Date", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1));
+        stack.Children.Add((new Label { Text = "Change Lookout Date", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1));
         stack.Children.Add((new Label { Text = lookout.Title, FontSize = 13, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
         var picker = (new DatePicker
         {
             Date = lookout.DisplayDate?.Date ?? _date,
             FontSize = 14
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet);
         stack.Children.Add(picker);
 
         var buttons = new HorizontalStackLayout { Spacing = 10, Margin = new Thickness(0, 8, 0, 0) };
-        var saveBtn = (new Button { Text = "Save", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
-        var cancelBtn = (new Button { Text = "Cancel", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var saveBtn = (new Button { Text = "Save", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
+        var cancelBtn = (new Button { Text = "Cancel", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         buttons.Children.Add(saveBtn);
         buttons.Children.Add(cancelBtn);
         stack.Children.Add(buttons);
@@ -2165,7 +2165,7 @@ Margin = new Thickness(0, 12, 0, 4)
             CornerRadius = 8,
             Padding = 12,
             HasShadow = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAmber);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningText);
 
         var grid = new Grid
         {
@@ -2187,7 +2187,7 @@ Margin = new Thickness(0, 12, 0, 4)
         }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1));
 
         if (task.TimesPostponed > 0)
-            textStack.Children.Add((new Label { Text = $"Postponed {task.TimesPostponed}x", FontSize = 11, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAmber, ThemeKey.PageText3));
+            textStack.Children.Add((new Label { Text = $"Postponed {task.TimesPostponed}x", FontSize = 11, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3));
 
         if (!string.IsNullOrWhiteSpace(task.Description))
             textStack.Children.Add((new Label { Text = task.Description, FontSize = 12, MaxLines = 2, LineBreakMode = LineBreakMode.TailTruncation }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
@@ -2204,7 +2204,7 @@ Margin = new Thickness(0, 12, 0, 4)
             HeightRequest = 30,
             CornerRadius = 4,
             Padding = 0
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightOrange).ThemeColor(Button.TextColorProperty, ThemeKey.WarningAmber);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         postponeBtn.Clicked += async (s, e) => await PostponePostponedTaskAsync(task);
         buttonStack.Children.Add(postponeBtn);
 
@@ -2284,8 +2284,8 @@ Margin = new Thickness(0, 12, 0, 4)
             FontSize = 14
         }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground);
 
-        var saveBtn = (new Button { Text = "Save", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningAmber).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
-        var cancelBtn = (new Button { Text = "Cancel", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var saveBtn = (new Button { Text = "Save", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
+        var cancelBtn = (new Button { Text = "Cancel", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var card = (new Frame
         {
@@ -2300,7 +2300,7 @@ Margin = new Thickness(0, 12, 0, 4)
                 Spacing = 10,
                 Children =
                 {
-                    (new Label { Text = title, FontSize = 16, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAmber, ThemeKey.PageText1),
+                    (new Label { Text = title, FontSize = 16, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1),
                     picker,
                     new HorizontalStackLayout { Spacing = 10, Children = { cancelBtn, saveBtn } }
                 }
@@ -2355,7 +2355,7 @@ Margin = new Thickness(0, 12, 0, 4)
         var frame = (new Frame
         {
             CornerRadius = 8, Padding = 12, HasShadow = !isCompleted
-        }).ThemeColor(VisualElement.BackgroundColorProperty, isCompleted ? ThemeKey.SuccessBackground : isRoutine ? ThemeKey.HighlightMint : task.IsUrgent ? ThemeKey.ErrorBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isCompleted ? ThemeKey.SuccessLightText : isRoutine ? ThemeKey.TealButtonBackground : task.IsUrgent ? ThemeKey.ErrorText : ThemeKey.Separator);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isCompleted ? ThemeKey.SuccessBackground : isRoutine ? ThemeKey.HighlightTeal : task.IsUrgent ? ThemeKey.ErrorBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isCompleted ? ThemeKey.SuccessButtonBackground : isRoutine ? ThemeKey.HighlightTealText : task.IsUrgent ? ThemeKey.ErrorText : ThemeKey.Separator);
 
         var grid = new Grid
         {
@@ -2377,10 +2377,10 @@ Margin = new Thickness(0, 12, 0, 4)
             FontSize = 14, FontAttributes = isCompleted ? FontAttributes.None : FontAttributes.Bold,
             TextDecorations = isCompleted ? TextDecorations.Strikethrough : TextDecorations.None,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, isCompleted ? ThemeKey.CardText2 : isRoutine ? ThemeKey.HighlightMintText : task.IsUrgent ? ThemeKey.ErrorText : ThemeKey.CardText1, ThemeKey.PageText1));
+        }).ThemeColor(Label.TextColorProperty, isCompleted ? ThemeKey.CardText2 : isRoutine ? ThemeKey.HighlightTealText : task.IsUrgent ? ThemeKey.ErrorText : ThemeKey.CardText1, ThemeKey.PageText1));
 
         if (isRoutine && routine != null)
-            textStack.Children.Add((new Label { Text = $"Routine · {RoutineService.FormatRoutineFrequency(routine)}", FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.TealButtonBackground, ThemeKey.PageText3));
+            textStack.Children.Add((new Label { Text = $"Routine · {RoutineService.FormatRoutineFrequency(routine)}", FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightTealText, ThemeKey.PageText3));
 
         if (!string.IsNullOrEmpty(task.Category))
             textStack.Children.Add((new Label { Text = $"📁 {task.Category}", FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3));
@@ -2401,7 +2401,7 @@ Margin = new Thickness(0, 12, 0, 4)
                 Text = task.IsUrgent ? "🔴" : "⚪",
                 FontSize = 14, WidthRequest = 36, HeightRequest = 32,
                 CornerRadius = 4, Padding = 0
-            }).ThemeColor(VisualElement.BackgroundColorProperty, task.IsUrgent ? ThemeKey.ErrorSelectedBackground : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, task.IsUrgent ? ThemeKey.ErrorBackground : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
             ToolTipProperties.SetText(urgentBtn, task.IsUrgent ? "Remove urgent flag" : "Mark as urgent");
             urgentBtn.Clicked += async (s, e) =>
             {
@@ -2431,7 +2431,7 @@ Margin = new Thickness(0, 12, 0, 4)
             {
                 Text = isRoutine ? "↻" : "⏩", FontSize = 14, WidthRequest = 36, HeightRequest = 32,
                 CornerRadius = 4, Padding = 0
-            }).ThemeColor(VisualElement.BackgroundColorProperty, isRoutine ? ThemeKey.HighlightMint : ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, isRoutine ? ThemeKey.HighlightMintText : ThemeKey.InfoText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, isRoutine ? ThemeKey.HighlightTeal : ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, isRoutine ? ThemeKey.HighlightTealText : ThemeKey.InfoText);
             ToolTipProperties.SetText(postponeBtn, isRoutine && routine != null ? RoutineService.FormatPostponeTooltip(routine) : "Move task to a later date");
             postponeBtn.Clicked += async (s, ev) =>
             {
@@ -2485,7 +2485,7 @@ Margin = new Thickness(0, 12, 0, 4)
                     HeightRequest = 32,
                     CornerRadius = 4,
                     Padding = 0
-                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleStrongText);
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
                 ToolTipProperties.SetText(unplaceBtn, "Move task to not yet placed and remove its date");
                 unplaceBtn.Clicked += async (s, ev) => await MoveTaskToNotYetPlacedAsync(task);
                 btnStack.Children.Add(unplaceBtn);
@@ -2752,8 +2752,8 @@ CornerRadius = 12, Padding = 20,
         // Action buttons
         var btnRow = new HorizontalStackLayout { Spacing = 10, Margin = new Thickness(0, 8, 0, 0) };
 
-        var confirmBtn = (new Button { Text = "⏩ Postpone", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
-        var cancelBtn = (new Button { Text = "Cancel", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var confirmBtn = (new Button { Text = "⏩ Postpone", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
+        var cancelBtn = (new Button { Text = "Cancel", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         btnRow.Children.Add(confirmBtn);
         btnRow.Children.Add(cancelBtn);
@@ -2877,7 +2877,7 @@ public class LookoutScenarioPage : Bannister.Views.ModeThemedPage
             CornerRadius = 10,
             Padding = 16,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText);
 
         var headerStack = new VerticalStackLayout { Spacing = 4 };
         headerStack.Children.Add((new Label
@@ -2886,16 +2886,16 @@ public class LookoutScenarioPage : Bannister.Views.ModeThemedPage
             FontSize = 22,
             FontAttributes = FontAttributes.Bold,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1));
 
-        _dateLabel = (new Label { FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleSelected, ThemeKey.PageText1);
+        _dateLabel = (new Label { FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightViolet, ThemeKey.PageText1);
         headerStack.Children.Add(_dateLabel);
 
         _notesLabel = (new Label
         {
             FontSize = 13,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleBackground, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightViolet, ThemeKey.PageText1);
         headerStack.Children.Add(_notesLabel);
 
         header.Content = headerStack;
@@ -2909,7 +2909,7 @@ public class LookoutScenarioPage : Bannister.Views.ModeThemedPage
             HeightRequest = 42,
             CornerRadius = 8,
             Padding = new Thickness(16, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += async (s, e) => await AddItemAsync();
         actionRow.Children.Add(addBtn);
 
@@ -3122,13 +3122,13 @@ public class LookoutScenarioPage : Bannister.Views.ModeThemedPage
         }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 10 };
-        stack.Children.Add((new Label { Text = "Change Display Date", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1));
-        var picker = (new DatePicker { Date = _lookout.DisplayDate?.Date ?? DateTime.Today, FontSize = 14 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground);
+        stack.Children.Add((new Label { Text = "Change Display Date", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1));
+        var picker = (new DatePicker { Date = _lookout.DisplayDate?.Date ?? DateTime.Today, FontSize = 14 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet);
         stack.Children.Add(picker);
 
         var buttons = new HorizontalStackLayout { Spacing = 10, Margin = new Thickness(0, 8, 0, 0) };
-        var saveBtn = (new Button { Text = "Save", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
-        var cancelBtn = (new Button { Text = "Cancel", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var saveBtn = (new Button { Text = "Save", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
+        var cancelBtn = (new Button { Text = "Cancel", FontSize = 13, HeightRequest = 38, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         buttons.Children.Add(saveBtn);
         buttons.Children.Add(cancelBtn);
         stack.Children.Add(buttons);

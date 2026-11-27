@@ -30,7 +30,7 @@ public class SharedManifestApprovalPage : ContentPage
             Text = $" {_createdBy} wants to share activities",
             FontSize = 18, FontAttributes = FontAttributes.Bold,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label
         {
             Text = "Select which activities you want to sync. Only approved activities will be pulled.",
@@ -69,7 +69,7 @@ public class SharedManifestApprovalPage : ContentPage
             Text = "✅ Approve Selected", CornerRadius = 8, FontSize = 14,
             HeightRequest = 44, FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 8, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         approveBtn.Clicked += async (_, _) =>
         {
             var approved = _selected
@@ -127,7 +127,7 @@ public class SharedManifestApprovalPage : ContentPage
                     Text = item.ActivityName, FontSize = 13,
                     VerticalOptions = LayoutOptions.Center,
                     LineBreakMode = LineBreakMode.TailTruncation
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 1, 0);
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 1, 0);
                 row.Add((new Label
                 {
                     Text = $"+{item.ExpGain}", FontSize = 11,

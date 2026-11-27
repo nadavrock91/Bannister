@@ -56,19 +56,19 @@ public class ChartsHubPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(CreateChartButton(
             "📈 EXP Over Time",
             "See EXP progression for each game",
-            ThemeKey.SuccessLightText,
+            ThemeKey.SuccessButtonBackground,
             OnExpOverTimeClicked));
 
         mainStack.Children.Add(CreateChartButton(
             "🎚️ Level Over Time",
             "Track level progression for each game",
-            ThemeKey.InfoLinkText,
+            ThemeKey.InfoText,
             OnLevelOverTimeClicked));
 
         mainStack.Children.Add(CreateChartButton(
             "🏆 All Games Comparison",
             "Compare levels across all games with monthly history",
-            ThemeKey.AccentPurpleButtonBackground,
+            ThemeKey.HighlightVioletText,
             OnAllGamesComparisonClicked));
 
         // Back button
@@ -103,14 +103,14 @@ public class ChartsHubPage : Bannister.Views.ModeThemedPage
             Text = title,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         stack.Children.Add((new Label
         {
             Text = subtitle,
             FontSize = 13,
             Opacity = 0.9
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         frame.Content = stack;
 

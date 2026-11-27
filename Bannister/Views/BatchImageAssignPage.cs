@@ -39,11 +39,11 @@ public class BatchImageAssignPage : Bannister.Views.ModeThemedPage
     private void BuildUI()
     {
         var stack = new VerticalStackLayout { Padding = 20, Spacing = 12 };
-        stack.Children.Add((new Label { Text = " Batch Image Assign", FontSize = 22, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label { Text = " Batch Image Assign", FontSize = 22, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label { Text = "Export a prompt for the LLM to suggest image ideas per activity. Paste the response back to import.", FontSize = 13, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         var filters = new HorizontalStackLayout { Spacing = 6 };
-        _all = Filter("Show All", true, ThemeKey.CardText2); _public = Filter(" Public", false, ThemeKey.ButtonPrimaryBackground); _private = Filter(" Private", false, ThemeKey.AccentPurpleDarkButtonBackground); _both = Filter(" Both", false, ThemeKey.SuccessDarkButtonBackground);
+        _all = Filter("Show All", true, ThemeKey.CardText2); _public = Filter(" Public", false, ThemeKey.ButtonPrimaryBackground); _private = Filter(" Private", false, ThemeKey.HighlightVioletText); _both = Filter(" Both", false, ThemeKey.SuccessButtonBackground);
         _all.Clicked += (_, _) => SetFilter(null); _public.Clicked += (_, _) => SetFilter(1); _private.Clicked += (_, _) => SetFilter(0); _both.Clicked += (_, _) => SetFilter(2);
         filters.Children.Add(_all); filters.Children.Add(_public); filters.Children.Add(_private); filters.Children.Add(_both); stack.Children.Add(filters);
 
@@ -58,9 +58,9 @@ public class BatchImageAssignPage : Bannister.Views.ModeThemedPage
         Content = new ScrollView { Content = stack };
     }
 
-    private Button Filter(string text, bool active, ThemeKey color) => (new Button(){ Text = text, FontSize = 11, HeightRequest = 30, CornerRadius = 6, Padding = new Thickness(8, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, active ? color : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
-    private void SetFilter(int? filter) { _viewFilter = filter; _currentPage = 0; Style(_all, filter == null, ThemeKey.CardText2); Style(_public, filter == 1, ThemeKey.InfoText); Style(_private, filter == 0, ThemeKey.AccentPurpleDarkButtonBackground); Style(_both, filter == 2, ThemeKey.SuccessText); BuildPagedGroups(); RenderCurrentPage(); }
-    private static void Style(Button b, bool active, ThemeKey hex) { b.ThemeColor(VisualElement.BackgroundColorProperty, active ? hex : ThemeKey.NeutralButtonBackground); b.ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText); }
+    private Button Filter(string text, bool active, ThemeKey color) => (new Button(){ Text = text, FontSize = 11, HeightRequest = 30, CornerRadius = 6, Padding = new Thickness(8, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, active ? color : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, active ? ThemeKey.ButtonPrimaryText : ThemeKey.NeutralButtonText);
+    private void SetFilter(int? filter) { _viewFilter = filter; _currentPage = 0; Style(_all, filter == null, ThemeKey.CardText2); Style(_public, filter == 1, ThemeKey.InfoText); Style(_private, filter == 0, ThemeKey.HighlightVioletText); Style(_both, filter == 2, ThemeKey.SuccessText); BuildPagedGroups(); RenderCurrentPage(); }
+    private static void Style(Button b, bool active, ThemeKey hex) { b.ThemeColor(VisualElement.BackgroundColorProperty, active ? hex : ThemeKey.NeutralButtonBackground); b.ThemeColor(Button.TextColorProperty, active ? ThemeKey.ButtonPrimaryText : ThemeKey.NeutralButtonText); }
 
     private async Task LoadDataAsync()
     {
@@ -89,8 +89,8 @@ public class BatchImageAssignPage : Bannister.Views.ModeThemedPage
         var (game, acts) = _pagedGroups[_currentPage];
         _pageLabel.Text = $"{game.DisplayName} ({_currentPage + 1}/{_pagedGroups.Count})"; _prev.IsEnabled = _currentPage > 0; _next.IsEnabled = _currentPage < _pagedGroups.Count - 1;
         var actions = new HorizontalStackLayout { Spacing = 8 };
-        var export = (new Button { Text = " Export Prompt", HeightRequest = 40, Padding = new Thickness(14, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText); export.Clicked += async (_, _) => await ExportChunkedAsync(game, acts);
-        var import = (new Button { Text = " Import Response", HeightRequest = 40, Padding = new Thickness(14, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText); import.Clicked += async (_, _) => await ImportResponseAsync(acts);
+        var export = (new Button { Text = " Export Prompt", HeightRequest = 40, Padding = new Thickness(14, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText); export.Clicked += async (_, _) => await ExportChunkedAsync(game, acts);
+        var import = (new Button { Text = " Import Response", HeightRequest = 40, Padding = new Thickness(14, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText); import.Clicked += async (_, _) => await ImportResponseAsync(acts);
         actions.Children.Add(export); actions.Children.Add(import);
         var clearBtn = (new Button { Text = " Clear Ideas", CornerRadius = 8, FontSize = 13, HeightRequest = 40, Padding = new Thickness(12, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         clearBtn.Clicked += async (_, _) =>
@@ -156,11 +156,11 @@ public class BatchImageAssignPage : Bannister.Views.ModeThemedPage
         bool hasIdea = !string.IsNullOrWhiteSpace(act.ImageIdea);
         var row = (new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(new GridLength(56)), new ColumnDefinition(new GridLength(24)) }, Padding = new Thickness(10, 8), ColumnSpacing = 8 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         var labels = new VerticalStackLayout { Spacing = 2 };
-        labels.Children.Add((new Label { Text = act.Name, FontSize = 13, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        labels.Children.Add((new Label { Text = act.Name, FontSize = 13, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         labels.Children.Add((new Label { Text = hasIdea ? $" {act.ImageIdea}" : "No image idea yet", FontSize = 11, FontAttributes = hasIdea ? FontAttributes.None : FontAttributes.Italic, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, hasIdea ? ThemeKey.InfoText : ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         row.Add(labels, 0, 0);
         bool imgOnly = act.IsImageOnly;
-        var toggleBtn = (new Button { Text = imgOnly ? " ON" : " OFF", CornerRadius = 6, FontSize = 10, HeightRequest = 32, WidthRequest = 52, Padding = 0, VerticalOptions = LayoutOptions.Center }).ThemeColor(VisualElement.BackgroundColorProperty, imgOnly ? ThemeKey.ButtonPrimaryBackground : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, imgOnly ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
+        var toggleBtn = (new Button { Text = imgOnly ? " ON" : " OFF", CornerRadius = 6, FontSize = 10, HeightRequest = 32, WidthRequest = 52, Padding = 0, VerticalOptions = LayoutOptions.Center }).ThemeColor(VisualElement.BackgroundColorProperty, imgOnly ? ThemeKey.ButtonPrimaryBackground : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, imgOnly ? ThemeKey.ButtonPrimaryText : ThemeKey.NeutralButtonText);
         toggleBtn.Clicked += async (_, _) =>
         {
             if (_isSaving) return;
@@ -253,7 +253,7 @@ public class BatchImageAssignPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 44,
             Margin = new Thickness(0, 8, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var pasteGrid = new Grid
         {

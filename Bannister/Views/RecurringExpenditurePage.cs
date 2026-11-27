@@ -49,7 +49,7 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
             Text = "Data-Based Recurring Expenditures",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true));
         headerText.Children.Add(_approvedTotalLabel);
 
         var addButton = (new Button
@@ -58,7 +58,7 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             Padding = new Thickness(16, 8),
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addButton.Clicked += async (_, _) => await AddToTrialAsync();
 
         var currencyButton = (new Button
@@ -67,7 +67,7 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             Padding = new Thickness(10, 8),
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         currencyButton.Clicked += async (_, _) =>
         {
             var selectedLabel = await DisplayActionSheet(
@@ -102,7 +102,7 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
             Spacing = 18
         };
         content.Children.Add(header);
-        content.Children.Add(BuildSection("Pending", _pendingContainer, ThemeKey.AccentPurpleStrongText));
+        content.Children.Add(BuildSection("Pending", _pendingContainer, ThemeKey.HighlightVioletText));
         content.Children.Add(BuildSection("History", _historyContainer, ThemeKey.CardText1));
 
         Content = new ScrollView { Content = content };
@@ -181,7 +181,7 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
             Text = $"{daysLeft} days left",
             FontSize = 32,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, daysLeft <= 3 ? ThemeKey.ErrorText : ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, daysLeft <= 3 ? ThemeKey.ErrorText : ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true));
         stack.Children.Add((new Label
         {
             Text = $"{item.TrialStartDate.ToLocalTime():yyyy-MM-dd} → {item.TrialEndDate.ToLocalTime():yyyy-MM-dd}",
@@ -192,20 +192,20 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
             Text = $"Justification target: {item.JustificationTarget}",
             FontSize = 13,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true));
 
         var approveButton = (new Button
         {
             Text = "✓ Approve",
             CornerRadius = 7
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         approveButton.Clicked += async (_, _) => await ResolveTrialAsync(item, "Approved");
 
         var cutButton = (new Button
         {
             Text = "✗ Cut",
             CornerRadius = 7
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         cutButton.Clicked += async (_, _) => await ResolveTrialAsync(item, "Cut");
 
         var actions = new Grid
@@ -221,7 +221,7 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
         actions.Add(cutButton, 1, 0);
         stack.Children.Add(actions);
 
-        var deleteButton = BuildOutlineButton("Delete", ThemeKey.ErrorDarkButtonBackground);
+        var deleteButton = BuildOutlineButton("Delete", ThemeKey.ErrorButtonBackground);
         deleteButton.Clicked += async (_, _) => await DeleteAsync(item);
         stack.Children.Add(deleteButton);
 
@@ -286,7 +286,7 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
             await RefreshAsync();
         };
 
-        var deleteBtn = BuildOutlineButton("Delete", ThemeKey.ErrorDarkButtonBackground);
+        var deleteBtn = BuildOutlineButton("Delete", ThemeKey.ErrorButtonBackground);
         deleteBtn.Clicked += async (_, _) =>
         {
             bool confirmed = await DisplayAlert("Delete verdict?", $"Remove this {test.Note} entry?", "Delete", "Cancel");

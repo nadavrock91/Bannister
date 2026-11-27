@@ -198,7 +198,7 @@ public static class ThemeColorExtensions
         bool heading = size >= 18 || size >= 13 && label.FontAttributes.HasFlag(FontAttributes.Bold);
         var color = TextDefaults.Value[ModeTheme.KeyName(key)];
         bool grey = Math.Max(color.Red, Math.Max(color.Green, color.Blue)) - Math.Min(color.Red, Math.Min(color.Green, color.Blue)) <= 0.10 && color.Red >= 0.25 && color.Red <= 0.85;
-        return size < 13 && !heading ? ThemeKey.Text3 : !heading && grey ? ThemeKey.Text2 : ThemeKey.Text1;
+        return size < 13 && !heading ? ThemeKey.PageText3 : !heading && grey ? ThemeKey.PageText2 : ThemeKey.PageText1;
     }
 
     private static bool HasBackground(Brush? brush) => brush switch

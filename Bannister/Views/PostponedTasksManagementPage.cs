@@ -47,7 +47,7 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
             Text = "Postponed Tasks Management",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAmber, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true));
 
         var newButton = (new Button
         {
@@ -55,7 +55,7 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         newButton.Clicked += async (_, _) => await CreatePostponedTaskAsync();
         stack.Children.Add(newButton);
 
@@ -178,7 +178,7 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
     {
         var buttons = new HorizontalStackLayout { Spacing = 8 };
 
-        var postpone = SmallButton("Postpone", ThemeKey.WarningBackground, ThemeKey.WarningAmber);
+        var postpone = SmallButton("Postpone", ThemeKey.WarningBackground, ThemeKey.WarningText);
         postpone.Clicked += async (_, _) => await PostponeTaskAsync(task);
         buttons.Children.Add(postpone);
 
@@ -222,7 +222,7 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
         {
             Text = $"{dateLine} · Postponed {task.TimesPostponed}x",
             FontSize = 11
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAmber, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true));
         if (!string.IsNullOrWhiteSpace(task.Description))
         {
             stack.Children.Add((new Label
@@ -241,7 +241,7 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
             Padding = 10,
             HasShadow = false,
             Content = stack
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningLightButtonBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningButtonBackground);
     }
 
     private static Button SmallButton(string text, ThemeKey bg, ThemeKey fg) => (new Button(){
@@ -350,7 +350,7 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
             Text = "Save",
             CornerRadius = 8,
             HeightRequest = 38
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningAmber).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         var cancel = (new Button
         {
             Text = "Cancel",
@@ -371,7 +371,7 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
                 Spacing = 12,
                 Children =
                 {
-                    (new Label { Text = title, FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAmber, ThemeKey.PageText1, classifyPageText: true),
+                    (new Label { Text = title, FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true),
                     picker,
                     row
                 }

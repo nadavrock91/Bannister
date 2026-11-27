@@ -21,59 +21,7 @@ public static class ThemeImportExport
 
     public static ThemeColorDefinition? FindColor(string name) => ModeTheme.Catalog.FirstOrDefault(d => d.Label == name || d.Name == name);
 
-    public static string Role(ThemeColorDefinition color)
-    {
-        string name = color.Name;
-        string Words(string text) => Regex.Replace(text, "([a-z0-9])([A-Z])", "$1 $2").ToLowerInvariant();
-        string? specific = name switch
-        {
-            "PageBackground" => "page background behind cards and controls",
-            "Text1" => "primary text on the page background",
-            "Text2" => "secondary text on the page background",
-            "Text3" => "hint text on the page background",
-            "Accent" => "page accent and navigation emphasis",
-            "DisabledText" => "disabled text",
-            "CardBackground" => "plain card background",
-            "CardText1" => "primary text inside cards",
-            "CardText2" => "secondary text inside cards",
-            "CardText3" => "hint text inside cards",
-            "CardTextStrong" => "emphasized text inside cards",
-            "SecondarySurface" => "secondary neutral surface",
-            "InputBackground" => "input background",
-            "InputText" => "text inside inputs",
-            "RowBackground" => "normal table row background",
-            "RowAltBackground" => "alternate table row background",
-            "RowSelected" => "selected row background",
-            "Separator" => "borders and separator lines",
-            "Shadow" => "shadow color",
-            "OnColorText" => "text on colored buttons and surfaces",
-            "ButtonPrimaryBackground" => "primary button background",
-            "ButtonPrimaryText" => "text on primary buttons",
-            "DisabledBlueGrey" => "disabled blue-grey button background",
-            "SecondaryLavenderSurface" => "secondary lavender card surface",
-            "WarmSurface" => "warm neutral card surface",
-            "WarmSelectedSurface" => "selected warm card surface",
-            "AccentVioletDeep" => "deep violet button background",
-            "Link" => "link text",
-            "AccentPurpleSurface" => "purple button surface",
-            "AccentPurpleSelected" => "selected purple control surface",
-            "ChartAreaFill" => "translucent filled chart area",
-            "TranslucentWhiteSurface" => "translucent light surface over content",
-            _ => null
-        };
-        if (specific != null) return specific;
-        if (name.StartsWith("Overlay", StringComparison.Ordinal)) return Words(name) + " scrim over content (preserve alpha)";
-        if (name.StartsWith("Timeline", StringComparison.Ordinal)) return Words(name[8..]) + " timeline indicator";
-        if (name.EndsWith("ButtonBackground", StringComparison.Ordinal)) return Words(name[..^16]) + " button background";
-        if (name.EndsWith("ButtonText", StringComparison.Ordinal)) return Words(name[..^10]) + " button text";
-        if (name.EndsWith("Button", StringComparison.Ordinal)) return Words(name[..^6]) + " button background";
-        if (name.EndsWith("Background", StringComparison.Ordinal)) return Words(name[..^10]) + " surface background";
-        if (name.EndsWith("Text", StringComparison.Ordinal)) return Words(name[..^4]) + " text on matching surfaces";
-        if (name.EndsWith("Border", StringComparison.Ordinal)) return Words(name[..^6]) + " border";
-        if (name.EndsWith("Surface", StringComparison.Ordinal)) return Words(name[..^7]) + " surface";
-        if (name.StartsWith("Highlight", StringComparison.Ordinal)) return Words(name[9..]) + " highlighted surface";
-        return Words(name) + " surface";
-    }
+    public static string Role(ThemeColorDefinition color) => color.Description;
 
     public static string BuildPrompt(ActivityDisplayMode mode, IReadOnlyDictionary<string, Color> palette, string? styleRequest = null)
     {
@@ -87,12 +35,12 @@ public static class ThemeImportExport
             text.AppendLine($"[{color.Group}] {color.Label} = {Role(color)}; {ModeTheme.ToHex(palette[color.Name])}");
         text.AppendLine().AppendLine("Keep readable contrast of at least 4.5:1 for text against its actual surface: page text on PageBackground, card text on CardBackground, input text on InputBackground, button text on its button background, and status text on its status background.");
         text.AppendLine("Keep status meanings recognizable: success green-ish, warning amber-ish, and error red-ish. Keep highlight and button colors cohesive with the palette.");
-        text.AppendLine("Preserve the existing alpha channel on Overlay colors and other translucent surfaces such as ChartAreaFill and TranslucentWhiteSurface; use #AARRGGBB for these colors.");
+        text.AppendLine("Preserve the alpha channel on Overlay and any other translucent palette entries; use #AARRGGBB for these colors.");
         text.AppendLine("Return a single C# code block. Use exactly the existing names listed above, with one assignment per color in the format below. Colors that should not change may be omitted. Put no prose, comments, headings, or other text inside the code block.");
         text.AppendLine("Format (the example values are current values; replace them with your proposals):");
         text.AppendLine("```csharp");
         text.AppendLine($"theme[\"PageBackground\"] = \"{ModeTheme.ToHex(palette[ModeTheme.KeyName(ThemeKey.PageBackground)])}\";");
-        text.AppendLine($"theme[\"PageText1\"] = \"{ModeTheme.ToHex(palette[ModeTheme.KeyName(ThemeKey.Text1)])}\";");
+        text.AppendLine($"theme[\"PageText1\"] = \"{ModeTheme.ToHex(palette[ModeTheme.KeyName(ThemeKey.PageText1)])}\";");
         text.Append("```");
         return text.ToString().Replace("\r\n", "\n");
     }
@@ -151,45 +99,28 @@ public static class ThemeImportExport
             if (ratio < 4.5)
                 warnings.Add($"{FindColor(foreground)?.Label ?? foreground} on {FindColor(background)?.Label ?? background}: {ratio.ToString("0.00", CultureInfo.InvariantCulture)}:1 (below 4.5:1).");
         }
-        foreach (string key in new[] { "Text1", "Text2", "Text3" }) Check(key, "PageBackground", defaultPage);
-        foreach (string key in new[] { "CardText1", "CardText2", "CardText3", "CardTextStrong" }) Check(key, "CardBackground", page);
-        foreach (string background in new[] { "RowBackground", "RowAltBackground", "RowSelected", "SecondarySurface" })
+        foreach (string key in new[] { "PageText1", "PageText2", "PageText3" }) Check(key, "PageBackground", defaultPage);
+        foreach (string key in new[] { "CardText1", "CardText2", "CardText3" }) Check(key, "CardBackground", page);
+        foreach (string background in new[] { "RowAltBackground", "RowSelected", "SecondarySurface" })
             foreach (string foreground in new[] { "CardText1", "CardText2" }) Check(foreground, background, card);
         Check("InputText", "InputBackground", card);
         Check("InputText", "InputBackground", page);
         Check("ButtonPrimaryText", "ButtonPrimaryBackground", card);
-        Check("SecondaryButtonText", "SecondaryButtonBackground", card);
-        Check("OnColorText", "ButtonPrimaryBackground", card);
-        Check("OnColorText", "SecondaryButtonBackground", card);
+        Check("ButtonPrimaryText", "SecondaryButtonBackground", card);
+        Check("ButtonPrimaryText", "NeutralDarkButton", card);
         Check("NeutralButtonText", "NeutralButtonBackground", card);
-        foreach (var definition in ModeTheme.Catalog.Where(d => !d.Fixed))
+        Check("CardText1", "DisabledButtonBackground", card);
+        foreach (string status in new[] { "Success", "Warning", "Error", "Info" })
         {
-            string name = definition.Name;
-            if ((name.EndsWith("ButtonBackground", StringComparison.Ordinal) || name.EndsWith("Button", StringComparison.Ordinal) || name == "AccentPurpleSurface") &&
-                name is not "ButtonPrimaryBackground" and not "SecondaryButtonBackground" and not "NeutralButtonBackground")
-                Check("OnColorText", name, card);
-            var status = Regex.Match(name, @"^(Success|Warning|Error|Info)(?:Bright|Strong|Deep|Light|Pale|Pure|Link)?Text$");
-            if (status.Success) Check(name, status.Groups[1].Value + "Background", card);
-            if (name.StartsWith("Highlight", StringComparison.Ordinal) && name.EndsWith("Text", StringComparison.Ordinal))
-            {
-                string background = Regex.Replace(name[..^4], "(?:Strong|Dark|Accent|Deep)$", "");
-                if (palette.ContainsKey(background)) Check(name, background, card);
-            }
+            Check(status + "Text", status + "Background", card);
+            Check("ButtonPrimaryText", status + "ButtonBackground", card);
         }
-        foreach (string key in new[] { "BrownText", "BrownStrongText", "BrownMutedText" })
-        {
-            Check(key, "WarmSurface", card);
-            Check(key, "WarmSelectedSurface", card);
-        }
-        Check("AccentPurpleText", "AccentPurpleBackground", card);
-        Check("AccentPurpleStrongText", "AccentPurpleBackground", card);
-        Check("SlateText", "SecondarySurface", card);
-        Check("SecondaryAccentText", "HighlightIndigoSelected", card);
-        Check("Link", "CardBackground", page);
-        Check("OnColorText", "DarkSuccessBackground", card);
-        Check("OnColorText", "DarkErrorBackground", card);
-        Check("OnColorText", "PublicCardBackground", page);
-        Check("OnColorText", "PrivateCardBackground", page);
+        foreach (string highlight in new[] { "HighlightYellow", "HighlightIndigo", "HighlightTeal", "HighlightPink", "HighlightViolet" })
+            Check(highlight + "Text", highlight, card);
+        foreach (string highlight in new[] { "HighlightIndigoText", "HighlightTealText", "HighlightPinkText", "HighlightVioletText" })
+            Check("ButtonPrimaryText", highlight, card);
+        Check("MediaText", "MediaBackground", page);
+        Check("CardText3", "MediaBackground", page);
         return warnings;
     }
 

@@ -57,7 +57,7 @@ public class ProductionStatsDetailPage : Bannister.Views.ModeThemedPage
             HeightRequest = 50,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.OnColorText));
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.ButtonPrimaryText));
         _mainGrid.Children.Add(_loadingOverlay);
 
         Content = _mainGrid;
@@ -77,7 +77,7 @@ public class ProductionStatsDetailPage : Bannister.Views.ModeThemedPage
                     Text = "Project no longer exists.",
                     HorizontalTextAlignment = TextAlignment.Center,
                     Margin = new Thickness(0, 40)
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorPureText, ThemeKey.PageText1, classifyPageText: true));
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true));
                 await Task.Delay(900);
                 await Navigation.PopAsync();
                 return;
@@ -110,7 +110,7 @@ public class ProductionStatsDetailPage : Bannister.Views.ModeThemedPage
             _contentStack.Children.Add((new Label
             {
                 Text = $"Error: {ex.Message}"
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorPureText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true));
         }
         finally
         {
@@ -147,8 +147,8 @@ public class ProductionStatsDetailPage : Bannister.Views.ModeThemedPage
         }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         var pillRow = new HorizontalStackLayout { Spacing = 8 };
-        pillRow.Children.Add(CreatePill(project.IsPublished ? "Published" : "Unpublished", project.IsPublished ? ThemeKey.SuccessBackground : ThemeKey.RowAltBackground, project.IsPublished ? ThemeKey.SuccessText : ThemeKey.NeutralMutedButton));
-        pillRow.Children.Add(CreatePill(project.IsProduced ? "Produced" : "Not Produced", project.IsProduced ? ThemeKey.InfoBackground : ThemeKey.RowAltBackground, project.IsProduced ? ThemeKey.InfoText : ThemeKey.NeutralMutedButton));
+        pillRow.Children.Add(CreatePill(project.IsPublished ? "Published" : "Unpublished", project.IsPublished ? ThemeKey.SuccessBackground : ThemeKey.RowAltBackground, project.IsPublished ? ThemeKey.SuccessText : ThemeKey.NeutralDarkButton));
+        pillRow.Children.Add(CreatePill(project.IsProduced ? "Produced" : "Not Produced", project.IsProduced ? ThemeKey.InfoBackground : ThemeKey.RowAltBackground, project.IsProduced ? ThemeKey.InfoText : ThemeKey.NeutralDarkButton));
         if (!string.IsNullOrWhiteSpace(project.ProjectCategory))
             pillRow.Children.Add(CreatePill(project.ProjectCategory.Trim(), ThemeKey.HighlightTeal, ThemeKey.HighlightTealText));
         titleStack.Children.Add(pillRow);
@@ -585,7 +585,7 @@ public class ProductionStatsDetailPage : Bannister.Views.ModeThemedPage
 
         var clearBtn = (new Button { Text = "Clear stats", BackgroundColor = Colors.Transparent, FontSize = 12, Padding = new Thickness(8, 0) }).ThemeColor(Button.TextColorProperty, color);
         var cancelBtn = (new Button { Text = "Cancel", CornerRadius = 8, Padding = new Thickness(18, 8) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
-        var saveBtn = (new Button { Text = "Save", CornerRadius = 8, Padding = new Thickness(22, 8) }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var saveBtn = (new Button { Text = "Save", CornerRadius = 8, Padding = new Thickness(22, 8) }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         Grid.SetColumn(clearBtn, 0);
         Grid.SetColumn(cancelBtn, 2);

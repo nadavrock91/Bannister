@@ -30,7 +30,7 @@
         <!-- Bottom Buttons -->
         <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,16,0,0">
 
-            <Button x:Name="chooseButton" Text="Choose This One" Clicked="OnChooseClicked" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" HeightRequest="50" IsEnabled="False" Opacity="0.6" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=OnColorText" />
+            <Button x:Name="chooseButton" Text="Choose This One" Clicked="OnChooseClicked" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" HeightRequest="50" IsEnabled="False" Opacity="0.6" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=ButtonPrimaryText" />
 
             <Button Text="Cancel" Clicked="OnCancelClicked" Grid.Column="1" BackgroundColor="{DynamicResource ModeNeutralButtonBackground}" TextColor="{DynamicResource ModeCardText1}" CornerRadius="8" HeightRequest="50" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralButtonBackground,TextColor=CardText1" />
         </Grid>

@@ -33,7 +33,7 @@ public class AllowancesPage : Bannister.Views.ModeThemedPage
             Text = "Allowances",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightMintText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightTealText, ThemeKey.PageText1, classifyPageText: true));
 
         root.Children.Add((new Label
         {
@@ -41,7 +41,7 @@ public class AllowancesPage : Bannister.Views.ModeThemedPage
             FontSize = 13
         }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        var add = SmallButton("+ Add Allowance", ThemeKey.TealButtonBackground);
+        var add = SmallButton("+ Add Allowance", ThemeKey.HighlightTealText);
         add.HeightRequest = 42;
         add.HorizontalOptions = LayoutOptions.Start;
         add.Clicked += async (_, _) => await AddAllowanceAsync();
@@ -78,7 +78,7 @@ public class AllowancesPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HasShadow = false,
             Padding = 12
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightMintStrong);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightTeal);
 
         var stack = new VerticalStackLayout { Spacing = 8 };
 
@@ -141,19 +141,19 @@ public class AllowancesPage : Bannister.Views.ModeThemedPage
             }
         };
 
-        var success = SmallButton("✓ Success", ThemeKey.SuccessDarkButtonBackground);
+        var success = SmallButton("✓ Success", ThemeKey.SuccessButtonBackground);
         success.FontAttributes = FontAttributes.Bold;
         success.HeightRequest = 42;
         success.Clicked += async (_, _) => await RecordOutcomeAsync(allowance, true);
         actions.Add(success, 0, 0);
 
-        var failure = SmallButton("✗ Failure", ThemeKey.ErrorDarkButtonBackground);
+        var failure = SmallButton("✗ Failure", ThemeKey.ErrorButtonBackground);
         failure.FontAttributes = FontAttributes.Bold;
         failure.HeightRequest = 42;
         failure.Clicked += async (_, _) => await RecordOutcomeAsync(allowance, false);
         actions.Add(failure, 1, 0);
 
-        var edit = SmallButton("Edit", ThemeKey.HighlightMintText);
+        var edit = SmallButton("Edit", ThemeKey.HighlightTealText);
         edit.Clicked += async (_, _) => await ShowEditMenuAsync(allowance);
         actions.Add(edit, 2, 0);
 
@@ -370,6 +370,6 @@ public class AllowancesPage : Bannister.Views.ModeThemedPage
             HeightRequest = 36,
             CornerRadius = 6,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
     }
 }

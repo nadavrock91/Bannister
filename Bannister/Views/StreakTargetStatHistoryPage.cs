@@ -52,14 +52,14 @@ public class StreakTargetStatHistoryPage : Bannister.Views.ModeThemedPage
             FontSize = 36,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true);
         headerStack.Children.Add(_currentCountLabel);
         headerStack.Children.Add((new Label
         {
             Text = $"{_targetDays} in a row completed",
             FontSize = 14,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellow, ThemeKey.PageText1, classifyPageText: true));
 
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
@@ -98,7 +98,7 @@ public class StreakTargetStatHistoryPage : Bannister.Views.ModeThemedPage
                     Text = "No stat history recorded yet.",
                     FontSize = 13,
                     HorizontalTextAlignment = TextAlignment.Center
-                }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText1, classifyPageText: true)
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true)
             }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow));
             return;
         }
@@ -111,7 +111,7 @@ public class StreakTargetStatHistoryPage : Bannister.Views.ModeThemedPage
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
                 Margin = new Thickness(0, 8, 0, 4)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true));
 
             foreach (var log in group.OrderByDescending(l => l.LoggedAt))
             {
@@ -127,7 +127,7 @@ public class StreakTargetStatHistoryPage : Bannister.Views.ModeThemedPage
             Padding = 12,
             CornerRadius = 8,
             HasShadow = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, log.CountAfter > log.CountBefore ? ThemeKey.SuccessLightText : ThemeKey.ErrorStrongButtonBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, log.CountAfter > log.CountBefore ? ThemeKey.SuccessButtonBackground : ThemeKey.ErrorButtonBackground);
 
         var grid = new Grid
         {

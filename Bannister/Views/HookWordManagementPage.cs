@@ -98,7 +98,7 @@ public class HookWordManagementPage : Bannister.Views.ModeThemedPage
             IsVisible = false,
             Children =
             {
-                BuildBulkButton("Remove selected", ThemeKey.WarningBackground, ThemeKey.WarningAmber, async () =>
+                BuildBulkButton("Remove selected", ThemeKey.WarningBackground, ThemeKey.WarningText, async () =>
                 {
                     await _hookWordService.BulkRemoveAsync(_selectedIds.ToList());
                     _selectedIds.Clear();
@@ -173,7 +173,7 @@ public class HookWordManagementPage : Bannister.Views.ModeThemedPage
     private static void StyleToggle(Button button, bool selected)
     {
         button.ThemeColor(VisualElement.BackgroundColorProperty, selected ? ThemeKey.ButtonPrimaryBackground : ThemeKey.NeutralButtonBackground);
-        button.ThemeColor(Button.TextColorProperty, selected ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
+        button.ThemeColor(Button.TextColorProperty, selected ? ThemeKey.ButtonPrimaryText : ThemeKey.NeutralButtonText);
     }
 
     private async Task LoadAsync()
@@ -252,12 +252,12 @@ public class HookWordManagementPage : Bannister.Views.ModeThemedPage
             Text = word.Word,
             FontSize = 15,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 1, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 1, 0);
 
         var actions = new HorizontalStackLayout { Spacing = 6 };
         if (word.Status == "active")
         {
-            actions.Children.Add(BuildRowButton("Remove", ThemeKey.WarningBackground, ThemeKey.WarningAmber, async () =>
+            actions.Children.Add(BuildRowButton("Remove", ThemeKey.WarningBackground, ThemeKey.WarningText, async () =>
             {
                 await _hookWordService.RemoveWordAsync(word.Id);
                 await LoadAsync();

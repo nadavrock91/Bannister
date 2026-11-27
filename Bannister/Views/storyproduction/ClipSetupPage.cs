@@ -45,7 +45,7 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
             CornerRadius = 12,
             BorderColor = Colors.Transparent,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoHoverButtonBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
         
@@ -54,7 +54,7 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
             Text = $"🎬 Clip {_shot.Index}",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
 
         // Progress indicator
         int tasksComplete = (_shot.Task1_ImageGenerated ? 1 : 0) + (_shot.Task2_VideoGenerated ? 1 : 0);
@@ -62,7 +62,7 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
         {
             Text = $"{tasksComplete}/2 tasks complete",
             FontSize = 16
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightBlueStrong, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigo, ThemeKey.PageText1, classifyPageText: true);
         headerStack.Children.Add(_progressLabel);
 
         headerFrame.Content = headerStack;
@@ -75,7 +75,7 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
             {
                 Padding = 12,
                 CornerRadius = 8
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightYellowButton);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningButtonBackground);
             descFrame.Content = (new Label
             {
                 Text = $"📝 {_shot.Description}",
@@ -139,8 +139,8 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
             },
             onPromptChanged: (text) => _shot.ImagePrompt = text,
             linePrompt: _line.ImagePrompt,
-            promptColor: ThemeKey.HighlightYellowSoft,
-            accentColor: ThemeKey.HighlightAmberButton
+            promptColor: ThemeKey.HighlightYellow,
+            accentColor: ThemeKey.WarningButtonBackground
         ));
 
         // Task 2: Generate Video
@@ -161,7 +161,7 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
             onPromptChanged: (text) => _shot.VideoPrompt = text,
             linePrompt: _line.VideoPrompt,
             promptColor: ThemeKey.RowSelected,
-            accentColor: ThemeKey.InfoLinkText
+            accentColor: ThemeKey.InfoText
         ));
 
         UpdateProgress();
@@ -191,7 +191,7 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, isComplete ? ThemeKey.SuccessBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isComplete ? ThemeKey.SuccessLightText : ThemeKey.Separator);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isComplete ? ThemeKey.SuccessBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isComplete ? ThemeKey.SuccessButtonBackground : ThemeKey.Separator);
 
         var stack = new VerticalStackLayout { Spacing = 12 };
 
@@ -210,7 +210,7 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
         {
             IsChecked = isComplete,
             VerticalOptions = LayoutOptions.Start
-        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
+        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessButtonBackground);
         checkbox.CheckedChanged += async (s, e) => await onToggle(checkbox.IsChecked);
         Grid.SetColumn(checkbox, 0);
         headerGrid.Children.Add(checkbox);
@@ -221,7 +221,7 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
             Text = $"Task {taskNumber}: {title}",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, isComplete ? ThemeKey.SuccessLightText : ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, isComplete ? ThemeKey.SuccessButtonBackground : ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         titleStack.Children.Add((new Label
         {
             Text = subtitle,
@@ -342,7 +342,7 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
                 Padding = new Thickness(8, 0),
                 CornerRadius = 4,
                 FontSize = 11
-            }).ThemeColor(VisualElement.BackgroundColorProperty, accentColor).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, accentColor).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             fillBtn.Clicked += async (s, e) =>
             {
                 onChanged(linePrompt);

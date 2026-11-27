@@ -141,7 +141,7 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
         {
             Text = "Save rclone copy commands with fixed or input fields. Run a preset to build your command.",
             FontSize = 13
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText1, classifyPageText: true));
 
         var addBtn = (new Button
         {
@@ -151,7 +151,7 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
             FontSize = 13,
             Padding = new Thickness(12, 0),
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addBtn.Clicked += async (s, e) => await OnAddPresetAsync();
 
         var addQueueBtn = (new Button
@@ -159,7 +159,7 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
             Text = "+ Add to Queue",
             CornerRadius = 8,
             Padding = new Thickness(12, 8)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessStrongText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         addQueueBtn.Clicked += async (_, _) =>
         {
             string? title = await DisplayPromptAsync("Add to Queue", "Label for this command:");
@@ -209,7 +209,7 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
                 FontSize = 13,
                 HorizontalOptions = LayoutOptions.Center,
                 Margin = new Thickness(0, 24)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledBlueGrey, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledButtonBackground, ThemeKey.PageText1, classifyPageText: true));
         }
 
         var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
@@ -332,7 +332,7 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 30,
             Padding = new Thickness(6, 0),
             CornerRadius = 4
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralStrongButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         visBtn.Clicked += async (_, _) =>
         {
             string? choice = await DisplayActionSheet("Visibility", "Cancel", null,
@@ -356,12 +356,12 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
         {
             Text = $"Source: {sourceDesc}",
             FontSize = 12
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText3, classifyPageText: true));
         stack.Children.Add((new Label
         {
             Text = $"Destination: {destDesc}",
             FontSize = 12
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralDarkButton, ThemeKey.PageText3, classifyPageText: true));
         var bwDisplay = "";
         if (!string.IsNullOrWhiteSpace(preset.BwLimitUp) || !string.IsNullOrWhiteSpace(preset.BwLimitDown))
             bwDisplay = $"  up:{(string.IsNullOrWhiteSpace(preset.BwLimitUp) ? "∞" : preset.BwLimitUp)}  down:{(string.IsNullOrWhiteSpace(preset.BwLimitDown) ? "∞" : preset.BwLimitDown)}";
@@ -369,7 +369,7 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
         {
             Text = $"--transfers={preset.Transfers}  --checkers={preset.Checkers}{bwDisplay}",
             FontSize = 12
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledBlueGrey, ThemeKey.PageText3, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledButtonBackground, ThemeKey.PageText3, classifyPageText: true));
         frame.Content = stack;
         return frame;
     }
@@ -447,7 +447,7 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 30,
             Padding = new Thickness(6, 0),
             CornerRadius = 4
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralStrongButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         visBtn.Clicked += async (_, _) =>
         {
             string? choice = await DisplayActionSheet("Visibility", "Cancel", null, "Private", "Public", "Both");
@@ -688,7 +688,7 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
         {
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.OverlayDark);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
         var commandLabel = (new Label
         {
@@ -704,7 +704,7 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var launchBtn = (new Button
         {
@@ -712,7 +712,7 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessStrongText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var closeBtn = (new Button
         {

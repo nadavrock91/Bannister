@@ -13,7 +13,7 @@ public partial class ActivityGamePage
             CornerRadius = 8,
             FontSize = 13,
             IsVisible = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, _db.IsReadOnly ? ThemeKey.WarningButtonBackground : ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, _db.IsReadOnly ? ThemeKey.WarningButtonBackground : ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAddPendingActivityIdea.Clicked += OnAddPendingActivityIdeaClicked;
         stack.Children.Add(btnAddPendingActivityIdea);
 
@@ -23,7 +23,7 @@ public partial class ActivityGamePage
             CornerRadius = 8,
             FontSize = 13,
             IsVisible = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnProcessPendingIdeas.Clicked += OnProcessPendingIdeasClicked;
         stack.Children.Add(btnProcessPendingIdeas);
 
@@ -34,7 +34,7 @@ public partial class ActivityGamePage
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center,
             IsVisible = false
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true);
         stack.Children.Add(lblPendingActivityIdeas);
     }
 
@@ -193,7 +193,7 @@ public partial class ActivityGamePage
         private PendingActivityIdeaModalPage(List<string> categories)
         {
             Title = "Add Pending Idea";
-            this.ThemeColor(BackgroundColorProperty, ThemeKey.OverlayLight);
+            this.ThemeColor(BackgroundColorProperty, ThemeKey.Overlay);
 
             _activityNameEntry = (new Entry
             {
@@ -237,7 +237,7 @@ public partial class ActivityGamePage
                 Text = "Save",
                 CornerRadius = 8,
                 HeightRequest = 44
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             saveButton.Clicked += OnSaveClicked;
 
             var cancelButton = (new Button
@@ -359,7 +359,7 @@ public partial class ActivityGamePage
                 Text = "Create",
                 CornerRadius = 8,
                 HeightRequest = 44
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             createButton.Clicked += async (_, _) => await CompleteAsync(PendingIdeaProcessAction.Create);
 
             var skipButton = (new Button
@@ -367,7 +367,7 @@ public partial class ActivityGamePage
                 Text = "Skip",
                 CornerRadius = 8,
                 HeightRequest = 44
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             skipButton.Clicked += async (_, _) => await CompleteAsync(PendingIdeaProcessAction.Skip);
 
             var cancelButton = (new Button
@@ -427,7 +427,7 @@ public partial class ActivityGamePage
                                     Text = $"Pending idea 1 of {count}",
                                     FontSize = 13,
                                     FontAttributes = FontAttributes.Bold
-                                }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText1, classifyPageText: true),
+                                }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true),
                                 (new Label
                                 {
                                     Text = $"Name: {idea.ActivityName}\nCategory: {idea.ActivityCategory}",

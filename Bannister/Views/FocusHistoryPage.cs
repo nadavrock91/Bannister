@@ -37,7 +37,7 @@ public class FocusHistoryPage : Bannister.Views.ModeThemedPage
             Text = "\U0001F4C8 Focus History",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true));
         mainStack.Children.Add((new Label
         {
             Text = "Chronological record of focus tasks, completions, streak changes, and allowance changes.",

@@ -128,7 +128,7 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
             HeightRequest = 32,
             FontSize = 11,
             Padding = new Thickness(10, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         navigateBtn.Margin = new Thickness(0, 0, 4, 4);
         navigateBtn.Clicked += async (_, _) => await OpenClipNavigatorAsync();
         actionsRow.Children.Add(navigateBtn);
@@ -152,7 +152,7 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
             HeightRequest = 32,
             FontSize = 11,
             Padding = new Thickness(10, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         chatGptBtn.Margin = new Thickness(0, 0, 4, 4);
         chatGptBtn.Clicked += async (_, _) => await OpenPromptNavigatorAsync();
         actionsRow.Children.Add(chatGptBtn);
@@ -243,12 +243,12 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
         }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
 
         _navigatorPrevBtn = MakeNavigatorButton("\u25C0 Back", ThemeKey.Separator, ThemeKey.CardText1);
-        _navigatorNextBtn = MakeNavigatorButton("Next \u25B6", ThemeKey.ButtonPrimaryBackground, ThemeKey.OnColorText);
-        _navigatorCloseBtn = MakeNavigatorButton("Close", ThemeKey.DisabledButtonBackground, ThemeKey.OnColorText);
+        _navigatorNextBtn = MakeNavigatorButton("Next \u25B6", ThemeKey.ButtonPrimaryBackground, ThemeKey.ButtonPrimaryText);
+        _navigatorCloseBtn = MakeNavigatorButton("Close", ThemeKey.DisabledButtonBackground, ThemeKey.ButtonPrimaryText);
         _navigatorClearBtn = MakeNavigatorButton("Clear", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
-        _navigatorClearNextBtn = MakeNavigatorButton("Clear+Next", ThemeKey.ErrorSelectedBackground, ThemeKey.ErrorText);
-        _navigatorDoneNextBtn = MakeNavigatorButton("\u2705 Done+Next", ThemeKey.SuccessButtonBackground, ThemeKey.OnColorText);
-        _navigatorNextNotDoneBtn = MakeNavigatorButton("Next Undone \u25B6", ThemeKey.WarningButtonBackground, ThemeKey.OnColorText);
+        _navigatorClearNextBtn = MakeNavigatorButton("Clear+Next", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
+        _navigatorDoneNextBtn = MakeNavigatorButton("\u2705 Done+Next", ThemeKey.SuccessButtonBackground, ThemeKey.ButtonPrimaryText);
+        _navigatorNextNotDoneBtn = MakeNavigatorButton("Next Undone \u25B6", ThemeKey.WarningButtonBackground, ThemeKey.ButtonPrimaryText);
         _navigatorPrevBtn.Clicked += async (_, _) => await NavigateClipAsync(-1);
         _navigatorNextBtn.Clicked += async (_, _) => await NavigateClipAsync(1);
         _navigatorClearBtn.Clicked += async (_, _) =>
@@ -300,7 +300,7 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
         _navigatorDoneCheckbox = (new CheckBox
         {
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
+        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessButtonBackground);
         _navigatorDoneCheckbox.CheckedChanged += async (_, e) =>
         {
             if (_currentClipIndex < 0 || _currentClipIndex >= _allClips.Count) return;
@@ -377,13 +377,13 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
         _promptNavDescLabel = PromptNavLabel(12, ThemeKey.CardText2, FontAttributes.Italic);
         _promptNavPromptsLabel = PromptNavLabel(10, ThemeKey.CardText3);
 
-        _promptNavCopyBtn = MakePromptNavButton("\U0001F4CB Copy Description", ThemeKey.ButtonPrimaryBackground, ThemeKey.OnColorText, 40, true);
-        _promptNavMarkDoneBtn = MakePromptNavButton("\U0001F4AC Has ChatGPT Project & Next", ThemeKey.ButtonPrimaryBackground, ThemeKey.OnColorText);
+        _promptNavCopyBtn = MakePromptNavButton("\U0001F4CB Copy Description", ThemeKey.ButtonPrimaryBackground, ThemeKey.ButtonPrimaryText, 40, true);
+        _promptNavMarkDoneBtn = MakePromptNavButton("\U0001F4AC Has ChatGPT Project & Next", ThemeKey.ButtonPrimaryBackground, ThemeKey.ButtonPrimaryText);
         _promptNavPrevBtn = MakePromptNavButton("\u25C0 Back", ThemeKey.Separator, ThemeKey.CardText1);
-        _promptNavNextBtn = MakePromptNavButton("Skip \u25B6", ThemeKey.WarningButtonBackground, ThemeKey.OnColorText);
-        _promptNavCloseBtn = MakePromptNavButton("Close", ThemeKey.DisabledButtonBackground, ThemeKey.OnColorText);
-        _promptNavDoneNextBtn = MakePromptNavButton("\U0001F4AC ChatGPT & Next", ThemeKey.ButtonPrimaryBackground, ThemeKey.OnColorText);
-        _promptNavNextNotDoneBtn = MakePromptNavButton("Next Not Done \u25B6", ThemeKey.WarningButtonBackground, ThemeKey.OnColorText);
+        _promptNavNextBtn = MakePromptNavButton("Skip \u25B6", ThemeKey.WarningButtonBackground, ThemeKey.ButtonPrimaryText);
+        _promptNavCloseBtn = MakePromptNavButton("Close", ThemeKey.DisabledButtonBackground, ThemeKey.ButtonPrimaryText);
+        _promptNavDoneNextBtn = MakePromptNavButton("\U0001F4AC ChatGPT & Next", ThemeKey.ButtonPrimaryBackground, ThemeKey.ButtonPrimaryText);
+        _promptNavNextNotDoneBtn = MakePromptNavButton("Next Not Done \u25B6", ThemeKey.WarningButtonBackground, ThemeKey.ButtonPrimaryText);
 
         var navRow = new FlexLayout
         {
@@ -869,7 +869,7 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
             if (shots.Count > 0)
             {
                 int lineDone = shots.Count(s => s.Done);
-                lineStack.Children.Add((new Label { Text = $"{lineDone}/{shots.Count} clips", FontSize = 10 }).ThemeColor(Label.TextColorProperty, lineDone == shots.Count ? ThemeKey.SuccessText : ThemeKey.WarningStrongText, ThemeKey.PageText3));
+                lineStack.Children.Add((new Label { Text = $"{lineDone}/{shots.Count} clips", FontSize = 10 }).ThemeColor(Label.TextColorProperty, lineDone == shots.Count ? ThemeKey.SuccessText : ThemeKey.WarningText, ThemeKey.PageText3));
             }
             lineFrame.Content = lineStack;
             Grid.SetColumn(lineFrame, 0);
@@ -896,7 +896,7 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
                 clipStack.Children.Add((new Label { Text = description, FontSize = 10, LineBreakMode = LineBreakMode.TailTruncation }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
                 string tasks = ((!shot.Task1_ImageGenerated ? "IMG " : "") + (!shot.Task2_VideoGenerated ? "VID" : "")).Trim();
                 if (!string.IsNullOrEmpty(tasks))
-                    clipStack.Children.Add((new Label { Text = tasks, FontSize = 9, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText3));
+                    clipStack.Children.Add((new Label { Text = tasks, FontSize = 9, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3));
 
                 var openSetupBtn = (new Button
                 {
@@ -931,7 +931,7 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
                     IsChecked = shot.Done,
                     Scale = 0.7,
                     VerticalOptions = LayoutOptions.Center
-                }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
+                }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessButtonBackground);
                 var capturedShotForDone = shot;
                 var capturedLineForDone = line;
                 var capturedShotsForDone = shots;

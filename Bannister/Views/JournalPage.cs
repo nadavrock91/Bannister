@@ -76,7 +76,7 @@ public class JournalPage : Bannister.Views.ModeThemedPage
             FontSize = 18, FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         headerGrid.Add(_dateLabel, 1, 0);
 
         var nextBtn = (new Button
@@ -101,7 +101,7 @@ public class JournalPage : Bannister.Views.ModeThemedPage
         {
             Text = "✏️ Solo", FontSize = 13, HeightRequest = 36,
             CornerRadius = 0, Padding = new Thickness(20, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         var aiTab = (new Button
         {
             Text = " AI Conversation", FontSize = 13,
@@ -112,7 +112,7 @@ public class JournalPage : Bannister.Views.ModeThemedPage
         {
             _isAiMode = false;
             soloTab.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground);
-            soloTab.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            soloTab.ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             aiTab.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground);
             aiTab.ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
             _soloSection.IsVisible = true;
@@ -121,8 +121,8 @@ public class JournalPage : Bannister.Views.ModeThemedPage
         aiTab.Clicked += (_, _) =>
         {
             _isAiMode = true;
-            aiTab.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground);
-            aiTab.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            aiTab.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText);
+            aiTab.ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             soloTab.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground);
             soloTab.ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
             _soloSection.IsVisible = false;
@@ -140,7 +140,7 @@ public class JournalPage : Bannister.Views.ModeThemedPage
             HeightRequest = 32,
             HorizontalOptions = LayoutOptions.End,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         analyzeBtn.Clicked += async (_, _) =>
         {
             var services = Application.Current?.Handler?.MauiContext?.Services;
@@ -171,7 +171,7 @@ public class JournalPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _saveBtn.Clicked += async (_, _) => await SaveEntryAsync();
         _soloSection.Children.Add(_saveBtn);
         stack.Children.Add(_soloSection);
@@ -204,7 +204,7 @@ public class JournalPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         aiSaveBtn.Clicked += async (_, _) => await SaveAiEntryAsync();
         _aiSection.Children.Add(aiSaveBtn);
         stack.Children.Add(_aiSection);
@@ -290,7 +290,7 @@ public class JournalPage : Bannister.Views.ModeThemedPage
         {
             Text = entry.Text, FontSize = 14,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         return (new Frame
         {
             Content = stack, Padding = 0, CornerRadius = 8,

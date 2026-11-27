@@ -146,7 +146,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             FontSize = 13,
             IsVisible = false,
             Margin = new Thickness(0, 0, 0, 0)
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1);
 
         // Stats label
         _statsLabel = (new Label
@@ -253,7 +253,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             FontSize = 13,
             Padding = new Thickness(12, 8),
             HorizontalOptions = LayoutOptions.Start
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         _writingProcessFilterBtn.Clicked += OnWritingProcessFilterClicked;
         processRow.Children.Add(_writingProcessFilterBtn);
 
@@ -264,7 +264,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(12, 8),
             FontSize = 12,
             IsVisible = false
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         _writingProcessBtn.Clicked += OnSetWritingProcessClicked;
         processRow.Children.Add(_writingProcessBtn);
 
@@ -302,7 +302,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             Padding = new Thickness(16, 8),
             FontSize = 14
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _addProjectBtn.Clicked += OnAddProjectClicked;
         pickerRow.Children.Add(_addProjectBtn);
 
@@ -396,7 +396,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             FontSize = 15,
             FontAttributes = FontAttributes.Bold,
             IsVisible = false
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1);
         rightColumn.Children.Add(_currentDraftLabel);
         rightColumn.Children.Add(_projectMetaLabel);
         rightColumn.Children.Add(_statsLabel);
@@ -431,7 +431,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(12, 6),
             FontSize = 14,
             IsVisible = false
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _insertLineBtn.Clicked += OnAddMenuClicked;
         linesHeaderStack.Children.Add(_insertLineBtn);
 
@@ -452,7 +452,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(12, 6),
             FontSize = 14,
             IsVisible = false
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         _expandAllBtn.Clicked += OnExpandAllClicked;
         linesHeaderStack.Children.Add(_expandAllBtn);
 
@@ -518,7 +518,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(12, 6),
             FontSize = 14,
             IsVisible = false
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoStrongText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         _storyPointsBtn.Clicked += OnStoryPointsClicked;
         linesHeaderStack.Children.Add(_storyPointsBtn);
 
@@ -572,14 +572,14 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             IsRunning = true,
             WidthRequest = 40,
             HeightRequest = 40
-        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.OnColorText));
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.ButtonPrimaryText));
 
         _loadingLabel = (new Label
         {
             Text = "Importing...",
             FontSize = 16,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1);
         loadingStack.Children.Add(_loadingLabel);
 
         _loadingOverlay.Children.Add(loadingStack);
@@ -807,7 +807,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
                 Padding = new Thickness(12, 10),
                 HorizontalOptions = LayoutOptions.Fill,
                 LineBreakMode = LineBreakMode.WordWrap
-            }).ThemeColor(Button.BackgroundColorProperty, option == "+ New Process" ? ThemeKey.SuccessBackground : option == "Skip (no process)" || option == "No Process" ? ThemeKey.NeutralButtonBackground : ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, option == "+ New Process" ? ThemeKey.SuccessText : option == "Skip (no process)" || option == "No Process" ? ThemeKey.CardText2 : ThemeKey.AccentPurpleText);
+            }).ThemeColor(Button.BackgroundColorProperty, option == "+ New Process" ? ThemeKey.SuccessBackground : option == "Skip (no process)" || option == "No Process" ? ThemeKey.NeutralButtonBackground : ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, option == "+ New Process" ? ThemeKey.SuccessText : option == "Skip (no process)" || option == "No Process" ? ThemeKey.CardText2 : ThemeKey.HighlightVioletText);
             var capturedOption = option;
             btn.Clicked += (_, _) => tcs.TrySetResult(capturedOption);
             listStack.Children.Add(btn);
@@ -820,7 +820,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             HeightRequest = 44,
             Margin = new Thickness(0, 8, 0, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         cancelBtn.Clicked += (_, _) => tcs.TrySetResult(null);
 
         var backgroundTap = new TapGestureRecognizer();
@@ -946,13 +946,13 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             Padding = 16,
             CornerRadius = 0,
             BorderColor = Colors.Transparent
-        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.AccentPurpleSurface);
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.HighlightVioletText);
         header.Content = (new Label
         {
             Text = "Select Project",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1);
         cardStack.Children.Add(header);
 
         // Search
@@ -988,7 +988,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             HeightRequest = 28,
             Padding = new Thickness(8, 0),
             CornerRadius = 4
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         var seriesBtn = (new Button
         {
@@ -1190,7 +1190,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             HeightRequest = 36,
             Margin = new Thickness(12, 4, 12, 12)
-        }).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleText);
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         cancelBtn.Clicked += (_, _) =>
         {
             if (Content is Grid mainGrid)
@@ -1237,7 +1237,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             BorderColor = Colors.Transparent,
             HasShadow = false
         }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, isSelected ? ThemeKey.HighlightIndigo : ThemeKey.SecondarySurface);
-        if (isSelected) frame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.AccentPurpleText);
+        if (isSelected) frame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightVioletText);
 
         var stack = new VerticalStackLayout { Spacing = 2 };
         string statusSuffix = project.IsPublished ? " ✓" : project.Status == "completed" ? " (done)" : "";
@@ -1993,7 +1993,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             Text = "Close",
             CornerRadius = 8,
             Padding = new Thickness(20, 8)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         copyBtn.Clicked += async (s, e) =>
         {
@@ -2245,7 +2245,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             Padding = new Thickness(20, 8),
             IsEnabled = false
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         var cancelBtn = (new Button
         {
             Text = "Cancel",
@@ -2285,7 +2285,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             if (string.IsNullOrWhiteSpace(text))
             {
                 label.Text = "Empty";
-                label.ThemeColor(Label.TextColorProperty, ThemeKey.SlateText, ThemeKey.PageText1);
+                label.ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1);
                 frame.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
             }
             else if (parsedCount > 0)
@@ -2319,7 +2319,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
                 Text = "Empty",
                 FontSize = 11,
                 VerticalOptions = LayoutOptions.Center
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SlateText, ThemeKey.PageText3);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
             var statusFrame = (new Frame
             {
                 Padding = new Thickness(8, 4),
@@ -2392,7 +2392,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
                 FontFamily = "Consolas",
                 HeightRequest = 220,
                 AutoSize = EditorAutoSizeOption.Disabled
-            }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.HighlightYellowSoft);
+            }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.HighlightYellow);
             pasteEditors.Add(pasteEditor);
             int capturedIndex = index;
             pasteEditor.TextChanged += (_, _) => UpdateCardStatus(capturedIndex);
@@ -2772,7 +2772,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(16, 12),
             HasShadow = false,
             Content = label
-        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.InfoLightText);
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.InfoButtonBackground);
 
         if (count == 0)
         {
@@ -2791,7 +2791,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
                 tapConsumed = true;
 
                 label.Text = $"⏳ Preparing {count} line cards...";
-                label.ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText1);
+                label.ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1);
                 frame.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground);
 
                 await ExpandLinesAsyncLegacyUnused();
@@ -2990,7 +2990,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
 
         // Changed highlight color (yellow/orange tint)
         ThemeKey changedBgColor = ThemeKey.HighlightYellow;
-        ThemeKey changedBorderColor = ThemeKey.HighlightYellowButton;
+        ThemeKey changedBorderColor = ThemeKey.WarningButtonBackground;
 
         var rowGrid = new Grid
         {
@@ -3047,14 +3047,14 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             HasShadow = false,
             BorderColor = Colors.Transparent,
             VerticalOptions = LayoutOptions.Start
-        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.AccentPurpleSurface);
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.HighlightVioletText);
         badge.Content = (new Label
         {
             Text = $"#{line.LineOrder}",
             FontSize = 12,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3);
         Grid.SetColumn(badge, 0);
         scriptHeaderRow.Children.Add(badge);
 
@@ -3239,7 +3239,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
                 CornerRadius = 18,
                 Padding = 0,
                 FontSize = 12
-            }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleText);
+            }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
             var capturedCollapsed = collapsedScriptLabel;
             var capturedExpanded = expandedScriptLabel;
             expandBtn.Clicked += (s, e) =>
@@ -3339,7 +3339,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
                 Text = $"📁 {Path.GetFileName(line.VisualAssetPath)}",
                 FontSize = 11,
                 Margin = new Thickness(24, 0, 0, 0)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoLinkText, ThemeKey.PageText3));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText3));
         }
 
         // Spacer to push checkbox to bottom
@@ -3476,7 +3476,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
                     HorizontalOptions = LayoutOptions.Start,
                     VerticalOptions = LayoutOptions.End,
                     Margin = new Thickness(2, 0, 0, 2)
-                }).ThemeColor(Label.BackgroundColorProperty, ThemeKey.OverlayStrong).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
+                }).ThemeColor(Label.BackgroundColorProperty, ThemeKey.Overlay).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1);
                 imageStack.Children.Add(videoBadge);
             }
 
@@ -3493,7 +3493,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
                 HorizontalOptions = LayoutOptions.End,
                 VerticalOptions = LayoutOptions.Start,
                 Margin = new Thickness(0, 2, 2, 0)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1).ThemeColor(Label.BackgroundColorProperty, ThemeKey.OverlayStrong);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1).ThemeColor(Label.BackgroundColorProperty, ThemeKey.Overlay);
             var removeTap = new TapGestureRecognizer();
             removeTap.Tapped += async (s, e) =>
             {
@@ -3980,7 +3980,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             Text = "OK",
             CornerRadius = 8,
             Padding = new Thickness(20, 8)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         cancelBtn.Clicked += (s, e) =>
         {
@@ -5126,7 +5126,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             HasShadow = false
-        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.BrandMediaPanel).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.BrandMediaBorder);
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.NeutralDarkButton);
 
         // Use Grid layout to ensure buttons always visible at bottom
         var mainGrid = new Grid
@@ -5149,7 +5149,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             Text = "🔧 Confirm Surgical Edit",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1);
         Grid.SetRow(header, 0);
         mainGrid.Children.Add(header);
 
@@ -5177,7 +5177,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
                 CornerRadius = 8,
                 Padding = new Thickness(12),
                 HasShadow = false
-            }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.BrandMediaBackground)
+            }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.MediaBackground)
                 .ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, GetCommandColor(cmd.Type));
 
             var cmdLayout = new VerticalStackLayout { Spacing = 8 };
@@ -5213,7 +5213,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
                 FontSize = 13,
                 VerticalOptions = LayoutOptions.Center,
                 WidthRequest = 60
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1);
             headerRow.Children.Add(lineLabel);
 
             // Brief summary
@@ -5276,7 +5276,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             FontSize = 12,
             HeightRequest = 32,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.BrandMediaBorder).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         selectAllBtn.Clicked += (s, e) =>
         {
             foreach (var cb in checkBoxes.Values) cb.IsChecked = true;
@@ -5289,7 +5289,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             FontSize = 12,
             HeightRequest = 32,
             Padding = new Thickness(12, 0)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.BrandMediaBorder).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         deselectAllBtn.Clicked += (s, e) =>
         {
             foreach (var cb in checkBoxes.Values) cb.IsChecked = false;
@@ -5310,7 +5310,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             Text = "Cancel",
             WidthRequest = 100,
             HeightRequest = 40
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.BrandMediaButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         cancelBtn.Clicked += (s, e) =>
         {
             if (this.Content is Grid pageGrid && pageGrid.Children.Contains(overlay))
@@ -5325,7 +5325,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             WidthRequest = 160,
             HeightRequest = 40,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.BrandMediaSelection).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         applyBtn.Clicked += async (s, e) =>
         {
             // Get confirmed commands
@@ -5403,10 +5403,10 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
 
     private static ThemeKey GetCommandColor(string type) => type.ToLower() switch
     {
-        "delete" => ThemeKey.TimelineError,
-        "update" => ThemeKey.TimelineWarning,
-        "insert" => ThemeKey.TimelineSuccess,
-        "reorder" => ThemeKey.TimelineInfo,
+        "delete" => ThemeKey.ErrorButtonBackground,
+        "update" => ThemeKey.WarningButtonBackground,
+        "insert" => ThemeKey.SuccessButtonBackground,
+        "reorder" => ThemeKey.InfoButtonBackground,
         _ => ThemeKey.CardText2
     };
 
@@ -5442,9 +5442,9 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
                 {
                     AddDetailRow(container, "🗑️ REMOVING:", "");
                     if (!line.IsSilent && !string.IsNullOrWhiteSpace(line.LineText))
-                        AddDetailRow(container, "Script", line.LineText, ThemeKey.TimelineError);
+                        AddDetailRow(container, "Script", line.LineText, ThemeKey.ErrorButtonBackground);
                     if (!string.IsNullOrWhiteSpace(line.VisualDescription))
-                        AddDetailRow(container, "Visual", line.VisualDescription, ThemeKey.TimelineError);
+                        AddDetailRow(container, "Visual", line.VisualDescription, ThemeKey.ErrorButtonBackground);
                 }
                 break;
 
@@ -5462,32 +5462,32 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
                     {
                         AddDetailRow(container, $"📝 {field.Key} (was):", oldValue, ThemeKey.CardText3, strikethrough: true);
                     }
-                    AddDetailRow(container, $"✨ {field.Key} (new):", field.Value, ThemeKey.TimelineSuccess);
+                    AddDetailRow(container, $"✨ {field.Key} (new):", field.Value, ThemeKey.SuccessButtonBackground);
                 }
                 
                 // Count shot prompts
                 int shotPromptCount = cmd.Fields.Keys.Count(k => k.StartsWith("Shot") && k.Contains("Prompt"));
                 if (shotPromptCount > 0)
                 {
-                    AddDetailRow(container, "🎬 Shot Prompts", $"{shotPromptCount} shot prompt(s) included", ThemeKey.TimelineInfo);
+                    AddDetailRow(container, "🎬 Shot Prompts", $"{shotPromptCount} shot prompt(s) included", ThemeKey.InfoButtonBackground);
                 }
                 break;
 
             case "insert":
                 AddDetailRow(container, "➕ INSERTING AFTER LINE " + cmd.LineNumber + ":", "");
                 if (cmd.Fields.TryGetValue("Script", out var script) && !string.IsNullOrWhiteSpace(script))
-                    AddDetailRow(container, "Script", script, ThemeKey.TimelineSuccess);
+                    AddDetailRow(container, "Script", script, ThemeKey.SuccessButtonBackground);
                 else
                     AddDetailRow(container, "Type", "(Visual-only / Silent)", ThemeKey.CardText3);
                     
                 if (cmd.Fields.TryGetValue("Visual", out var visual) && !string.IsNullOrWhiteSpace(visual))
-                    AddDetailRow(container, "Visual", visual, ThemeKey.TimelineSuccess);
+                    AddDetailRow(container, "Visual", visual, ThemeKey.SuccessButtonBackground);
                 if (cmd.Fields.TryGetValue("Shots", out var shots) && !string.IsNullOrWhiteSpace(shots))
-                    AddDetailRow(container, "Shots", shots, ThemeKey.TimelineSuccess);
+                    AddDetailRow(container, "Shots", shots, ThemeKey.SuccessButtonBackground);
                 break;
 
             case "reorder":
-                AddDetailRow(container, "↕️ Moving", $"Line {cmd.LineNumber} → Position {cmd.TargetPosition}", ThemeKey.TimelineInfo);
+                AddDetailRow(container, "↕️ Moving", $"Line {cmd.LineNumber} → Position {cmd.TargetPosition}", ThemeKey.InfoButtonBackground);
                 if (line != null && !string.IsNullOrWhiteSpace(line.LineText))
                     AddDetailRow(container, "Content", Truncate(line.LineText, 100), ThemeKey.CardText3);
                 break;
@@ -5507,7 +5507,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
             Text = label,
             FontSize = 11,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaHintText, ThemeKey.PageText3));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3));
         
         // Value (if any)
         if (!string.IsNullOrEmpty(value))
@@ -5518,7 +5518,7 @@ public class StoryProductionPage : Bannister.Views.ModeThemedPage
                 FontSize = 12,
                 LineBreakMode = LineBreakMode.WordWrap,
                 MaxLines = 4
-            }).ThemeColor(Label.TextColorProperty, valueColor ?? ThemeKey.BrandMediaDetailText);
+            }).ThemeColor(Label.TextColorProperty, valueColor ?? ThemeKey.CardText3);
             
             if (strikethrough)
                 valueLabel.TextDecorations = TextDecorations.Strikethrough;
@@ -5812,8 +5812,8 @@ Rules:
                 Text = $"Step {stepNumber}/2",
                 FontSize = 11,
                 FontAttributes = FontAttributes.Bold
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3)
-        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.AccentPurpleSurface));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText3)
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.HighlightVioletText));
         headerRow.Children.Add((new Label
         {
             Text = title,
@@ -5889,7 +5889,7 @@ Rules:
                 HeightRequest = 100,
                 FontSize = 11,
                 FontFamily = "Consolas"
-            }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.HighlightYellowSoft);
+            }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.HighlightYellow);
             scrollContent.Children.Add(pasteEditor);
         }
 
@@ -5925,7 +5925,7 @@ Rules:
             Padding = new Thickness(16, 6),
             HeightRequest = 36,
             FontSize = 13
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightVioletText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         cancelBtn.Clicked += (s, e) =>
         {
@@ -6132,7 +6132,7 @@ Rules:
             Text = "Import",
             CornerRadius = 8,
             Padding = new Thickness(20, 8)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
 
         cancelBtn.Clicked += (s, e) =>
         {
@@ -6373,7 +6373,7 @@ Rules:
             Text = $"➡️ {currentName} (Current)",
             FontAttributes = FontAttributes.Bold,
             FontSize = 14
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1);
         Grid.SetColumn(rightHeader, 1);
         Grid.SetRow(rightHeader, 0);
         comparisonGrid.Children.Add(rightHeader);
@@ -6489,7 +6489,7 @@ Rules:
             Text = "📋 Copy Current → " + compareName,
             CornerRadius = 8,
             Padding = new Thickness(20, 8)
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         copyBtn.Clicked += async (s, e) =>
         {
             if (this.Content is Grid mainGrid)
@@ -6680,7 +6680,7 @@ Rules:
             HeightRequest = 40,
             CornerRadius = 8,
             Padding = 0
-        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         customBtn.Clicked += (s, e) =>
         {
             if (int.TryParse(customEntry.Text, out int customMins) && customMins > 0)

@@ -14,9 +14,9 @@ public class PieChartDrawable : IDrawable
     private static Color[] Palette => new[]
     {
         AppColors.Get(ThemeKey.SuccessText), AppColors.Get(ThemeKey.InfoText), AppColors.Get(ThemeKey.HighlightPinkText),
-        AppColors.Get(ThemeKey.WarningText), AppColors.Get(ThemeKey.AccentPurpleStrongText), AppColors.Get(ThemeKey.HighlightTealText),
-        AppColors.Get(ThemeKey.HighlightLimeText), AppColors.Get(ThemeKey.AccentVioletStrongText), AppColors.Get(ThemeKey.WarningBurntText),
-        AppColors.Get(ThemeKey.HighlightMintText),
+        AppColors.Get(ThemeKey.WarningText), AppColors.Get(ThemeKey.HighlightVioletText), AppColors.Get(ThemeKey.HighlightTealText),
+        AppColors.Get(ThemeKey.SuccessText), AppColors.Get(ThemeKey.HighlightVioletText), AppColors.Get(ThemeKey.WarningText),
+        AppColors.Get(ThemeKey.HighlightTealText),
     };
 
     public void AssignColors(List<string> categories)
@@ -75,7 +75,7 @@ public class PieChartDrawable : IDrawable
 
             // thin white separator on the leading edge
             double r0 = startAngle * Math.PI / 180.0;
-            canvas.StrokeColor = AppColors.Get(ThemeKey.OnColorText);
+            canvas.StrokeColor = AppColors.Get(ThemeKey.ButtonPrimaryText);
             canvas.StrokeSize = 1.5f;
             canvas.DrawLine(pieCx, pieCy,
                 pieCx + radius * (float)Math.Cos(r0),
@@ -103,7 +103,7 @@ public class PieChartDrawable : IDrawable
             canvas.FillRectangle(lx, ly + 2f, boxSize, boxSize);
 
             // Label text
-            canvas.FontColor = AppColors.Get(ThemeKey.CardTextStrong);
+            canvas.FontColor = AppColors.Get(ThemeKey.CardText1);
             canvas.FontSize = 10.5f;
             string text = $"{slice.Label}: {CurrencySymbol}{slice.Value.ToString("N0")}";
             canvas.DrawString(text,

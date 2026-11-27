@@ -8,7 +8,7 @@
         <Label Text="Activities Missing Images" FontSize="20" FontAttributes="Bold" />
 
         <!-- Description -->
-        <Label Grid.Row="1" Text="The following activities don't have images assigned.&#xA;They won't appear in the activity grid until you assign images.&#xA;Select an activity to edit it." FontSize="14" TextColor="{DynamicResource ModeText2}" LineBreakMode="WordWrap" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text2" />
+        <Label Grid.Row="1" Text="The following activities don't have images assigned.&#xA;They won't appear in the activity grid until you assign images.&#xA;Select an activity to edit it." FontSize="14" TextColor="{DynamicResource ModePageText2}" LineBreakMode="WordWrap" theme:ThemeColorExtensions.NamedColorProperties="TextColor=PageText2" />
 
         <!-- Activities List -->
         <Frame Grid.Row="2" Padding="0" CornerRadius="8" BorderColor="{DynamicResource ModeSeparator}" theme:ThemeColorExtensions.NamedColorProperties="BorderColor=Separator">
@@ -29,7 +29,7 @@
                                 </Label>
                             </VerticalStackLayout>
                             
-                            <Label Grid.Column="1" Text="{Binding ExpGain, StringFormat='+{0} EXP'}" FontSize="12" TextColor="{DynamicResource ModeSecondaryAccentText}" VerticalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=SecondaryAccentText" />
+                            <Label Grid.Column="1" Text="{Binding ExpGain, StringFormat='+{0} EXP'}" FontSize="12" TextColor="{DynamicResource ModeHighlightIndigoText}" VerticalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=HighlightIndigoText" />
                         </Grid>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
@@ -39,9 +39,9 @@
         <!-- Action Buttons -->
         <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="12">
             
-            <Button Text="Edit Selected" Clicked="OnEditSelected" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=OnColorText" />
+            <Button Text="Edit Selected" Clicked="OnEditSelected" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=ButtonPrimaryText" />
 
-            <Button Text="Delete Selected" Grid.Column="1" Clicked="OnDeleteSelected" BackgroundColor="{DynamicResource ModeErrorButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=ErrorButtonBackground,TextColor=OnColorText" />
+            <Button Text="Delete Selected" Grid.Column="1" Clicked="OnDeleteSelected" BackgroundColor="{DynamicResource ModeErrorButtonBackground}" TextColor="{DynamicResource ModeButtonPrimaryText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=ErrorButtonBackground,TextColor=ButtonPrimaryText" />
 
             <Button Text="Close" Grid.Column="2" Clicked="OnClose" BackgroundColor="{DynamicResource ModeNeutralButtonBackground}" TextColor="{DynamicResource ModeCardText1}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralButtonBackground,TextColor=CardText1" />
         </Grid>

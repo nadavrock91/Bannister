@@ -68,7 +68,7 @@ public class HabitTargetDecisionPage : Bannister.Views.ModeThemedPage
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
         headerStack.Children.Add((new Label
         {
             Text = _isExpiredMode 
@@ -77,7 +77,7 @@ public class HabitTargetDecisionPage : Bannister.Views.ModeThemedPage
             FontSize = 14,
             Opacity = 0.9,
             HorizontalTextAlignment = TextAlignment.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
         headerFrame.Content = headerStack;
         _mainContent.Children.Add(headerFrame);
 
@@ -109,7 +109,7 @@ public class HabitTargetDecisionPage : Bannister.Views.ModeThemedPage
             Text = "",
             FontSize = 12,
             IsVisible = false
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.DeepOrangeButtonBackground, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningButtonBackground, ThemeKey.PageText3, classifyPageText: true);
         activityStack.Children.Add(_lblExpiredInfo);
 
         activityFrame.Content = activityStack;
@@ -187,7 +187,7 @@ public class HabitTargetDecisionPage : Bannister.Views.ModeThemedPage
             Padding = 16,
             CornerRadius = 8,
             HasShadow = true
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessLightText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessButtonBackground);
 
         var dateStack = new VerticalStackLayout { Spacing = 12 };
         _datePicker = new DatePicker
@@ -205,7 +205,7 @@ public class HabitTargetDecisionPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnSetDate.Clicked += OnSetSpecificDateClicked;
         dateStack.Children.Add(btnSetDate);
 

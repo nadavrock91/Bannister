@@ -244,7 +244,7 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
             Text = "Register New Account",
             CornerRadius = 8,
             HeightRequest = 44
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _btnRegister.Clicked += OnRegisterClicked;
         buttonRow.Add(_btnRegister, 0, 0);
 
@@ -253,7 +253,7 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
             Text = "💾 Save Credentials",
             CornerRadius = 8,
             HeightRequest = 44
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _btnSaveCreds.Text = "Save Credentials";
         _btnSaveCreds.Clicked += OnSaveCredentialsClicked;
         buttonRow.Add(_btnSaveCreds, 1, 0);
@@ -290,7 +290,7 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             Padding = new Thickness(10, 4),
             VerticalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo);
         headingRow.Children.Add(_lblSyncCounter);
 
         _lblLastOperation = (new Label
@@ -314,7 +314,7 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
             Text = "⬆️ Upload to Server  (master only)",
             CornerRadius = 8,
             HeightRequest = 48
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _btnUpload.Clicked += OnUploadClicked;
         stack.Children.Add(_btnUpload);
 
@@ -323,7 +323,7 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
             Text = "⬇️ Download from Server",
             CornerRadius = 8,
             HeightRequest = 48
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _btnDownload.Clicked += OnDownloadClicked;
         stack.Children.Add(_btnDownload);
 
@@ -333,7 +333,7 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 48,
             IsEnabled = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDeepText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorText).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _btnRevert.Clicked += OnRevertClicked;
         stack.Children.Add(_btnRevert);
 
@@ -343,7 +343,7 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
             CornerRadius = 8,
             HeightRequest = 48,
             IsVisible = false
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         _btnApplyQueuedOps.Clicked += OnApplyQueuedOperationsClicked;
         stack.Children.Add(_btnApplyQueuedOps);
 
@@ -369,7 +369,7 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Fill,
             Margin = new Thickness(0, 8, 0, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         sharedBtn.Clicked += async (_, _) =>
             await Navigation.PushAsync(new SharedActivitiesPage(
                 _sharedActivityService,
@@ -414,7 +414,7 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
             VerticalOptions = LayoutOptions.Center,
             WidthRequest = 24,
             HeightRequest = 24
-        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.SecondaryAccentText);
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.HighlightIndigoText);
 
         _lblStatus = (new Label
         {
@@ -571,7 +571,7 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
         if (!string.IsNullOrWhiteSpace(statusText))
         {
             _lblStatus.Text = statusText;
-            _lblStatus.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+            _lblStatus.ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         }
 
         UpdateButtonsForMode();
@@ -715,7 +715,7 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
         try
         {
         _lblStatus.Text = "Uploading…";
-        _lblStatus.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+        _lblStatus.ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         // Increment before upload so the new counter value is included in the uploaded DB
         var counter = await _syncCounter.IncrementAsync(await GetSyncUsernameAsync());
         _lblSyncCounter.Text = $"Sync #{counter}";
@@ -953,7 +953,7 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
         if (!confirm) return;
 
         _lblStatus.Text = "Downloading…";
-        _lblStatus.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
+        _lblStatus.ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         var result = await _sync.DownloadAsync();
         _lblStatus.Text = result.Message;
         _lblStatus.ThemeColor(Label.TextColorProperty, result.Success ? ThemeKey.SuccessText : ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);

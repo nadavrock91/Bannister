@@ -92,7 +92,7 @@ public class SetAutoAwardPage : Bannister.Views.ModeThemedPage
 
         switchAutoAward = new Switch
         {
-            OnColor = AppColors.Get(ThemeKey.SuccessLightText),
+            OnColor = AppColors.Get(ThemeKey.SuccessButtonBackground),
             VerticalOptions = LayoutOptions.Center,
             IsEnabled = !_requireAutoAward
         };
@@ -158,7 +158,7 @@ public class SetAutoAwardPage : Bannister.Views.ModeThemedPage
 
             var checkbox = (new CheckBox
             {
-            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
+            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessButtonBackground);
             dayCheckBoxes[day] = checkbox;
             checkStack.Children.Add(checkbox);
 
@@ -192,7 +192,7 @@ public class SetAutoAwardPage : Bannister.Views.ModeThemedPage
             Text = "ℹ️ Auto-award activities will appear in a confirmation dialog when you first enter the game each day.",
             FontSize = 12,
             LineBreakMode = LineBreakMode.WordWrap
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoStrongText, ThemeKey.PageText3, classifyPageText: true);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText3, classifyPageText: true);
 
         infoFrame.Content = lblInfo;
         mainStack.Children.Add(infoFrame);
@@ -209,7 +209,7 @@ public class SetAutoAwardPage : Bannister.Views.ModeThemedPage
             Text = "Save",
             CornerRadius = 8,
             HorizontalOptions = LayoutOptions.FillAndExpand
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnSave.Clicked += OnSaveClicked;
         buttonStack.Children.Add(btnSave);
 
@@ -218,7 +218,7 @@ public class SetAutoAwardPage : Bannister.Views.ModeThemedPage
             Text = "Cancel",
             CornerRadius = 8,
             HorizontalOptions = LayoutOptions.FillAndExpand
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnCancel.Clicked += OnCancelClicked;
         buttonStack.Children.Add(btnCancel);
 

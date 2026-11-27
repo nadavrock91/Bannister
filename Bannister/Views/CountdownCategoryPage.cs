@@ -38,7 +38,7 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
             Text = GetCategoryEmoji(_category) + " " + _category,
             FontSize = 28,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
         
         // Add Countdown button
         var btnAdd = (new Button
@@ -46,7 +46,7 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
             Text = "+ Add Countdown",
             CornerRadius = 8,
             HeightRequest = 50
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         btnAdd.Clicked += OnAddCountdownClicked;
         mainStack.Children.Add(btnAdd);
         
@@ -97,7 +97,7 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
                 FontSize = 18,
                 FontAttributes = FontAttributes.Bold,
                 Margin = new Thickness(0, 10, 0, 5)
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessButtonBackground, ThemeKey.PageText1, classifyPageText: true));
             
             foreach (var countdown in active)
             {
@@ -131,7 +131,7 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
             BorderColor = countdown.StatusColor,
             CornerRadius = 12,
             Padding = 16
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground);
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.MediaBackground);
         
         var mainGrid = new Grid
         {
@@ -159,7 +159,7 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
             Text = countdown.StatusEmoji + " " + countdown.Name,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1, classifyPageText: true));
         
         // For manual countdowns (active), show count with buttons
         if (countdown.IsManual && countdown.Status == "Active")
@@ -173,7 +173,7 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
                 Padding = new Thickness(8, 4),
                 FontSize = 14,
                 HeightRequest = 36
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btnMinus.Clicked += async (s, e) =>
             {
                 await _countdowns.DecrementManualCountAsync(countdown);
@@ -200,7 +200,7 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
                 Padding = new Thickness(8, 4),
                 FontSize = 14,
                 HeightRequest = 36
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
             btnPlus.Clicked += async (s, e) =>
             {
                 await _countdowns.IncrementManualCountAsync(countdown);
@@ -264,7 +264,7 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
             {
                 Text = $"⏱️ Postponed {countdown.PostponeCount}x ({countdown.TotalDaysPostponed} days total)",
                 FontSize = 11
-            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3, classifyPageText: true));
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true));
         }
         
         // Resolution notes
