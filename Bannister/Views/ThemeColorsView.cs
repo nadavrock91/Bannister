@@ -2,13 +2,20 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-/// <summary>Per-user mode palette editor hosted by Settings.</summary>
+/// <summary>Per-user palette editor; editing a palette never changes the app display mode.</summary>
 internal sealed class ThemeColorsView : ContentView
 {
     private readonly AuthService _auth;
     private readonly AppSettingsService _settings;
     private readonly PrivacyModeService _privacy;
-    private readonly Picker _mode = new() { ItemsSource = new[] { "Private", "Public", "All" } };
+    private readonly Dictionary<ActivityDisplayMode, Button> _modeButtons = new();
+    private readonly Label _modeNote = new() { FontSize = 12 };
+    private readonly Entry _styleRequest = new() { Placeholder = "Optional style request (e.g. calm dark teal, less saturated)", MinimumWidthRequest = 180, HorizontalOptions = LayoutOptions.Fill };
+    private readonly Button _export = new() { Text = "Export for LLM" };
+    private readonly Button _import = new() { Text = "Import from LLM" };
+    private ActivityDisplayMode _selectedMode;
+    private bool _activated;
+    private bool _subscribed;
     private readonly VerticalStackLayout _rows = new() { Spacing = 10 };
     private readonly Frame _preview = new() { Padding = 12, HasShadow = false };
     private readonly Label _status = new() { FontSize = 12 };
@@ -17,17 +24,34 @@ internal sealed class ThemeColorsView : ContentView
     private int _loadVersion;
     private readonly HashSet<string> _collapsed = new(new[] { "Cards", "Inputs", "Rows", "Status", "Buttons", "Highlights", "Brand" });
 
-    private ActivityDisplayMode SelectedMode => _mode.SelectedIndex switch
-    {
-        0 => ActivityDisplayMode.PrivateOnly,
-        1 => ActivityDisplayMode.PublicOnly,
-        _ => ActivityDisplayMode.All
-    };
+    private ActivityDisplayMode SelectedMode => _selectedMode;
 
     public ThemeColorsView(AuthService auth, AppSettingsService settings, PrivacyModeService privacy)
     {
         _auth = auth; _settings = settings; _privacy = privacy;
-        _mode.SelectedIndexChanged += async (_, _) => await LoadAsync();
+        var modeToggle = new Grid
+        {
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) },
+            ColumnSpacing = 4
+        };
+        foreach (var mode in new[] { ActivityDisplayMode.PrivateOnly, ActivityDisplayMode.PublicOnly, ActivityDisplayMode.All })
+        {
+            var button = new Button { Text = ThemeImportExport.ModeName(mode), AutomationId = "EditPalette_" + mode };
+            _modeButtons[mode] = button;
+            button.Clicked += async (_, _) =>
+            {
+                if (SelectedMode == mode) return;
+                _selectedMode = mode;
+                await LoadAsync();
+            };
+            modeToggle.Add(button, mode == ActivityDisplayMode.PrivateOnly ? 0 : mode == ActivityDisplayMode.PublicOnly ? 1 : 2);
+        }
+        _styleRequest.ThemeColor(BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Entry.TextColorProperty, ThemeKey.InputText);
+        _export.Clicked += async (_, _) => await ExportAsync();
+        _import.Clicked += async (_, _) => await ImportAsync();
+        var exchange = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center };
+        foreach (var control in new View[] { _styleRequest, _export, _import }) { control.Margin = 3; exchange.Children.Add(control); }
+        FlexLayout.SetGrow(_styleRequest, 1);
         var resetMode = new Button { Text = "Reset this mode to defaults", FontSize = 12 };
         resetMode.Clicked += async (_, _) => await ResetAsync(false);
         var resetAll = new Button { Text = "Reset all modes", FontSize = 12 };
@@ -42,9 +66,9 @@ internal sealed class ThemeColorsView : ContentView
                 Spacing = 12,
                 Children =
                 {
-                    new Label { Text = "Colors", FontSize = 20, FontAttributes = FontAttributes.Bold },
+                    new Label { Text = "UI Colors", FontSize = 20, FontAttributes = FontAttributes.Bold },
                     new Label { Text = "Choose a mode, then enter #RRGGBB (or #AARRGGBB for opacity) or tap a preset. Changes save immediately.", FontSize = 12 },
-                    _mode, _status, _preview, _rows,
+                    modeToggle, _modeNote, exchange, _status, _preview, _rows,
                     new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, Children = { resetMode, resetAll } }
                 }
             }
@@ -53,25 +77,53 @@ internal sealed class ThemeColorsView : ContentView
 
     public async Task ActivateAsync()
     {
-        int index = _privacy.GetDisplayMode(_auth.CurrentUsername) switch
+        if (!_activated)
         {
-            ActivityDisplayMode.PrivateOnly => 0,
-            ActivityDisplayMode.PublicOnly => 1,
-            _ => 2
-        };
-        if (_mode.SelectedIndex == index) await LoadAsync(); else _mode.SelectedIndex = index;
+            _selectedMode = _privacy.GetDisplayMode(_auth.CurrentUsername);
+            _activated = true;
+        }
+        if (!_subscribed) { PrivacyModeService.ModeChanged += OnModeChanged; _subscribed = true; }
+        await LoadAsync();
+    }
+
+    public void Deactivate()
+    {
+        if (_subscribed) PrivacyModeService.ModeChanged -= OnModeChanged;
+        _subscribed = false;
+    }
+
+    private void OnModeChanged(object? sender, DisplayModeChangedEventArgs args)
+    {
+        if (string.Equals(args.Username, _auth.CurrentUsername, StringComparison.OrdinalIgnoreCase))
+            Dispatcher.Dispatch(UpdateModeNote);
+    }
+
+    private void UpdateModeNote()
+    {
+        var actual = _privacy.GetDisplayMode(_auth.CurrentUsername);
+        _modeNote.IsVisible = actual != SelectedMode;
+        _modeNote.Text = $"Editing {ThemeImportExport.ModeName(SelectedMode)} colors (app is in {ThemeImportExport.ModeName(actual)} mode)";
+        foreach (var (mode, button) in _modeButtons)
+            button.ThemeColor(BackgroundColorProperty, mode == SelectedMode ? ThemeKey.ButtonPrimaryBackground : ThemeKey.NeutralButtonBackground)
+                .ThemeColor(Button.TextColorProperty, mode == SelectedMode ? ThemeKey.ButtonPrimaryText : ThemeKey.NeutralButtonText);
+    }
+
+    private async Task<ModeThemeColors> ReadAsync(ActivityDisplayMode mode)
+    {
+        await _writes.WaitAsync();
+        try { return await ModeTheme.GetAsync(mode, _auth.CurrentUsername, _settings); }
+        finally { _writes.Release(); }
     }
 
     private async Task LoadAsync()
     {
         int version = ++_loadVersion;
         var mode = SelectedMode;
+        UpdateModeNote();
+        _export.IsEnabled = _import.IsEnabled = false;
         try
         {
-            await _writes.WaitAsync();
-            ModeThemeColors colors;
-            try { colors = await ModeTheme.GetAsync(mode, _auth.CurrentUsername, _settings); }
-            finally { _writes.Release(); }
+            ModeThemeColors colors = await ReadAsync(mode);
             if (version != _loadVersion) return;
             _colors.Clear();
             foreach (var token in colors.Tokens) _colors[token.Key] = token.Value;
@@ -95,6 +147,10 @@ internal sealed class ThemeColorsView : ContentView
             _status.Text = _settings.IsReadOnly ? "Colors can be changed on the master device." : "";
         }
         catch (Exception ex) { _status.Text = ex.Message; }
+        finally
+        {
+            if (version == _loadVersion) { _export.IsEnabled = true; _import.IsEnabled = !_settings.IsReadOnly; }
+        }
     }
 
     private View BuildRow(ThemeColorDefinition definition, Color color, ActivityDisplayMode mode)
@@ -117,20 +173,16 @@ internal sealed class ThemeColorsView : ContentView
                 return;
             }
             validation.IsVisible = false;
-            await _writes.WaitAsync();
             try
             {
-                if (_settings.IsReadOnly) throw new InvalidOperationException("Colors can be changed on the master device.");
-                await _settings.SetAsync(_auth.CurrentUsername, ModeTheme.StoragePrefix(mode) + token, hex);
-                _privacy.NotifyThemeChanged(_auth.CurrentUsername);
+                await SaveColorsAsync(mode, new Dictionary<string, string> { [token] = hex });
                 if (mode == SelectedMode)
                 {
-                    _colors[token] = ModeTheme.ParseStoredHex(hex); swatch.Color = _colors[token]; UpdatePreview();
+                    swatch.Color = _colors[token];
                 }
                 _status.Text = "Saved";
             }
             catch (Exception ex) { _status.Text = $"Could not save: {ex.Message}"; }
-            finally { _writes.Release(); }
         };
         var palette = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap };
         palette.IsVisible = !definition.Fixed;
@@ -157,6 +209,92 @@ internal sealed class ThemeColorsView : ContentView
                 new HorizontalStackLayout { Spacing = 8, Children = { swatch, entry } }, palette, validation
             }
         };
+    }
+
+    private async Task<int> SaveColorsAsync(ActivityDisplayMode mode, IReadOnlyDictionary<string, string> values)
+    {
+        var normalized = new Dictionary<string, string>();
+        foreach (var (name, value) in values)
+        {
+            var definition = ThemeImportExport.FindColor(name);
+            if (definition == null || definition.Fixed || definition.Group == "Brand" || !ModeTheme.TryNormalizeHex(value, out string hex))
+                throw new InvalidOperationException($"Cannot save color '{name}'.");
+            normalized[definition.Name] = hex;
+        }
+        int saved = 0;
+        string user = _auth.CurrentUsername;
+        await _writes.WaitAsync();
+        try
+        {
+            foreach (var (name, hex) in normalized)
+            {
+                if (_settings.IsReadOnly) throw new InvalidOperationException("Colors can be changed on the master device.");
+                await _settings.SetAsync(user, ModeTheme.StoragePrefix(mode) + name, hex);
+                saved++;
+                if (mode == SelectedMode) _colors[name] = ModeTheme.ParseStoredHex(hex);
+            }
+            if (mode == SelectedMode) UpdatePreview();
+        }
+        finally
+        {
+            _writes.Release();
+            if (saved > 0) _privacy.NotifyThemeChanged(user);
+        }
+        return saved;
+    }
+
+    private Page HostPage
+    {
+        get
+        {
+            for (Element? node = this; node != null; node = node.Parent) if (node is Page page) return page;
+            throw new InvalidOperationException("UI Colors is not attached to a page.");
+        }
+    }
+
+    private async Task ExportAsync()
+    {
+        var mode = SelectedMode;
+        try
+        {
+            var palette = await ReadAsync(mode);
+            await Clipboard.SetTextAsync(ThemeImportExport.BuildPrompt(mode, palette.Tokens, _styleRequest.Text));
+            _status.Text = $"Copied {ThemeImportExport.ModeName(mode)} palette prompt.";
+        }
+        catch (Exception ex) { await ShowFailureAsync("Could not export colors", ex); }
+    }
+
+    private async Task ImportAsync()
+    {
+        var mode = SelectedMode;
+        try
+        {
+            var paste = new ThemePastePage();
+            await HostPage.Navigation.PushModalAsync(paste);
+            string? text = await paste.Result;
+            if (text == null) return;
+            var current = (await ReadAsync(mode)).Tokens;
+            var parsed = ThemeImportExport.Parse(text, current);
+            var review = new ThemeReviewPage(mode, current, parsed);
+            await HostPage.Navigation.PushModalAsync(review);
+            var selected = await review.Result;
+            if (selected == null || selected.Count == 0) return;
+            int count = await SaveColorsAsync(mode, selected.ToDictionary(c => c.Definition.Name, c => c.NewHex));
+            await LoadAsync();
+            _status.Text = $"Applied {count} {ThemeImportExport.ModeName(mode)} colors.";
+        }
+        catch (Exception ex)
+        {
+            await LoadAsync();
+            await ShowFailureAsync("Could not import colors", ex);
+        }
+    }
+
+    private async Task ShowFailureAsync(string title, Exception exception)
+    {
+        System.Diagnostics.Debug.WriteLine(exception);
+        _status.Text = exception.Message;
+        await HostPage.DisplayAlert(title, exception.Message, "OK");
     }
 
     private async Task ResetAsync(bool allModes)

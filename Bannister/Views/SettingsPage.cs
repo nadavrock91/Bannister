@@ -36,7 +36,6 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
     private Picker _dailyResetPicker = null!;
     private TimePicker _sleepTimePicker = null!;
     private Frame _syncDevicesSection = null!;
-    private ThemeColorsView _themeColors = null!;
 
     public SettingsPage(AuthService auth, DatabaseService db, BackupService backup,
         HomeButtonVisibilityService buttonVisibility,
@@ -104,7 +103,6 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await _themeColors.ActivateAsync();
         _syncDevicesSection.IsVisible = await _ownerMode.IsUnlockedAsync();
         await LoadHomeSettingsAsync();
         if (_dailyResetPicker != null)
@@ -139,8 +137,10 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold
         }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        _themeColors = new ThemeColorsView(_auth, _appSettings, _privacyMode);
-        mainStack.Children.Add(_themeColors);
+        var colorsButton = new Button { Text = "UI Colors", CornerRadius = 8, HeightRequest = 48, FontSize = 16 }
+            .ThemeColor(BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        colorsButton.Clicked += async (_, _) => await Navigation.PushAsync(new UIColorsPage(_auth, _appSettings, _privacyMode));
+        mainStack.Children.Add(colorsButton);
 
         // Account section
         var accountFrame = (new Frame
