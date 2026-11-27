@@ -33,6 +33,7 @@
     <Compile Include="..\Bannister\Models\TimedPopup.cs" Link="Models\TimedPopup.cs" />
     <Compile Include="..\Bannister\Services\DatabaseService.cs" Link="Services\DatabaseService.cs" />
     <Compile Include="..\Bannister\Services\AppSettingsService.cs" Link="Services\AppSettingsService.cs" />
+    <Compile Include="..\Bannister\Services\AppSettingsService.Palettes.cs" Link="Services\AppSettingsService.Palettes.cs" />
     <Compile Include="..\Bannister\Services\ThemeKey.cs" Link="Services\ThemeKey.cs" />
     <Compile Include="..\Bannister\Services\ModeTheme.cs" Link="Services\ModeTheme.cs" />
     <Compile Include="..\Bannister\Services\ThemePaletteMigration.cs" Link="Services\ThemePaletteMigration.cs" />

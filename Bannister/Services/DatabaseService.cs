@@ -504,6 +504,9 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<Companion>();
             await _db!.CreateTableAsync<CompanionDataPoint>();
             await _db!.CreateTableAsync<CompanionInterview>();
+            await _db!.CreateTableAsync<AppSetting>();
+            await _db!.CreateTableAsync<ThemePaletteHistory>();
+            await _db!.CreateTableAsync<ThemeTemplate>();
             await _db!.CreateTableAsync<ResetEnforcer>();
             await _db!.CreateTableAsync<ResetCondition>();
             await _db!.CreateTableAsync<EnforcerLevel>();

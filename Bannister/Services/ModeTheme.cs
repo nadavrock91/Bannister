@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Text.Json;
 
 namespace Bannister.Services;
 
@@ -34,6 +35,47 @@ public sealed record ModeThemeColors(
 
 public static class ModeTheme
 {
+    public static IEnumerable<ThemeColorDefinition> EditableColors => Catalog.Where(c => !c.Fixed && c.Group != "Brand");
+
+    public static Dictionary<string, string> EditableHex(ModeThemeColors colors) =>
+        EditableColors.ToDictionary(c => c.Name, c => ToHex(colors.Tokens[c.Name]));
+
+    public static string PaletteModeName(ActivityDisplayMode mode) => mode switch
+    {
+        ActivityDisplayMode.PrivateOnly => "Private",
+        ActivityDisplayMode.PublicOnly => "Public",
+        _ => "All"
+    };
+
+    public static ActivityDisplayMode ParsePaletteMode(string mode) => mode switch
+    {
+        "Private" => ActivityDisplayMode.PrivateOnly,
+        "Public" => ActivityDisplayMode.PublicOnly,
+        "All" => ActivityDisplayMode.All,
+        _ => throw new InvalidOperationException($"Unknown palette mode '{mode}'.")
+    };
+
+    public static ThemePaletteResolution ResolvePalette(string json, IReadOnlyDictionary<string, string> current)
+    {
+        Dictionary<string, string>? saved;
+        try { saved = JsonSerializer.Deserialize<Dictionary<string, string>>(json); }
+        catch (JsonException ex) { throw new InvalidOperationException("The saved palette is not valid JSON.", ex); }
+        if (saved == null) throw new InvalidOperationException("The saved palette is empty.");
+        var values = new Dictionary<string, string>();
+        var missing = new List<string>();
+        foreach (var definition in EditableColors)
+        {
+            if (saved.TryGetValue(definition.Name, out var value) && TryNormalizeHex(value, out var normalized))
+                values[definition.Name] = ToHex(ParseStoredHex(normalized));
+            else
+            {
+                values[definition.Name] = current[definition.Name];
+                missing.Add(definition.Name);
+            }
+        }
+        return new(values, missing);
+    }
+
     // UI: new Label { Text = "..." }.ThemeColor(Label.TextColorProperty, ThemeKey.CardText2).
     // The optional pageKey handles builders shared by page canvases and cards. Bindings update live.
     // Drawing/computed/API colors: AppColors.Get(ThemeKey.X); string-only APIs: AppColors.Hex(ThemeKey.X).

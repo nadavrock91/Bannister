@@ -12,7 +12,7 @@ public sealed class AppSetting
     public string Value { get; set; } = "";
 }
 
-public class AppSettingsService
+public partial class AppSettingsService
 {
     private readonly DatabaseService _db;
     private bool _initialized;
@@ -24,7 +24,11 @@ public class AppSettingsService
         if (_initialized) return;
         var conn = await _db.GetConnectionAsync();
         if (!_db.IsReadOnly)
+        {
             await conn.CreateTableAsync<AppSetting>();
+            await conn.CreateTableAsync<ThemePaletteHistory>();
+            await conn.CreateTableAsync<ThemeTemplate>();
+        }
         _initialized = true;
     }
 
@@ -91,6 +95,7 @@ public class AppSettingsService
             var values = rows.OrderBy(x => x.Id).GroupBy(x => x.Key).ToDictionary(g => g.Key, g => g.Last().Value);
             report = ReadReport(values.GetValueOrDefault(ThemePaletteMigration.ReportKey));
             var plan = ThemePaletteMigration.Plan(values);
+            EnsureStartingPoints(db, username, plan.Values);
             if (plan.RetiredKeys.Count == 0) return;
             foreach (var (key, value) in plan.Updates)
                 db.Insert(new AppSetting { Username = username, Key = key, Value = value });
@@ -101,6 +106,10 @@ public class AppSettingsService
             string json = JsonSerializer.Serialize(report);
             if (saved == null) db.Insert(new AppSetting { Username = username, Key = ThemePaletteMigration.ReportKey, Value = json });
             else { saved.Value = json; db.Update(saved); }
+            foreach (var mode in PaletteModes)
+                if (plan.RetiredKeys.Any(key => key.StartsWith(ModeTheme.StoragePrefix(mode), StringComparison.Ordinal)))
+                    RecordPaletteHistory(db, username, mode, PaletteSnapshot(mode, plan.Values), "Migration",
+                        "Consolidated retired color names; details are in the catalog migration report.");
         });
         return report;
     }

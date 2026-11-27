@@ -50,6 +50,32 @@ internal sealed class ThemeColorsView : ContentView
         _styleRequest.ThemeColor(BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Entry.TextColorProperty, ThemeKey.InputText);
         _export.Clicked += async (_, _) => await ExportAsync();
         _import.Clicked += async (_, _) => await ImportAsync();
+        var history = new Button { Text = "History" };
+        history.Clicked += async (_, _) =>
+        {
+            var mode = SelectedMode;
+            try
+            {
+                await ReadAsync(mode); // Finish queued manual edits before taking the library's current snapshot.
+                await HostPage.Navigation.PushAsync(new ThemePaletteHistoryPage(_auth, _settings, _privacy, mode));
+            }
+            catch (Exception ex) { await ShowFailureAsync("Could not open history", ex); }
+        };
+        var saveTemplate = new Button { Text = "Save as template", IsEnabled = !_settings.IsReadOnly };
+        saveTemplate.Clicked += async (_, _) => await SaveTemplateAsync();
+        var templates = new Button { Text = "Templates" };
+        templates.Clicked += async (_, _) =>
+        {
+            var mode = SelectedMode;
+            try
+            {
+                await ReadAsync(mode);
+                await HostPage.Navigation.PushAsync(new ThemeTemplatesPage(_auth, _settings, _privacy, mode, _styleRequest.Text));
+            }
+            catch (Exception ex) { await ShowFailureAsync("Could not open templates", ex); }
+        };
+        var library = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, Children = { history, saveTemplate, templates } };
+        foreach (var control in library.Children.OfType<View>()) control.Margin = 3;
         var exchange = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center };
         foreach (var control in new View[] { _styleRequest, _export, _import }) { control.Margin = 3; exchange.Children.Add(control); }
         FlexLayout.SetGrow(_styleRequest, 1);
@@ -69,7 +95,7 @@ internal sealed class ThemeColorsView : ContentView
                 {
                     new Label { Text = "UI Colors", FontSize = 20, FontAttributes = FontAttributes.Bold },
                     new Label { Text = "Choose a mode, then enter #RRGGBB (or #AARRGGBB for opacity). Tap a swatch to open presets. Changes save immediately.", FontSize = 12 },
-                    modeToggle, _modeNote, exchange, _status, _migration, _preview, _rows,
+                    modeToggle, _modeNote, exchange, library, _status, _migration, _preview, _rows,
                     new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, Children = { resetMode, resetAll } }
                 }
             }
@@ -250,7 +276,7 @@ internal sealed class ThemeColorsView : ContentView
         _migration.Children.Add(details);
     }
 
-    private async Task<int> SaveColorsAsync(ActivityDisplayMode mode, IReadOnlyDictionary<string, string> values)
+    private async Task<int> SaveColorsAsync(ActivityDisplayMode mode, IReadOnlyDictionary<string, string> values, string source = "Manual edit")
     {
         var normalized = new Dictionary<string, string>();
         foreach (var (name, value) in values)
@@ -265,13 +291,10 @@ internal sealed class ThemeColorsView : ContentView
         await _writes.WaitAsync();
         try
         {
-            foreach (var (name, hex) in normalized)
-            {
-                if (_settings.IsReadOnly) throw new InvalidOperationException("Colors can be changed on the master device.");
-                await _settings.SetAsync(user, ModeTheme.StoragePrefix(mode) + name, hex);
-                saved++;
-                if (mode == SelectedMode) _colors[name] = ModeTheme.ParseStoredHex(hex);
-            }
+            var result = await _settings.SaveThemePaletteAsync(user, mode, normalized, source);
+            saved = result.ChangedCount;
+            if (mode == SelectedMode)
+                foreach (var (name, hex) in result.Values) _colors[name] = ModeTheme.ParseStoredHex(hex);
             if (mode == SelectedMode) UpdatePreview();
         }
         finally
@@ -318,7 +341,7 @@ internal sealed class ThemeColorsView : ContentView
             await HostPage.Navigation.PushModalAsync(review);
             var selected = await review.Result;
             if (selected == null || selected.Count == 0) return;
-            int count = await SaveColorsAsync(mode, selected.ToDictionary(c => c.Definition.Name, c => c.NewHex));
+            int count = await SaveColorsAsync(mode, selected.ToDictionary(c => c.Definition.Name, c => c.NewHex), "LLM import");
             await LoadAsync();
             _status.Text = $"Applied {count} {ThemeImportExport.ModeName(mode)} colors.";
         }
@@ -342,13 +365,34 @@ internal sealed class ThemeColorsView : ContentView
         await _writes.WaitAsync();
         try
         {
-            await _settings.DeleteByPrefixAsync(_auth.CurrentUsername, allModes ? "theme_" : ModeTheme.StoragePrefix(mode));
+            await _settings.ResetThemePalettesAsync(_auth.CurrentUsername, allModes
+                ? new[] { ActivityDisplayMode.PrivateOnly, ActivityDisplayMode.PublicOnly, ActivityDisplayMode.All }
+                : new[] { mode });
             _privacy.NotifyThemeChanged(_auth.CurrentUsername);
         }
         catch (Exception ex) { _status.Text = ex.Message; return; }
         finally { _writes.Release(); }
         await LoadAsync();
         _status.Text = allModes ? "All modes reset to defaults." : "Mode reset to defaults.";
+    }
+
+    private async Task SaveTemplateAsync()
+    {
+        var mode = SelectedMode;
+        try
+        {
+            string? name = await HostPage.DisplayPromptAsync("Save as template", "Template name", "Save", "Cancel");
+            if (string.IsNullOrWhiteSpace(name)) return;
+            name = name.Trim();
+            bool exists = (await _settings.GetThemeTemplatesAsync(_auth.CurrentUsername))
+                .Any(t => !t.IsBuiltIn && string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (exists && !await HostPage.DisplayAlert("Overwrite template?", $"Replace the saved palette in '{name}'?", "Overwrite", "Cancel")) return;
+            await _writes.WaitAsync();
+            try { await _settings.SaveThemeTemplateAsync(_auth.CurrentUsername, name, mode, overwrite: exists); }
+            finally { _writes.Release(); }
+            _status.Text = $"Saved template '{name}'.";
+        }
+        catch (Exception ex) { await ShowFailureAsync("Could not save template", ex); }
     }
 
     private void UpdatePreview()
