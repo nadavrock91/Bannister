@@ -701,7 +701,7 @@ public class CompanionService
         try
         {
             var ideaResult = await LogNewContextPointsAsync(
-                username, companion, scopeLabel, updatedPoints, null);
+                username, companion, scopeLabel, updatedPoints, null, ideaCreatedAt: DateTime.Now);
             ideasLogged = ideaResult.Logged;
             ideaLoggingFailures = ideaResult.Failures;
         }
@@ -721,7 +721,8 @@ public class CompanionService
         Companion companion,
         string scopeLabel,
         IReadOnlyList<CompanionDataPoint> points,
-        CompanionInterview? interview)
+        CompanionInterview? interview,
+        DateTime? ideaCreatedAt = null)
     {
         if (points.Count == 0) return new(0, 0);
 
@@ -730,7 +731,8 @@ public class CompanionService
         {
             string sourceLine = await GetContextPointSourceLineAsync(point, interview);
             entries.Add((point, BuildContextPointIdeaRequest(
-                username, companion, scopeLabel, point, sourceLine, includeCreatedAt: true)));
+                username, companion, scopeLabel, point, sourceLine,
+                ideaCreatedAt ?? point.CreatedAt.ToLocalTime())));
         }
 
         var batch = await _ideaLogger.LogBatchSilentAsync(entries.Select(x => x.Request));
@@ -781,7 +783,7 @@ public class CompanionService
         string scopeLabel,
         CompanionDataPoint point,
         string sourceLine,
-        bool includeCreatedAt)
+        DateTime createdAt)
     {
         string text = point.Text.Trim();
         string title = text.Length <= 80 ? text : text[..79].TrimEnd() + "…";
@@ -794,7 +796,7 @@ public class CompanionService
             Category = IdeasService.CompanionContextPointCategory,
             Subcategory = companion.Nickname,
             Rating = point.Priority * 20,
-            CreatedAt = includeCreatedAt ? point.CreatedAt.ToLocalTime() : null,
+            CreatedAt = createdAt,
             IsLlmSource = true
         };
     }
