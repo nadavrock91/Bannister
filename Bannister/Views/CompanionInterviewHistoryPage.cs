@@ -48,6 +48,22 @@ public sealed class CompanionInterviewHistoryPage : Bannister.Views.ModeThemedPa
         {
             var interviews = await _service.GetInterviewsAsync(_username, _companion.Id);
             _content.Children.Clear();
+            var headerText = new VerticalStackLayout
+            {
+                Spacing = 2,
+                VerticalOptions = LayoutOptions.Center,
+                Children =
+                {
+                    (new Label { Text = _companion.Nickname, FontSize = 22, FontAttributes = FontAttributes.Bold })
+                        .ThemeColor(Label.TextColorProperty, ThemeKey.PageText1),
+                    (new Label { Text = "Interview History", FontSize = 13 })
+                        .ThemeColor(Label.TextColorProperty, ThemeKey.PageText2)
+                }
+            };
+            var header = new HorizontalStackLayout { Spacing = 12 };
+            header.Children.Add(CompanionAvatarPresentation.Create(_companion, 64));
+            header.Children.Add(headerText);
+            _content.Children.Add(header);
             if (interviews.Count == 0)
             {
                 _content.Children.Add((new Label

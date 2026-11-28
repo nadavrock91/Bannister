@@ -18,6 +18,7 @@ public class Companion
     public int SortOrder { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string? AvatarPath { get; set; }
+    public byte[]? AvatarImage { get; set; }
 }
 
 [Table("companion_data_points")]

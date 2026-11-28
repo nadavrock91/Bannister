@@ -413,7 +413,7 @@ public class HomePage : Bannister.Views.ModeThemedPage
         _btnConversationPractice.Clicked += OnConversationPracticeClicked;
         navButtons.Add(("Conversation Practice", _btnConversationPractice));
 
-        _btnCompanions = CreateButton("Companions", ThemeKey.HighlightIndigo, ThemeKey.HighlightVioletText);
+        _btnCompanions = CreateButton("The Context Game", ThemeKey.HighlightIndigo, ThemeKey.HighlightVioletText);
         _btnCompanions.Clicked += OnCompanionsClicked;
         navButtons.Add(("Companions", _btnCompanions));
 

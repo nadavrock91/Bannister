@@ -85,7 +85,9 @@ public class PageVisibilityPage : Bannister.Views.ModeThemedPage
 
             row.Add((new Label
             {
-                Text = setting.ButtonId,
+                Text = setting.ButtonId.Equals("Companions", StringComparison.OrdinalIgnoreCase)
+                    ? "The Context Game"
+                    : setting.ButtonId,
                 FontSize = 14,
                 VerticalOptions = LayoutOptions.Center
             }).ThemeColor(Label.TextColorProperty, isSettingsBtn ? ThemeKey.CardText3 : ThemeKey.CardText1, ThemeKey.PageText2, classifyPageText: true), 0, 0);

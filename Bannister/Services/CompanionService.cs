@@ -27,6 +27,12 @@ public sealed record CompanionRephraseParseResult(
     IReadOnlyList<string> Warnings,
     int RecognizedAssignmentCount);
 public sealed record CompanionRephraseApplyResult(int Updated, int Skipped, int IdeasLogged, int IdeaLoggingFailures);
+public sealed record ContextGameMigrationResult(
+    Companion Persona,
+    int MergedPersonas,
+    int ReassignedPoints,
+    int ReassignedInterviews,
+    bool CreatedPersona);
 
 public sealed class CompanionExtraction
 {
@@ -58,19 +64,67 @@ public class CompanionService
             .OrderBy(x => x.SortOrder).ThenBy(x => x.Id).ToListAsync();
     }
 
-    public async Task<Companion> EnsureMetaAsync(string username)
+    public async Task<ContextGameMigrationResult> EnsureSinglePersonaAsync(string username)
     {
         var items = await GetCompanionsAsync(username);
-        var meta = items.FirstOrDefault(x => x.Scope == "meta");
-        if (meta != null) return meta;
-        meta = new Companion
+        if (items.Count == 0)
         {
-            Username = username, Nickname = "Meta", Scope = "meta",
-            InterviewStance = "get to know the user", SortOrder = items.Count,
-            DefaultQuestionCount = 10
-        };
-        await SaveCompanionAsync(meta);
-        return meta;
+            var created = new Companion
+            {
+                Username = username,
+                Nickname = "Morpheus",
+                Scope = "meta",
+                InterviewStance = "get to know the user across all of Bannister",
+                SortOrder = 0,
+                DefaultQuestionCount = 10
+            };
+            await SaveCompanionAsync(created);
+            return new ContextGameMigrationResult(created, 0, 0, 0, true);
+        }
+
+        var persona = items.OrderBy(x => x.CreatedAt).ThenBy(x => x.Id).First();
+        var redundant = items.Where(x => x.Id != persona.Id).ToList();
+        int reassignedPoints = 0;
+        int reassignedInterviews = 0;
+        var conn = await ConnectionAsync();
+
+        foreach (var extra in redundant)
+        {
+            reassignedPoints += await conn.Table<CompanionDataPoint>()
+                .Where(x => x.Username == username && x.CompanionId == extra.Id)
+                .CountAsync();
+            reassignedInterviews += await conn.Table<CompanionInterview>()
+                .Where(x => x.Username == username && x.CompanionId == extra.Id)
+                .CountAsync();
+        }
+
+        bool personaNeedsUpdate = persona.Scope != "meta" || persona.GameId != null ||
+            !string.IsNullOrWhiteSpace(persona.Topic) || persona.SortOrder != 0;
+        if (redundant.Count > 0 || personaNeedsUpdate)
+        {
+            await conn.RunInTransactionAsync(db =>
+            {
+                foreach (var extra in redundant)
+                {
+                    db.Execute(
+                        "UPDATE companion_data_points SET CompanionId = ? WHERE Username = ? AND CompanionId = ?",
+                        persona.Id, username, extra.Id);
+                    db.Execute(
+                        "UPDATE companion_interviews SET CompanionId = ? WHERE Username = ? AND CompanionId = ?",
+                        persona.Id, username, extra.Id);
+                    db.Delete(extra);
+                }
+
+                persona.Scope = "meta";
+                persona.GameId = null;
+                persona.Topic = "";
+                persona.SortOrder = 0;
+                db.Update(persona);
+            });
+        }
+
+        return new ContextGameMigrationResult(
+            persona, redundant.Count, reassignedPoints, reassignedInterviews, false);
     }
 
     public async Task SaveCompanionAsync(Companion item)
@@ -262,7 +316,7 @@ public class CompanionService
     private static string BuildInterviewIdeaBody(Companion companion, CompanionInterview interview, string scopeLabel, DateTime startedAt)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Companion: {companion.Nickname}");
+        sb.AppendLine($"Context Game persona: {companion.Nickname}");
         sb.AppendLine($"Scope: {scopeLabel}");
         sb.AppendLine($"Questions: {interview.QuestionCount}");
         sb.AppendLine($"Date: {startedAt:yyyy-MM-dd HH:mm}");
@@ -302,30 +356,11 @@ public class CompanionService
         sb.AppendLine("If I say \"stop\" at any point, end the same way immediately.");
         sb.AppendLine();
         sb.AppendLine("WHAT THE USER HAS TOLD YOU ABOUT THEMSELVES (in their own words):");
-        if (companion.Scope == "meta")
-        {
-            var companions = await GetCompanionsAsync(username);
-            bool any = false;
-            foreach (var source in companions)
-            {
-                var allPoints = await GetPointsAsync(username, source.Id);
-                var points = allPoints.Where(x => IsVisibleInDisplayMode(x, gamesById, displayMode)).ToList();
-                omitted += allPoints.Count - points.Count;
-                if (points.Count == 0) continue;
-                any = true;
-                sb.AppendLine($"[{source.Nickname}]");
-                foreach (var point in points) sb.AppendLine($"- (Priority {point.Priority}) {point.Text}");
-            }
-            if (!any) sb.AppendLine("- Nothing yet.");
-        }
-        else
-        {
-            var allPoints = await GetPointsAsync(username, companion.Id);
-            var points = allPoints.Where(x => IsVisibleInDisplayMode(x, gamesById, displayMode)).ToList();
-            omitted = allPoints.Count - points.Count;
-            if (points.Count == 0) sb.AppendLine("- Nothing yet.");
-            foreach (var point in points) sb.AppendLine($"- (Priority {point.Priority}) {point.Text}");
-        }
+        var allPoints = await GetPointsAsync(username, companion.Id);
+        var points = allPoints.Where(x => IsVisibleInDisplayMode(x, gamesById, displayMode)).ToList();
+        omitted = allPoints.Count - points.Count;
+        if (points.Count == 0) sb.AppendLine("- Nothing yet.");
+        foreach (var point in points) sb.AppendLine($"- (Priority {point.Priority}) {point.Text}");
         sb.AppendLine();
         sb.AppendLine("Begin the interview now with your first question.");
         return new CompanionPromptResult(sb.ToString(), omitted);
@@ -338,7 +373,7 @@ public class CompanionService
         IReadOnlyList<Game> games)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"You are extracting durable knowledge for the companion {companion.Nickname} from an interview transcript.");
+        sb.AppendLine($"You are extracting durable knowledge for the Bannister Context Game persona {companion.Nickname} from an interview transcript.");
         sb.AppendLine("Extract only useful facts, preferences, motivations, constraints, patterns, goals, or corrections. Avoid duplicates and temporary conversational details.");
         sb.AppendLine();
         sb.AppendLine("FIRST-PERSON WRITING RULES:");
@@ -383,8 +418,8 @@ public class CompanionService
         string instruction)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("Rephrase these Bannister Companion data points.");
-        sb.AppendLine($"Companion: {companion.Nickname}");
+        sb.AppendLine("Rephrase these Bannister Context Game data points.");
+        sb.AppendLine($"Context Game persona: {companion.Nickname}");
         sb.AppendLine($"Instruction: {instruction.Trim()}");
         sb.AppendLine();
         sb.AppendLine("Apply the instruction to the text only. Keep each point's meaning unless the instruction explicitly asks you to change it.");
@@ -787,7 +822,7 @@ public class CompanionService
     {
         string text = point.Text.Trim();
         string title = text.Length <= 80 ? text : text[..79].TrimEnd() + "…";
-        string body = $"{text}\n\nPriority: {point.Priority}\nCompanion: {companion.Nickname} ({scopeLabel})\n{sourceLine}";
+        string body = $"{text}\n\nPriority: {point.Priority}\nContext Game persona: {companion.Nickname} ({scopeLabel})\n{sourceLine}";
         return new IdeaLogRequest
         {
             Username = username,

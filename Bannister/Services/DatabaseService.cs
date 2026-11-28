@@ -600,6 +600,7 @@ namespace Bannister.Services
             try { await _db!.ExecuteAsync("ALTER TABLE companion_data_points ADD COLUMN GameId TEXT NULL"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE companion_data_points ADD COLUMN Category TEXT NULL"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE companion_data_points ADD COLUMN VisibilityOverride INTEGER NULL"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE companions ADD COLUMN AvatarImage BLOB NULL"); } catch { }
 
             System.Diagnostics.Debug.WriteLine("✓ All Bannister tables created/verified");
         }

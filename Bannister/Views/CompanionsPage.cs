@@ -1,5 +1,6 @@
 using Bannister.Models;
 using Bannister.Services;
+using SkiaSharp;
 
 namespace Bannister.Views;
 
@@ -21,7 +22,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
     public CompanionsPage(AuthService auth, CompanionService service, GameService games, PrivacyModeService privacyMode)
     {
         _auth = auth; _service = service; _games = games; _privacyMode = privacyMode;
-        Title = "Companions";
+        Title = "The Context Game";
 
         Content = new ScrollView { Content = _content };
     }
@@ -29,99 +30,80 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await _service.EnsureMetaAsync(_auth.CurrentUsername);
+        var migration = await _service.EnsureSinglePersonaAsync(_auth.CurrentUsername);
+        _selected = migration.Persona;
+        if (migration.MergedPersonas > 0)
+        {
+            await DisplayAlert(
+                "The Context Game Updated",
+                $"Kept {migration.Persona.Nickname} as your persona and merged {migration.MergedPersonas} other persona record{(migration.MergedPersonas == 1 ? "" : "s")}. Reassigned {migration.ReassignedPoints} data point{(migration.ReassignedPoints == 1 ? "" : "s")} and {migration.ReassignedInterviews} interview{(migration.ReassignedInterviews == 1 ? "" : "s")}.",
+                "OK");
+        }
         await RefreshAsync();
     }
 
     private async Task RefreshAsync()
     {
         _content.Children.Clear();
-        if (_selected == null) await BuildListAsync(); else await BuildDetailAsync();
-    }
-
-    private async Task BuildListAsync()
-    {
-        _content.Children.Add(PageHeading("Companions", 24));
-        _content.Children.Add((new Label { Text = "LLM companions that learn durable context about you through interviews.", FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1));
-        var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
-        var add = Button("+ Add Companion", ThemeKey.SecondaryButtonBackground, ThemeKey.ButtonPrimaryText);
-        add.Clicked += async (_, _) =>
-        {
-            var games = GamesForDisplayMode(await GetAllGamesAsync(), displayMode);
-            var item = await CompanionEditPage.ShowAsync(Navigation, null, games, _auth.CurrentUsername);
-            if (item == null) return;
-            item.SortOrder = (await _service.GetCompanionsAsync(_auth.CurrentUsername)).Count;
-            await _service.SaveCompanionAsync(item); await RefreshAsync();
-        };
-        _content.Children.Add(add);
-        var companions = await _service.GetCompanionsAsync(_auth.CurrentUsername);
-        var games = await GetAllGamesAsync();
-        var gamesById = games.ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
-        foreach (var companion in companions)
-        {
-            var points = (await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id))
-                .Where(x => CompanionService.IsVisibleInDisplayMode(x, gamesById, displayMode))
-                .ToList();
-            string scope = ScopeLabel(companion, gamesById);
-            var stack = new VerticalStackLayout { Spacing = 4 };
-            stack.Children.Add(Heading(companion.Nickname, 17));
-            stack.Children.Add((new Label { Text = $"{scope} · {points.Count} active data point{(points.Count == 1 ? "" : "s")}", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
-            var actions = new HorizontalStackLayout { Spacing = 6 };
-            var edit = Button("Edit", ThemeKey.WarningBackground, ThemeKey.WarningText);
-            edit.Clicked += async (_, _) =>
-            {
-                var editGames = GamesForDisplayMode(games, displayMode, companion.GameId);
-                var edited = await CompanionEditPage.ShowAsync(Navigation, companion, editGames, _auth.CurrentUsername);
-                if (edited == null) return; await _service.SaveCompanionAsync(edited); await RefreshAsync();
-            };
-            actions.Children.Add(edit);
-            if (companion.Scope != "meta")
-            {
-                var delete = Button("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
-                delete.Clicked += async (_, _) =>
-                {
-                    if (!await DisplayAlert("Delete Companion", $"Delete {companion.Nickname} and all of its data points and interviews?", "Delete", "Cancel")) return;
-                    await _service.DeleteCompanionAsync(companion); await RefreshAsync();
-                };
-                actions.Children.Add(delete);
-            }
-            stack.Children.Add(actions);
-            var card = Card(stack);
-            var openTap = new TapGestureRecognizer();
-            openTap.Tapped += async (_, _) => await OpenCompanionAsync(companion);
-            card.GestureRecognizers.Add(openTap);
-            _content.Children.Add(card);
-        }
-    }
-
-    private async Task OpenCompanionAsync(Companion companion)
-    {
-        _selected = companion; _selectedInterview = null;
-        _pointGameFilter = null; _pointCategoryFilter = null;
-        _pointGameFilterIsNoGame = false; _pointCategoryFilterIsNoCategory = false;
-        await RefreshAsync();
+        if (_selected != null) await BuildDetailAsync();
     }
 
     private async Task BuildDetailAsync()
     {
         var companion = _selected!;
-        var back = Button("← All Companions", ThemeKey.NeutralButtonBackground, ThemeKey.NeutralButtonText);
-        back.Clicked += async (_, _) => { _selected = null; _selectedInterview = null; await RefreshAsync(); };
-        _content.Children.Add(back);
-        _content.Children.Add(PageHeading(companion.Nickname, 24));
+        _content.Children.Add(PageHeading("The Context Game", 24));
+        _content.Children.Add((new Label
+        {
+            Text = "Build the context AI needs to really know you.",
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText2));
+        var personaText = new VerticalStackLayout
+        {
+            Spacing = 2,
+            VerticalOptions = LayoutOptions.Center,
+            Children =
+            {
+                PageHeading(companion.Nickname, 24),
+                (new Label { Text = "All of Bannister", FontSize = 13 })
+                    .ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText2)
+            }
+        };
+        var personaHeader = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 12
+        };
+        personaHeader.Add(CompanionAvatarPresentation.Create(companion, 72), 0);
+        personaHeader.Add(personaText, 1);
+        var editPersona = Button("Edit", ThemeKey.WarningBackground, ThemeKey.WarningText);
+        editPersona.VerticalOptions = LayoutOptions.Center;
+        editPersona.Clicked += async (_, _) =>
+        {
+            var edited = await CompanionEditPage.ShowAsync(Navigation, companion);
+            if (edited == null) return;
+            await _service.SaveCompanionAsync(edited);
+            _selected = edited;
+            await RefreshAsync();
+        };
+        personaHeader.Add(editPersona, 2);
+        _content.Children.Add(personaHeader);
         var allGames = await GetAllGamesAsync();
         var gamesById = allGames.ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
         var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
         var games = GamesForDisplayMode(allGames, displayMode);
-        string scopeLabel = ScopeLabel(companion, gamesById);
-        _content.Children.Add((new Label { Text = scopeLabel, FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1));
+        const string scopeLabel = "All of Bannister";
 
         var interviews = await _service.GetInterviewsAsync(_auth.CurrentUsername, companion.Id);
         if (_selectedInterview != null)
             _selectedInterview = interviews.FirstOrDefault(x => x.Id == _selectedInterview.Id);
         var interviewActions = new HorizontalStackLayout { Spacing = 8 };
         var start = Button("Start Interview", ThemeKey.SecondaryButtonBackground, ThemeKey.ButtonPrimaryText);
-        start.Clicked += async (_, _) => await StartInterviewAsync(companion, allGames, gamesById);
+        start.Clicked += async (_, _) => await StartInterviewAsync(companion, allGames);
         interviewActions.Children.Add(start);
         var history = Button($"Interview History ({interviews.Count})", ThemeKey.NeutralButtonBackground, ThemeKey.NeutralButtonText);
         history.Clicked += async (_, _) => await Navigation.PushAsync(new CompanionInterviewHistoryPage(
@@ -415,7 +397,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         await RefreshAsync();
     }
 
-    private async Task StartInterviewAsync(Companion companion, List<Game> games, Dictionary<string, Game> gamesById)
+    private async Task StartInterviewAsync(Companion companion, List<Game> games)
     {
         var value = await DisplayPromptAsync("Start Interview", "Number of questions", "Copy Prompt", "Cancel", keyboard: Keyboard.Numeric, initialValue: companion.DefaultQuestionCount.ToString());
         if (value == null) return;
@@ -427,7 +409,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         var interview = new CompanionInterview { Username = _auth.CurrentUsername, CompanionId = companion.Id, QuestionCount = questionCount, StartedAt = DateTime.UtcNow };
         await _service.SaveInterviewAsync(interview);
         var prompt = await _service.BuildInterviewPromptAsync(
-            _auth.CurrentUsername, companion, questionCount, ScopeLabel(companion, gamesById), games,
+            _auth.CurrentUsername, companion, questionCount, "All of Bannister", games,
             _privacyMode.GetDisplayMode(_auth.CurrentUsername));
         await Clipboard.SetTextAsync(prompt.Prompt);
         _selectedInterview = interview;
@@ -633,13 +615,6 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             await DisplayAlert("Idea Logging Warning", "The interview was saved, but it could not be logged on the Ideas page.", "OK");
         }
     }
-
-    private static string ScopeLabel(Companion item, IReadOnlyDictionary<string, Game> games) => item.Scope switch
-    {
-        "meta" => "Meta · all of Bannister",
-        "game" => item.GameId != null && games.TryGetValue(item.GameId, out var game) ? $"Game · {game.DisplayName}" : $"Game · {item.GameId ?? "not selected"}",
-        _ => $"Custom · {(string.IsNullOrWhiteSpace(item.Topic) ? "No topic" : item.Topic)}"
-    };
 
     private static string VisibilityName(int visibility) => visibility switch
     {
@@ -956,36 +931,128 @@ internal sealed class CompanionDataPointEditPage : ContentPage
 internal sealed class CompanionEditPage : ContentPage
 {
     private readonly TaskCompletionSource<Companion?> _completion = new();
-    private CompanionEditPage(Companion? source, List<Game> games, string username)
+    private CompanionEditPage(Companion item)
     {
-        Title = source == null ? "Add Companion" : "Edit Companion";
-        var item = source == null ? new Companion { Username = username } : source;
-        var scope = new Picker { Title = "Scope", ItemsSource = new[] { "game", "custom" }, SelectedItem = item.Scope == "game" ? "game" : "custom", IsEnabled = item.Scope != "meta" };
-        var game = new Picker { Title = "Game", ItemsSource = games, ItemDisplayBinding = new Binding(nameof(Game.DisplayName)), SelectedItem = games.FirstOrDefault(x => x.GameId == item.GameId) };
-        var topic = new Entry { Placeholder = "Custom topic", Text = item.Topic };
-        var nickname = new Entry { Placeholder = "Nickname", Text = item.Nickname };
-        var persona = new Editor { Placeholder = "Persona description", Text = item.PersonaDescription, HeightRequest = 90 };
-        var stance = new Editor { Placeholder = "Interview stance", Text = item.InterviewStance, HeightRequest = 90 };
-        var questionCount = new Entry { Placeholder = "Number of questions", Text = item.DefaultQuestionCount.ToString(), Keyboard = Keyboard.Numeric };
-        void UpdateScope() { bool meta = item.Scope == "meta"; string selected = meta ? "meta" : scope.SelectedItem?.ToString() ?? "custom"; game.IsVisible = selected == "game"; topic.IsVisible = selected == "custom"; }
-        scope.SelectedIndexChanged += (_, _) => UpdateScope(); UpdateScope();
+        Title = "Edit Context Game Persona";
+        byte[]? pendingImage = item.AvatarImage;
+        var nickname = (new Entry { Placeholder = "Name", Text = item.Nickname })
+            .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground)
+            .ThemeColor(Entry.TextColorProperty, ThemeKey.InputText);
+        var persona = (new Editor { Placeholder = "Persona description", Text = item.PersonaDescription, HeightRequest = 90 })
+            .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground)
+            .ThemeColor(Editor.TextColorProperty, ThemeKey.InputText);
+        var stance = (new Editor { Placeholder = "Interview stance", Text = item.InterviewStance, HeightRequest = 90 })
+            .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground)
+            .ThemeColor(Editor.TextColorProperty, ThemeKey.InputText);
+        var questionCount = (new Entry { Placeholder = "Number of questions", Text = item.DefaultQuestionCount.ToString(), Keyboard = Keyboard.Numeric })
+            .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground)
+            .ThemeColor(Entry.TextColorProperty, ThemeKey.InputText);
+        var avatarHost = new ContentView
+        {
+            Content = CompanionAvatarPresentation.Create(item, 112),
+            HorizontalOptions = LayoutOptions.Start
+        };
+        void RefreshAvatar()
+        {
+            var preview = new Companion { Nickname = nickname.Text ?? item.Nickname, AvatarImage = pendingImage };
+            avatarHost.Content = CompanionAvatarPresentation.Create(preview, 112);
+        }
+        nickname.TextChanged += (_, _) => { if (pendingImage is not { Length: > 0 }) RefreshAvatar(); };
+        var replaceImage = (new Button { Text = pendingImage is { Length: > 0 } ? "Replace Image" : "Choose Image" })
+            .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground)
+            .ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
+        var removeImage = (new Button { Text = "Remove Image", IsEnabled = pendingImage is { Length: > 0 } })
+            .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground)
+            .ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
+        replaceImage.Clicked += async (_, _) =>
+        {
+            try
+            {
+                var picked = await FilePicker.Default.PickAsync(new PickOptions
+                {
+                    PickerTitle = "Choose persona image",
+                    FileTypes = FilePickerFileType.Images
+                });
+                if (picked == null) return;
+                string extension = Path.GetExtension(picked.FileName).ToLowerInvariant();
+                if (extension is not (".png" or ".jpg" or ".jpeg" or ".webp"))
+                {
+                    await DisplayAlert("Unsupported Image", "Choose a PNG, JPG, or WebP image.", "OK");
+                    return;
+                }
+                await using var stream = await picked.OpenReadAsync();
+                pendingImage = ResizeImage(stream);
+                replaceImage.Text = "Replace Image";
+                removeImage.IsEnabled = true;
+                RefreshAvatar();
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Image Could Not Be Loaded", ex.Message, "OK");
+            }
+        };
+        removeImage.Clicked += (_, _) =>
+        {
+            pendingImage = null;
+            replaceImage.Text = "Choose Image";
+            removeImage.IsEnabled = false;
+            RefreshAvatar();
+        };
         var save = (new Button { Text = "Save" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         save.Clicked += async (_, _) =>
         {
-            if (string.IsNullOrWhiteSpace(nickname.Text)) { await DisplayAlert("Nickname Required", "Enter a nickname.", "OK"); return; }
+            if (string.IsNullOrWhiteSpace(nickname.Text)) { await DisplayAlert("Name Required", "Enter a persona name.", "OK"); return; }
             if (!int.TryParse(questionCount.Text, out int questions) || questions is < 1 or > 50) { await DisplayAlert("Invalid Number of Questions", "Enter a whole number from 1 to 50.", "OK"); return; }
-            string selectedScope = item.Scope == "meta" ? "meta" : scope.SelectedItem?.ToString() ?? "custom";
-            if (selectedScope == "game" && game.SelectedItem is not Game) { await DisplayAlert("Game Required", "Choose a game.", "OK"); return; }
-            item.Nickname = nickname.Text.Trim(); item.Scope = selectedScope; item.GameId = selectedScope == "game" ? ((Game)game.SelectedItem).GameId : null; item.Topic = selectedScope == "custom" ? topic.Text?.Trim() ?? "" : "";
-            item.PersonaDescription = persona.Text?.Trim() ?? ""; item.InterviewStance = string.IsNullOrWhiteSpace(stance.Text) ? DefaultStance(item, games) : stance.Text.Trim(); item.DefaultQuestionCount = questions;
+            item.Nickname = nickname.Text.Trim();
+            item.Scope = "meta";
+            item.GameId = null;
+            item.Topic = "";
+            item.PersonaDescription = persona.Text?.Trim() ?? "";
+            item.InterviewStance = string.IsNullOrWhiteSpace(stance.Text) ? "get to know the user across all of Bannister" : stance.Text.Trim();
+            item.DefaultQuestionCount = questions;
+            item.AvatarImage = pendingImage;
+            item.AvatarPath = null;
             await CloseAsync(item);
         };
         var cancel = new Button { Text = "Cancel" }; cancel.Clicked += async (_, _) => await CloseAsync(null);
-        Content = new ScrollView { Content = new VerticalStackLayout { Padding = 18, Spacing = 9, Children = { new Label { Text = Title, FontSize = 22, FontAttributes = FontAttributes.Bold }, scope, game, topic, nickname, persona, stance, questionCount, new HorizontalStackLayout { Spacing = 8, Children = { save, cancel } } } } };
+        Content = new ScrollView { Content = new VerticalStackLayout { Padding = 18, Spacing = 9, Children =
+        {
+            (new Label { Text = Title, FontSize = 22, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1),
+            avatarHost,
+            new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, Children = { replaceImage, removeImage } },
+            nickname, persona, stance, questionCount,
+            new HorizontalStackLayout { Spacing = 8, Children = { save, cancel } }
+        } } };
     }
-    private static string DefaultStance(Companion item, List<Game> games) => item.Scope == "game" ? $"get to know the user in the context of {games.FirstOrDefault(x => x.GameId == item.GameId)?.DisplayName ?? "this game"}" : item.Scope == "custom" ? $"get to know the user in the context of {item.Topic}" : "get to know the user";
+    private static byte[] ResizeImage(Stream stream)
+    {
+        using var source = SKBitmap.Decode(stream) ?? throw new InvalidOperationException("The selected file is not a readable image.");
+        const int maxSide = 512;
+        SKBitmap? resized = null;
+        SKBitmap output = source;
+        int longestSide = Math.Max(source.Width, source.Height);
+        if (longestSide > maxSide)
+        {
+            double scale = maxSide / (double)longestSide;
+            int width = Math.Max(1, (int)Math.Round(source.Width * scale));
+            int height = Math.Max(1, (int)Math.Round(source.Height * scale));
+            resized = source.Resize(new SKImageInfo(width, height), SKFilterQuality.High)
+                ?? throw new InvalidOperationException("The selected image could not be resized.");
+            output = resized;
+        }
+        try
+        {
+            using var image = SKImage.FromBitmap(output);
+            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+            return data.ToArray();
+        }
+        finally
+        {
+            resized?.Dispose();
+        }
+    }
     private async Task CloseAsync(Companion? result) { await Navigation.PopModalAsync(); _completion.TrySetResult(result); }
-    public static async Task<Companion?> ShowAsync(INavigation navigation, Companion? item, List<Game> games, string username) { var page = new CompanionEditPage(item, games, username); await navigation.PushModalAsync(page); return await page._completion.Task; }
+    public static async Task<Companion?> ShowAsync(INavigation navigation, Companion item) { var page = new CompanionEditPage(item); await navigation.PushModalAsync(page); return await page._completion.Task; }
 }
 
 internal sealed class CompanionTextInputPage : ContentPage
