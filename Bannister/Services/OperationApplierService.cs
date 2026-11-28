@@ -207,7 +207,8 @@ public class OperationApplierService
             isStarred: ReadBool(root, "is_starred", false),
             status: ReadInt(root, "status", 0),
             createdAt: createdAt,
-            fullIdea: ReadString(root, "full_idea"));
+            fullIdea: ReadString(root, "full_idea"),
+            isLlmSource: ReadBool(root, "is_llm_source", false));
     }
 
     private async Task ApplyPendingActivityIdeaAsync(QueuedOperation op)

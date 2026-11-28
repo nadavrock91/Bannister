@@ -691,7 +691,7 @@ HeightRequest = 100, FontSize = 14
 
             if (!confirm) return;
 
-            await _ideas.SetClassificationAsync(username, selectedCategory, newClassification);
+            await _ideas.ReclassifyCategoryAsync(username, selectedCategory, newClassification);
 
             var updatedClassifications = await _ideas.GetClassificationsAsync(username);
             classificationMap = updatedClassifications
