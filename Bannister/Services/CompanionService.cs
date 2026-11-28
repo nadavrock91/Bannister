@@ -48,12 +48,14 @@ public class CompanionService
 {
     private const string InterviewCompleted = "interview_completed";
     private const string DataPointAdded = "data_point_added";
+    private const string DataPointRefined = "data_point_refined";
 
     public static OuterGameRequirements Requirements { get; } = new(
         "context_game", "The Context Game",
         [
             new(InterviewCompleted, "Context Game: Interview completed", 20, "Apply the extraction from a completed interview."),
-            new(DataPointAdded, "Context Game: Data point added", 2, "Save a new data point by hand or accept one from an interview extraction.")
+            new(DataPointAdded, "Context Game: Data point added", 2, "Save a new data point by hand or accept one from an interview extraction."),
+            new(DataPointRefined, "Context Game: Data point refined", 1, "Awarded when an interview refines an existing context point (old version archived, new version added).")
         ]);
 
     private readonly DatabaseService _db;
@@ -533,7 +535,7 @@ public class CompanionService
     public static CompanionExtraction ParseExtraction(string response)
     {
         var result = new CompanionExtraction();
-        var normalized = response.Replace("\"\"", "\"");
+        var normalized = response.ReplaceLineEndings("\n").Replace("\"\"", "\"");
         var recognizedSpans = new List<(int Start, int Length)>();
         var addRegex = new Regex("addPoint\\[(\\d+)\\]\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\"\\s*;", RegexOptions.IgnoreCase);
         var addPriorityRegex = new Regex("addPriority\\[(\\d+)\\]\\s*=\\s*([1-5])\\s*;", RegexOptions.IgnoreCase);
@@ -662,8 +664,16 @@ public class CompanionService
         IEnumerable<CompanionArchiveProposal> archives, IEnumerable<CompanionUpdateProposal> updates)
     {
         var existing = await GetPointsAsync(username, companion.Id, true);
+        var priorityProposals = priorities.ToList();
+        var updateProposals = updates.ToList();
+        var replacementIds = updateProposals
+            .Where(x => !string.IsNullOrWhiteSpace(x.Text) && existing.Any(point => point.Id == x.PointId))
+            .Select(x => x.PointId)
+            .ToHashSet();
         int added = 0, reprioritized = 0, archived = 0, updated = 0;
         var addedPoints = new List<CompanionDataPoint>();
+        var replacementPoints = new List<CompanionDataPoint>();
+        var archivedPointIds = new HashSet<int>();
         foreach (var proposal in adds)
         {
             if (string.IsNullOrWhiteSpace(proposal.Text)) continue;
@@ -682,21 +692,64 @@ public class CompanionService
             addedPoints.Add(point);
             added++;
         }
-        foreach (var proposal in priorities)
+        foreach (var proposal in priorityProposals)
         {
             var point = existing.FirstOrDefault(x => x.Id == proposal.PointId); if (point == null) continue;
+            if (replacementIds.Contains(point.Id)) continue;
             point.Priority = proposal.Priority; await SavePointAsync(point); reprioritized++;
         }
         foreach (var proposal in archives)
         {
             var point = existing.FirstOrDefault(x => x.Id == proposal.PointId); if (point == null) continue;
-            point.Status = "archived"; await SavePointAsync(point); archived++;
+            point.Status = "archived"; await SavePointAsync(point);
+            archivedPointIds.Add(point.Id);
         }
-        foreach (var proposal in updates)
+        var replacedPointIds = new HashSet<int>();
+        var conn = await ConnectionAsync();
+        foreach (var proposal in updateProposals)
         {
-            var point = existing.FirstOrDefault(x => x.Id == proposal.PointId); if (point == null || string.IsNullOrWhiteSpace(proposal.Text)) continue;
-            point.Text = proposal.Text.Trim(); await SavePointAsync(point); updated++;
+            if (!replacedPointIds.Add(proposal.PointId) || string.IsNullOrWhiteSpace(proposal.Text)) continue;
+            int? replacementPriority = priorityProposals.LastOrDefault(x => x.PointId == proposal.PointId)?.Priority;
+            CompanionDataPoint? replacement = null;
+            await conn.RunInTransactionAsync(db =>
+            {
+                var oldPoint = db.Find<CompanionDataPoint>(proposal.PointId);
+                if (oldPoint == null || oldPoint.Username != username || oldPoint.CompanionId != companion.Id ||
+                    oldPoint.ReplacedByPointId.HasValue)
+                    return;
+
+                var now = DateTime.UtcNow;
+                replacement = new CompanionDataPoint
+                {
+                    Username = username,
+                    CompanionId = companion.Id,
+                    Text = proposal.Text.Trim(),
+                    Priority = replacementPriority ?? oldPoint.Priority,
+                    Status = "active",
+                    Source = interview == null ? "manual" : "interview",
+                    InterviewId = interview?.Id,
+                    GameId = oldPoint.GameId,
+                    Category = oldPoint.Category,
+                    VisibilityOverride = oldPoint.VisibilityOverride,
+                    ReplacesPointId = oldPoint.Id,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                db.Insert(replacement);
+
+                oldPoint.Status = "archived";
+                oldPoint.ReplacedByPointId = replacement.Id;
+                oldPoint.UpdatedAt = now;
+                db.Update(oldPoint);
+            });
+            if (replacement == null) continue;
+
+            replacementPoints.Add(replacement);
+            archivedPointIds.Add(proposal.PointId);
+            if (replacementPriority.HasValue) reprioritized++;
+            updated++;
         }
+        archived = archivedPointIds.Count;
         if (interview != null)
         {
             interview.PointsAdded += added;
@@ -710,11 +763,11 @@ public class CompanionService
         try
         {
             ideaLoggingFailures += (await LogNewContextPointsAsync(
-                username, companion, scopeLabel, addedPoints, interview)).Failures;
+                username, companion, scopeLabel, addedPoints.Concat(replacementPoints).ToList(), interview)).Failures;
         }
         catch (Exception ex)
         {
-            ideaLoggingFailures += addedPoints.Count;
+            ideaLoggingFailures += addedPoints.Count + replacementPoints.Count;
             System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Failed to batch-log context points: {ex}");
         }
 
@@ -734,6 +787,8 @@ public class CompanionService
         }
         foreach (var _ in addedPoints)
             awards.Add(await _outerGames.AwardAsync(username, Requirements, DataPointAdded));
+        foreach (var _ in replacementPoints)
+            awards.Add(await _outerGames.AwardAsync(username, Requirements, DataPointRefined));
 
         return new CompanionApplyResult(added, reprioritized, archived, updated, ideaLoggingFailures, awards);
     }

@@ -367,6 +367,12 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         string visibility = VisibilityName(CompanionService.GetEffectiveVisibility(point, gamesById)) + (point.VisibilityOverride.HasValue ? " (manual)" : "");
         stack.Children.Add((new Label { Text = $"Game: {gameName} · Category: {category} · {visibility}", FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         stack.Children.Add((new Label { Text = $"Priority {point.Priority} · {point.Source} · {point.Status} · {point.UpdatedAt.ToLocalTime():dd MMM yyyy}", FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
+        if (point.ReplacedByPointId.HasValue)
+            stack.Children.Add((new Label { Text = $"Replaced by point {point.ReplacedByPointId.Value}", FontSize = 11 })
+                .ThemeColor(Label.TextColorProperty, ThemeKey.CardText2));
+        if (point.ReplacesPointId.HasValue)
+            stack.Children.Add((new Label { Text = $"Replaces point {point.ReplacesPointId.Value}", FontSize = 11 })
+                .ThemeColor(Label.TextColorProperty, ThemeKey.CardText2));
         var actions = new HorizontalStackLayout { Spacing = 5 };
         var edit = Button("Edit", ThemeKey.WarningBackground, ThemeKey.WarningText);
         edit.Clicked += async (_, _) =>
@@ -569,7 +575,8 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             return;
         }
 
-        var applied = await CompanionExtractionReviewPage.ShowAsync(Navigation, extraction, async (adds, priorities, archives, updates) =>
+        var reviewPoints = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id, includeArchived: true);
+        var applied = await CompanionExtractionReviewPage.ShowAsync(Navigation, extraction, reviewPoints, async (adds, priorities, archives, updates) =>
         {
             var result = await _service.ApplyExtractionAsync(
                 _auth.CurrentUsername, companion, interview, scopeLabel, adds, priorities, archives, updates);
@@ -580,11 +587,11 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         if (applied == null) return;
 
         string loggingNote = applied.IdeaLoggingFailures > 0
-            ? $" ({applied.IdeaLoggingFailures} not logged to Ideas)"
+            ? $", idea logging failures {applied.IdeaLoggingFailures}"
             : "";
         await DisplayAlert(
             "Extraction Applied",
-            $"Added {applied.Added}{loggingNote}, reprioritized {applied.Reprioritized}, archived {applied.Archived}, updated {applied.Updated}{AwardMessage(applied.Awards)}",
+            $"Added {applied.Added}, reprioritized {applied.Reprioritized}, archived {applied.Archived}, replaced {applied.Updated}{loggingNote}{AwardMessage(applied.Awards)}",
             "OK");
         await RefreshAsync();
     }
@@ -1145,7 +1152,7 @@ internal sealed class CompanionTextInputPage : ModeThemedPage
 internal sealed class CompanionExtractionReviewPage : ModeThemedPage
 {
     private readonly TaskCompletionSource<CompanionApplyResult?> _completion = new();
-    private CompanionExtractionReviewPage(CompanionExtraction result, Func<List<CompanionAddProposal>, List<CompanionPriorityProposal>, List<CompanionArchiveProposal>, List<CompanionUpdateProposal>, Task<CompanionApplyResult>> apply)
+    private CompanionExtractionReviewPage(CompanionExtraction result, IReadOnlyList<CompanionDataPoint> points, Func<List<CompanionAddProposal>, List<CompanionPriorityProposal>, List<CompanionArchiveProposal>, List<CompanionUpdateProposal>, Task<CompanionApplyResult>> apply)
     {
         Title = "Review Extraction";
         var stack = new VerticalStackLayout { Padding = 16, Spacing = 8 };
@@ -1155,7 +1162,7 @@ internal sealed class CompanionExtractionReviewPage : ModeThemedPage
             $"P{x.Priority}: {x.Text}\nGame: {(string.IsNullOrWhiteSpace(x.GameName) ? "No game" : x.GameName)} · Category: {(string.IsNullOrWhiteSpace(x.Category) ? "No category" : x.Category)}");
         var priorities = AddRows(stack, "Priority changes", result.Priorities, x => $"Point {x.PointId} → priority {x.Priority}");
         var archives = AddRows(stack, "Archives", result.Archives, x => $"Point {x.PointId}: {x.Reason}");
-        var updates = AddRows(stack, "Text updates", result.Updates, x => $"Point {x.PointId}: {x.Text}");
+        var updates = AddUpdateRows(stack, result.Updates, points.ToDictionary(x => x.Id));
         if (result.Warnings.Count > 0) { stack.Children.Add((new Label { Text = $"Warnings ({result.Warnings.Count})", FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1)); foreach (var warning in result.Warnings) stack.Children.Add((new Label { Text = warning, FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText3)); }
         if (result.SkippedLines.Count > 0) { stack.Children.Add((new Label { Text = $"Skipped invalid lines ({result.SkippedLines.Count})", FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1)); foreach (var line in result.SkippedLines) stack.Children.Add((new Label { Text = line, FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText3)); }
         var applyButton = (new Button { Text = "Apply Selected" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
@@ -1179,8 +1186,43 @@ internal sealed class CompanionExtractionReviewPage : ModeThemedPage
         stack.Children.Add(new HorizontalStackLayout { Spacing = 8, Children = { applyButton, cancel } }); Content = new ScrollView { Content = stack };
     }
     private static List<CheckBox> AddRows<T>(VerticalStackLayout stack, string title, List<T> values, Func<T, string> text) { var checks = new List<CheckBox>(); if (values.Count == 0) return checks; stack.Children.Add((new Label { Text = title, FontSize = 17, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1)); foreach (var value in values) { var check = new CheckBox { IsChecked = true }; checks.Add(check); stack.Children.Add(new HorizontalStackLayout { Spacing = 6, Children = { check, (new Label { Text = text(value), VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText2) } }); } return checks; }
+    private static List<CheckBox> AddUpdateRows(
+        VerticalStackLayout stack,
+        List<CompanionUpdateProposal> values,
+        IReadOnlyDictionary<int, CompanionDataPoint> points)
+    {
+        var checks = new List<CheckBox>();
+        if (values.Count == 0) return checks;
+
+        stack.Children.Add((new Label
+        {
+            Text = "Replacements",
+            FontSize = 17,
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
+        foreach (var value in values)
+        {
+            var check = new CheckBox { IsChecked = true };
+            checks.Add(check);
+            string oldText = points.TryGetValue(value.PointId, out var point)
+                ? point.Text
+                : "(point not found)";
+            var description = (new Label
+            {
+                Text = $"Replace point {value.PointId}\nOld: {oldText}\nNew: {value.Text}",
+                VerticalOptions = LayoutOptions.Center,
+                LineBreakMode = LineBreakMode.WordWrap
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText2);
+            stack.Children.Add(new HorizontalStackLayout
+            {
+                Spacing = 6,
+                Children = { check, description }
+            });
+        }
+        return checks;
+    }
     private static List<T> Selected<T>(List<T> values, List<CheckBox> checks) => values.Where((_, i) => checks[i].IsChecked).ToList();
     private async Task CloseAsync(CompanionApplyResult? result) { await Navigation.PopModalAsync(); _completion.TrySetResult(result); }
     private async Task CloseWithErrorAsync(Exception exception) { await Navigation.PopModalAsync(); _completion.TrySetException(exception); }
-    public static async Task<CompanionApplyResult?> ShowAsync(INavigation navigation, CompanionExtraction result, Func<List<CompanionAddProposal>, List<CompanionPriorityProposal>, List<CompanionArchiveProposal>, List<CompanionUpdateProposal>, Task<CompanionApplyResult>> apply) { var page = new CompanionExtractionReviewPage(result, apply); await navigation.PushModalAsync(page); return await page._completion.Task; }
+    public static async Task<CompanionApplyResult?> ShowAsync(INavigation navigation, CompanionExtraction result, IReadOnlyList<CompanionDataPoint> points, Func<List<CompanionAddProposal>, List<CompanionPriorityProposal>, List<CompanionArchiveProposal>, List<CompanionUpdateProposal>, Task<CompanionApplyResult>> apply) { var page = new CompanionExtractionReviewPage(result, points, apply); await navigation.PushModalAsync(page); return await page._completion.Task; }
 }
