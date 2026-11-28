@@ -228,7 +228,7 @@ public class IdeaLoggerService
             finalRequest = edited;
         }
 
-        var idea = await SaveIdeaCoreAsync(finalRequest, null, interactive ? page : null, interactive);
+        var idea = await SaveIdeaCoreAsync(finalRequest, interactive ? page : null, interactive);
         if (mode == IdeaLogMode.Silent && idea.Id <= 0)
             throw new InvalidOperationException("The idea was queued for sync and does not have a local Id.");
         return idea.Id;
@@ -243,7 +243,7 @@ public class IdeaLoggerService
         try
         {
             await EnsureLoadedAsync(request.Username);
-            await SaveIdeaCoreAsync(request, null, null, false);
+            await SaveIdeaCoreAsync(request, null, false);
         }
         catch (Exception ex)
         {
@@ -267,7 +267,7 @@ public class IdeaLoggerService
             try
             {
                 await EnsureLoadedAsync(request.Username);
-                var idea = await SaveIdeaCoreAsync(request, null, null, false);
+                var idea = await SaveIdeaCoreAsync(request, null, false);
                 successes.Add(new IdeaLogSuccess(request, idea.Id > 0 ? idea.Id : null));
                 savedCount++;
             }
@@ -281,14 +281,7 @@ public class IdeaLoggerService
         return new IdeaLogBatchResult(savedCount, failures, successes);
     }
 
-    public async Task<int> UpdateIdeaAsync(int ideaId, IdeaLogRequest request)
-    {
-        await EnsureLoadedAsync(request.Username);
-        var idea = await SaveIdeaCoreAsync(request, ideaId, null, false);
-        return idea.Id;
-    }
-
-    private async Task<IdeaItem> SaveIdeaCoreAsync(IdeaLogRequest request, int? ideaId, Page? page, bool interactiveSideEffects)
+    private async Task<IdeaItem> SaveIdeaCoreAsync(IdeaLogRequest request, Page? page, bool interactiveSideEffects)
     {
         try
         {
@@ -296,26 +289,15 @@ public class IdeaLoggerService
             if (string.IsNullOrWhiteSpace(username))
                 throw new ArgumentException("Username is required.", nameof(request));
 
-            IdeaItem? existing = null;
-            if (ideaId.HasValue)
-            {
-                existing = (await _ideas.GetIdeasAsync(username)).FirstOrDefault(x => x.Id == ideaId.Value);
-                existing ??= (await _ideas.GetArchivedIdeasAsync(username)).FirstOrDefault(x => x.Id == ideaId.Value);
-                if (existing == null)
-                    throw new InvalidOperationException($"Idea {ideaId.Value} was not found for user {username}.");
-            }
-
-            string title = (request.Title ?? existing?.Title ?? "").Trim();
-            string body = (request.Body ?? existing?.FullIdea ?? "").Trim();
-            string category = (request.Category ?? existing?.Category ?? "").Trim();
-            string? notes = request.Notes == null ? existing?.Notes : request.Notes.Trim();
-            string? subcategory = request.Subcategory == null
-                ? existing?.Subcategory
-                : string.IsNullOrWhiteSpace(request.Subcategory) ? null : request.Subcategory.Trim();
-            int rating = Math.Clamp(request.Rating ?? existing?.Rating ?? 50, 0, 100);
-            bool isStarred = request.IsStarred ?? existing?.IsStarred ?? false;
-            int status = request.Status ?? existing?.Status ?? 0;
-            DateTime createdAt = request.CreatedAt ?? existing?.CreatedAt ?? DateTime.Now;
+            string title = (request.Title ?? "").Trim();
+            string body = (request.Body ?? "").Trim();
+            string category = (request.Category ?? "").Trim();
+            string? notes = request.Notes?.Trim();
+            string? subcategory = string.IsNullOrWhiteSpace(request.Subcategory) ? null : request.Subcategory.Trim();
+            int rating = Math.Clamp(request.Rating ?? 50, 0, 100);
+            bool isStarred = request.IsStarred ?? false;
+            int status = request.Status ?? 0;
+            DateTime createdAt = request.CreatedAt ?? DateTime.Now;
             bool isLlmSource = request.IsLlmSource ?? false;
 
             if (string.IsNullOrWhiteSpace(title))
@@ -338,40 +320,18 @@ public class IdeaLoggerService
                 IsLlmSource = isLlmSource
             };
 
-            IdeaItem idea;
-            if (existing == null)
-            {
-                idea = await _ideas.CreateIdeaAsync(
-                    username,
-                    title,
-                    category,
-                    notes: notes,
-                    subcategory: subcategory,
-                    rating: rating,
-                    isStarred: isStarred,
-                    status: status,
-                    createdAt: createdAt,
-                    fullIdea: body,
-                    isLlmSource: isLlmSource);
-                if (!_db.IsReadOnly)
-                    await _ideas.UpdateIdeaAsync(idea);
-            }
-            else
-            {
-                existing.Title = title;
-                existing.FullIdea = body;
-                existing.Category = category;
-                existing.Notes = notes;
-                existing.Subcategory = subcategory;
-                existing.Rating = rating;
-                existing.IsStarred = isStarred;
-                existing.Status = status;
-                existing.CreatedAt = createdAt;
-                await _ideas.UpdateIdeaAsync(existing);
-                if (request.IsLlmSource.HasValue && !string.IsNullOrWhiteSpace(category))
-                    await _ideas.SetClassificationAsync(username, category, isLlmSource ? "llm" : "normal");
-                idea = existing;
-            }
+            IdeaItem idea = await _ideas.CreateIdeaAsync(
+                username,
+                title,
+                category,
+                notes: notes,
+                subcategory: subcategory,
+                rating: rating,
+                isStarred: isStarred,
+                status: status,
+                createdAt: createdAt,
+                fullIdea: body,
+                isLlmSource: isLlmSource);
 
             _lastUsedCategory = category;
 
@@ -1164,7 +1124,6 @@ HeightRequest = 100, FontSize = 14
             {
                 await SaveIdeaCoreAsync(
                     request with { Category = cat, Subcategory = null, IsLlmSource = null },
-                    null,
                     null,
                     false);
             }

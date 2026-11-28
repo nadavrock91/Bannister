@@ -332,7 +332,8 @@ public class IdeasService
             Rating = Math.Clamp(rating, 0, 100),
             IsStarred = isStarred,
             Status = status,
-            CreatedAt = createdAt ?? DateTime.Now
+            CreatedAt = createdAt ?? DateTime.Now,
+            ModifiedAt = DateTime.Now
         };
         
         var conn = await _db.GetConnectionAsync();
