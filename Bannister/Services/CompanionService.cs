@@ -26,7 +26,7 @@ public sealed record CompanionRephraseParseResult(
     IReadOnlyList<int> EmptyTextIds,
     IReadOnlyList<string> Warnings,
     int RecognizedAssignmentCount);
-public sealed record CompanionRephraseApplyResult(int Updated, int Skipped);
+public sealed record CompanionRephraseApplyResult(int Updated, int Skipped, int IdeasLogged, int IdeaLoggingFailures);
 
 public sealed class CompanionExtraction
 {
@@ -180,7 +180,7 @@ public class CompanionService
         await SavePointAsync(point);
         try
         {
-            return await LogNewContextPointsAsync(username, companion, scopeLabel, new[] { point }, null);
+            return (await LogNewContextPointsAsync(username, companion, scopeLabel, new[] { point }, null)).Failures;
         }
         catch (Exception ex)
         {
@@ -645,7 +645,8 @@ public class CompanionService
         int ideaLoggingFailures = 0;
         try
         {
-            ideaLoggingFailures += await LogNewContextPointsAsync(username, companion, scopeLabel, addedPoints, interview);
+            ideaLoggingFailures += (await LogNewContextPointsAsync(
+                username, companion, scopeLabel, addedPoints, interview)).Failures;
         }
         catch (Exception ex)
         {
@@ -659,6 +660,7 @@ public class CompanionService
     public async Task<CompanionRephraseApplyResult> ApplyRephraseAsync(
         string username,
         Companion companion,
+        string scopeLabel,
         IReadOnlyCollection<int> exportedScopeIds,
         IEnumerable<CompanionRephraseChange> changes)
     {
@@ -666,6 +668,7 @@ public class CompanionService
         var current = await GetPointsAsync(username, companion.Id, includeArchived: true);
         var byId = current.ToDictionary(x => x.Id);
         int updated = 0, skipped = 0;
+        var updatedPoints = new List<CompanionDataPoint>();
         var conn = await ConnectionAsync();
 
         foreach (var change in changes)
@@ -686,36 +689,53 @@ public class CompanionService
             }
 
             // This path intentionally bypasses SavePointAsync: rephrasing changes only Text,
-            // preserving UpdatedAt, IdeaId, and every classification/source field. In particular,
-            // a linked Ideas item remains untouched.
+            // preserving UpdatedAt and every classification/source field. The old linked Ideas
+            // item remains untouched; successful logging below replaces only this point's link.
             point.Text = newText;
             await conn.UpdateAsync(point);
+            updatedPoints.Add(point);
             updated++;
         }
 
-        return new(updated, skipped);
+        int ideasLogged = 0, ideaLoggingFailures = 0;
+        try
+        {
+            var ideaResult = await LogNewContextPointsAsync(
+                username, companion, scopeLabel, updatedPoints, null);
+            ideasLogged = ideaResult.Logged;
+            ideaLoggingFailures = ideaResult.Failures;
+        }
+        catch (Exception ex)
+        {
+            ideaLoggingFailures = updatedPoints.Count;
+            System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Failed to batch-log rephrased context points: {ex}");
+        }
+
+        return new(updated, skipped, ideasLogged, ideaLoggingFailures);
     }
 
-    private async Task<int> LogNewContextPointsAsync(
+    private sealed record ContextPointIdeaLogResult(int Logged, int Failures);
+
+    private async Task<ContextPointIdeaLogResult> LogNewContextPointsAsync(
         string username,
         Companion companion,
         string scopeLabel,
         IReadOnlyList<CompanionDataPoint> points,
         CompanionInterview? interview)
     {
-        if (points.Count == 0) return 0;
+        if (points.Count == 0) return new(0, 0);
 
-        string sourceLine = interview == null
-            ? "From: manual"
-            : $"From interview: {interview.StartedAt.ToLocalTime():yyyy-MM-dd}";
-        var entries = points.Select(point => new
+        var entries = new List<(CompanionDataPoint Point, IdeaLogRequest Request)>();
+        foreach (var point in points)
         {
-            Point = point,
-            Request = BuildContextPointIdeaRequest(username, companion, scopeLabel, point, sourceLine, includeCreatedAt: true)
-        }).ToList();
+            string sourceLine = await GetContextPointSourceLineAsync(point, interview);
+            entries.Add((point, BuildContextPointIdeaRequest(
+                username, companion, scopeLabel, point, sourceLine, includeCreatedAt: true)));
+        }
 
         var batch = await _ideaLogger.LogBatchSilentAsync(entries.Select(x => x.Request));
         int failures = batch.Failures.Count;
+        var conn = await ConnectionAsync();
         foreach (var success in batch.Successes)
         {
             if (!success.IdeaId.HasValue) continue;
@@ -723,7 +743,7 @@ public class CompanionService
             try
             {
                 entry.Point.IdeaId = success.IdeaId.Value;
-                await SavePointAsync(entry.Point);
+                await conn.UpdateAsync(entry.Point);
             }
             catch (Exception ex)
             {
@@ -731,7 +751,28 @@ public class CompanionService
                 System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Failed to link context point {entry.Point.Id} to idea {success.IdeaId.Value}: {ex}");
             }
         }
-        return failures;
+        return new(batch.SavedCount, failures);
+    }
+
+    private async Task<string> GetContextPointSourceLineAsync(
+        CompanionDataPoint point,
+        CompanionInterview? knownInterview)
+    {
+        CompanionInterview? sourceInterview = knownInterview?.Id == point.InterviewId
+            ? knownInterview
+            : null;
+        if (sourceInterview == null && point.InterviewId.HasValue)
+        {
+            sourceInterview = await (await ConnectionAsync()).Table<CompanionInterview>()
+                .Where(x => x.Id == point.InterviewId.Value && x.Username == point.Username)
+                .FirstOrDefaultAsync();
+        }
+
+        if (sourceInterview != null)
+            return $"From interview: {sourceInterview.StartedAt.ToLocalTime():yyyy-MM-dd}";
+        if (string.Equals(point.Source, "interview", StringComparison.OrdinalIgnoreCase))
+            return $"From interview: {point.CreatedAt.ToLocalTime():yyyy-MM-dd}";
+        return "From: manual";
     }
 
     private static IdeaLogRequest BuildContextPointIdeaRequest(
