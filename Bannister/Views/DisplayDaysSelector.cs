@@ -38,11 +38,11 @@ public class DisplayDaysSelector
         Container = new VerticalStackLayout { Spacing = 8 };
         
         // Header
-        Container.Children.Add(new Label
+        Container.Children.Add((new Label
         {
             Text = "Display Days (optional)",
             FontAttributes = FontAttributes.Bold
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         
         Container.Children.Add((new Label
         {

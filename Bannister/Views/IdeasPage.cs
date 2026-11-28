@@ -108,7 +108,7 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
 
         // ====== ROW 0: Header ======
         var headerRow = new HorizontalStackLayout { Spacing = 12 };
-        headerRow.Children.Add(new Label { Text = "💡", FontSize = 20, VerticalOptions = LayoutOptions.Center });
+        headerRow.Children.Add((new Label { Text = "💡", FontSize = 20, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         _headerLabel = (new Label
         {
             Text = "0 ideas",

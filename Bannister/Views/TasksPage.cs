@@ -115,12 +115,12 @@ public class TasksPage : Bannister.Views.ModeThemedPage
         // Header row
         var headerRow = new HorizontalStackLayout { Spacing = 10 };
 
-        headerRow.Children.Add(new Label
+        headerRow.Children.Add((new Label
         {
             Text = "📋",
             FontSize = 20,
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
 
         _headerLabel = (new Label
         {

@@ -370,11 +370,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         };
 
         // Activity Name
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Activity Name",
             FontAttributes = FontAttributes.Bold
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
 
         txtName = new Entry
         {
@@ -383,11 +383,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(txtName);
 
         // Category with suggestions
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Category (type new or select existing)",
             FontAttributes = FontAttributes.Bold
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
 
         entryCategory = new Entry
         {
@@ -513,11 +513,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(imageOnlyRow);
 
         // Reward Type Picker
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Reward Type",
             FontAttributes = FontAttributes.Bold
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
 
         pickerRewardType = new Picker
         {
@@ -536,11 +536,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         fixedExpSection = new VerticalStackLayout { Spacing = 8 };
 
         // Meaningful Level
-        fixedExpSection.Children.Add(new Label
+        fixedExpSection.Children.Add((new Label
         {
             Text = "Meaningful until level (1-100)",
             FontAttributes = FontAttributes.Bold
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
 
         var meaningfulStack = new HorizontalStackLayout { Spacing = 8 };
 
@@ -566,11 +566,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         // Percent of Level Section (hidden by default)
         percentExpSection = new VerticalStackLayout { Spacing = 8, IsVisible = false };
 
-        percentExpSection.Children.Add(new Label
+        percentExpSection.Children.Add((new Label
         {
             Text = "Percent of current level's EXP",
             FontAttributes = FontAttributes.Bold
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
 
         var percentStack = new HorizontalStackLayout { Spacing = 8 };
 
@@ -592,12 +592,12 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         percentExpSection.Children.Add(percentStack);
 
         // Cutoff level
-        percentExpSection.Children.Add(new Label
+        percentExpSection.Children.Add((new Label
         {
             Text = "Stop scaling at level (1-100)",
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 8, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
 
         var cutoffStack = new HorizontalStackLayout { Spacing = 8 };
 
@@ -628,11 +628,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(percentExpSection);
 
         // Schedule Section
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Schedule (optional)",
             FontAttributes = FontAttributes.Bold
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
 
         // Start Date
         var startDateStack = new HorizontalStackLayout { Spacing = 8 };
@@ -645,12 +645,12 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         };
         startDateStack.Children.Add(chkStartDate);
 
-        startDateStack.Children.Add(new Label
+        startDateStack.Children.Add((new Label
         {
             Text = "Start Date:",
             VerticalOptions = LayoutOptions.Center,
             WidthRequest = 100
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
 
         dateStart = new DatePicker
         {
@@ -679,12 +679,12 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         };
         endDateStack.Children.Add(chkEndDate);
 
-        endDateStack.Children.Add(new Label
+        endDateStack.Children.Add((new Label
         {
             Text = "End Date:",
             VerticalOptions = LayoutOptions.Center,
             WidthRequest = 100
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
 
         dateEnd = new DatePicker
         {
@@ -739,11 +739,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
 
         // Streak Tracking
         var streakSection = new VerticalStackLayout { Spacing = 8 };
-        streakSection.Children.Add(new Label
+        streakSection.Children.Add((new Label
         {
             Text = "Streak Tracking",
             FontAttributes = FontAttributes.Bold
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         
         var streakRow = new HorizontalStackLayout { Spacing = 12 };
         chkStreakTracked = new CheckBox();
@@ -754,19 +754,19 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
             txtStreakCapReachedNote.IsEnabled = e.Value;
         };
         streakRow.Children.Add(chkStreakTracked);
-        streakRow.Children.Add(new Label
+        streakRow.Children.Add((new Label
         {
             Text = "Track consecutive days as streak attempts",
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         streakSection.Children.Add(streakRow);
 
         var streakTargetRow = new HorizontalStackLayout { Spacing = 12 };
-        streakTargetRow.Children.Add(new Label
+        streakTargetRow.Children.Add((new Label
         {
             Text = "Target days:",
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         txtStreakTargetDays = new Entry
         {
             Text = "365",
@@ -785,11 +785,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
 
         // "Enough is enough" cap row
         var capRow = new HorizontalStackLayout { Spacing = 12 };
-        capRow.Children.Add(new Label
+        capRow.Children.Add((new Label
         {
             Text = "Enough is enough after:",
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         txtStreakTotalDaysCap = new Entry
         {
             Text = "365",
@@ -830,11 +830,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         var showStreakAsDaysRow = new HorizontalStackLayout { Spacing = 12 };
         chkShowStreakAsDaysSinceStarted = new CheckBox();
         showStreakAsDaysRow.Children.Add(chkShowStreakAsDaysSinceStarted);
-        showStreakAsDaysRow.Children.Add(new Label
+        showStreakAsDaysRow.Children.Add((new Label
         {
             Text = "Show streak as days since started",
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         streakSection.Children.Add(showStreakAsDaysRow);
 
         mainStack.Children.Add(streakSection);
@@ -842,29 +842,29 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         var zeroCountRow = new HorizontalStackLayout { Spacing = 12 };
         chkIsZeroCount = new CheckBox();
         zeroCountRow.Children.Add(chkIsZeroCount);
-        zeroCountRow.Children.Add(new Label
+        zeroCountRow.Children.Add((new Label
         {
             Text = "Mark as Zero Count (never done - 10x EXP first time)",
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         mainStack.Children.Add(zeroCountRow);
 
         // Activity Status (Possible)
         var statusSection = new VerticalStackLayout { Spacing = 8 };
-        statusSection.Children.Add(new Label
+        statusSection.Children.Add((new Label
         {
             Text = "Activity Status",
             FontAttributes = FontAttributes.Bold
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         
         var possibleRow = new HorizontalStackLayout { Spacing = 12 };
         chkIsPossible = new CheckBox();
         possibleRow.Children.Add(chkIsPossible);
-        possibleRow.Children.Add(new Label
+        possibleRow.Children.Add((new Label
         {
             Text = "Mark as Possible (idea for future)",
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         statusSection.Children.Add(possibleRow);
         
         statusSection.Children.Add((new Label
@@ -877,11 +877,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         var toBeTestedRow = new HorizontalStackLayout { Spacing = 12 };
         chkIsToBeTested = new CheckBox();
         toBeTestedRow.Children.Add(chkIsToBeTested);
-        toBeTestedRow.Children.Add(new Label
+        toBeTestedRow.Children.Add((new Label
         {
             Text = "To Be Tested",
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         statusSection.Children.Add(toBeTestedRow);
 
         statusSection.Children.Add((new Label
@@ -891,12 +891,12 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Italic
         }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
-        statusSection.Children.Add(new Label
+        statusSection.Children.Add((new Label
         {
             Text = "Manual Priority",
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 8, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         txtManualPriority = new Entry
         {
             Placeholder = "Blank = default order",
@@ -914,11 +914,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         var timesCompletedRow = new HorizontalStackLayout { Spacing = 12 };
         chkShowTimesCompleted = new CheckBox();
         timesCompletedRow.Children.Add(chkShowTimesCompleted);
-        timesCompletedRow.Children.Add(new Label
+        timesCompletedRow.Children.Add((new Label
         {
             Text = "Show times completed badge (✓X)",
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         statusSection.Children.Add(timesCompletedRow);
         
         statusSection.Children.Add((new Label
@@ -949,11 +949,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
             }
         };
         noHabitRow.Children.Add(chkNoHabitTarget);
-        noHabitRow.Children.Add(new Label
+        noHabitRow.Children.Add((new Label
         {
             Text = "I don't want this as a habit",
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         habitTargetSection.Children.Add(noHabitRow);
         
         // Option 2: Set target date
@@ -967,11 +967,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
             }
         };
         hasTargetRow.Children.Add(chkHasHabitTarget);
-        hasTargetRow.Children.Add(new Label
+        hasTargetRow.Children.Add((new Label
         {
             Text = "Set habit target date:",
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         dateHabitTarget = new DatePicker
         {
             Date = DateTime.Now.AddDays(1),
@@ -1042,11 +1042,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(_displayDaysSelector.Container);
 
         // Activity Image
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Activity Image",
             FontAttributes = FontAttributes.Bold
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
 
         var imageButtonsStack = new HorizontalStackLayout { Spacing = 12 };
         

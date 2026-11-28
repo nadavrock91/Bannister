@@ -263,7 +263,6 @@ public class HomePage : Bannister.Views.ModeThemedPage
         _emotionService = emotionService;
         _statTracker = statTracker;
         _resetEnforcerService = resetEnforcerService;
-        _ownerMode.StateChanged += OnOwnerModeStateChanged;
 
         _secondaryQueueToolbarItem = new ToolbarItem
         {
@@ -767,7 +766,10 @@ public class HomePage : Bannister.Views.ModeThemedPage
 
     private void OnOwnerModeStateChanged(object? sender, EventArgs e)
     {
-        MainThread.BeginInvokeOnMainThread(async () => await RefreshOwnerModeUiAsync());
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            if (_isHomeVisible) await RefreshOwnerModeUiAsync();
+        });
     }
 
     private async Task HandleOwnerModeVersionTapAsync()
@@ -1034,6 +1036,7 @@ public class HomePage : Bannister.Views.ModeThemedPage
     {
         base.OnAppearing();
         System.Diagnostics.Debug.WriteLine($"[HomePage] OnAppearing fired, sequence-running={_homePromptSequenceRunning}, run-id-before={_homePromptRunId}, is-visible-before={_isHomeVisible}");
+        if (!_isHomeVisible) _ownerMode.StateChanged += OnOwnerModeStateChanged;
         _isHomeVisible = true;
         await RefreshOwnerModeUiAsync();
 
@@ -1231,6 +1234,7 @@ public class HomePage : Bannister.Views.ModeThemedPage
     {
         System.Diagnostics.Debug.WriteLine($"[HomePage] OnDisappearing fired, sequence-running={_homePromptSequenceRunning}, run-id={_homePromptRunId}, is-visible-before={_isHomeVisible}");
         _isHomeVisible = false;
+        _ownerMode.StateChanged -= OnOwnerModeStateChanged;
         base.OnDisappearing();
     }
 

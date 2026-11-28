@@ -9,7 +9,7 @@ internal sealed class ThemeColorsView : ContentView
     private readonly AppSettingsService _settings;
     private readonly PrivacyModeService _privacy;
     private readonly Dictionary<ActivityDisplayMode, Button> _modeButtons = new();
-    private readonly Label _modeNote = new() { FontSize = 12 };
+    private readonly Label _modeNote = (new Label { FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2);
     private readonly Entry _styleRequest = new() { Placeholder = "Optional style request (e.g. calm dark teal, less saturated)", MinimumWidthRequest = 180, HorizontalOptions = LayoutOptions.Fill };
     private readonly Button _export = new() { Text = "Export for LLM" };
     private readonly Button _import = new() { Text = "Import from LLM" };
@@ -18,7 +18,7 @@ internal sealed class ThemeColorsView : ContentView
     private bool _subscribed;
     private readonly VerticalStackLayout _rows = new() { Spacing = 10 };
     private readonly Frame _preview = new() { Padding = 12, HasShadow = false };
-    private readonly Label _status = new() { FontSize = 12 };
+    private readonly Label _status = (new Label { FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2);
     private readonly VerticalStackLayout _migration = new() { Spacing = 5 };
     private readonly SemaphoreSlim _writes = new(1, 1);
     private readonly Dictionary<string, Color> _colors = new();
@@ -93,8 +93,8 @@ internal sealed class ThemeColorsView : ContentView
                 Spacing = 12,
                 Children =
                 {
-                    new Label { Text = "UI Colors", FontSize = 20, FontAttributes = FontAttributes.Bold },
-                    new Label { Text = "Choose a mode, then enter #RRGGBB (or #AARRGGBB for opacity). Tap a swatch to open presets. Changes save immediately.", FontSize = 12 },
+                    (new Label { Text = "UI Colors", FontSize = 20, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1),
+                    (new Label { Text = "Choose a mode, then enter #RRGGBB (or #AARRGGBB for opacity). Tap a swatch to open presets. Changes save immediately.", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2),
                     modeToggle, _modeNote, exchange, library, _status, _migration, _preview, _rows,
                     new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, Children = { resetMode, resetAll } }
                 }
@@ -246,8 +246,8 @@ internal sealed class ThemeColorsView : ContentView
             Spacing = 3,
             Children =
             {
-                new Label { Text = definition.Label + (definition.Fixed ? " (fixed)" : ""), FontSize = 14, FontAttributes = FontAttributes.Bold },
-                new Label { Text = definition.Description, FontSize = 13 }, usage,
+                (new Label { Text = definition.Label + (definition.Fixed ? " (fixed)" : ""), FontSize = 14, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1),
+                (new Label { Text = definition.Description, FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2), usage,
                 new HorizontalStackLayout { Spacing = 8, Children = { swatch, entry } }, validation
             }
         };
@@ -263,15 +263,15 @@ internal sealed class ThemeColorsView : ContentView
         if (decisions.Count == 0) return;
         var details = new VerticalStackLayout { Spacing = 5, IsVisible = false };
         foreach (var decision in decisions)
-            details.Children.Add(new Label
+            details.Children.Add((new Label
             {
                 FontSize = 12,
                 Text = $"{decision.Action}: {decision.OldName} ({decision.Value}) → {decision.CoreName}" +
                     (decision.Action == "Dropped" ? $"; kept {decision.KeptValue ?? "the default"}. {decision.Reason}" : ". " + decision.Reason)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2));
         var toggle = new Button { Text = $"Catalog migration: {decisions.Count(d => d.Action == "Moved")} moved, {decisions.Count(d => d.Action == "Dropped")} dropped — show details" };
         toggle.Clicked += (_, _) => details.IsVisible = !details.IsVisible;
-        if (report.Deferred) _migration.Children.Add(new Label { Text = "Read-only device: these merges are previewed here and will be saved on the master device.", FontSize = 12 });
+        if (report.Deferred) _migration.Children.Add((new Label { Text = "Read-only device: these merges are previewed here and will be saved on the master device.", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2));
         _migration.Children.Add(toggle);
         _migration.Children.Add(details);
     }
