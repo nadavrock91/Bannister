@@ -39,22 +39,18 @@ internal abstract class CompanionRephraseResultPage<T> : ModeThemedPage
 
 internal sealed class CompanionRephraseInstructionPage : CompanionRephraseResultPage<string?>
 {
-    public const string FirstPersonPreset = "Rewrite every point in the first person, as I would say it about myself.";
-
-    public CompanionRephraseInstructionPage(string scopeName, int pointCount, string? initialInstruction) : base(null)
+    public CompanionRephraseInstructionPage(string scopeName, int pointCount) : base(null)
     {
         Title = "Rephrase with LLM";
         var instruction = (new Editor
         {
             Placeholder = "What should the LLM change?",
-            Text = initialInstruction ?? "",
+            Text = "",
             HeightRequest = 150,
             AutoSize = EditorAutoSizeOption.TextChanges
         }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.InputBackground)
           .ThemeColor(Editor.TextColorProperty, ThemeKey.InputText);
 
-        var preset = Action("Rewrite in first person", ThemeKey.SecondaryButtonBackground);
-        preset.Clicked += (_, _) => instruction.Text = FirstPersonPreset;
         var copy = Action("Copy Prompt", ThemeKey.ButtonPrimaryBackground);
         copy.Clicked += async (_, _) =>
         {
@@ -83,7 +79,7 @@ internal sealed class CompanionRephraseInstructionPage : CompanionRephraseResult
                     new FlexLayout
                     {
                         Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
-                        Children = { preset, copy, cancel }
+                        Children = { copy, cancel }
                     }
                 }
             }

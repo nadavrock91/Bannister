@@ -166,14 +166,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         var rephrase = Button("Rephrase with LLM", ThemeKey.ButtonPrimaryBackground, ThemeKey.ButtonPrimaryText);
         rephrase.Clicked += async (_, _) => await ChooseRephraseScopeAsync(
             companion, scopeLabel, allPoints, gamesById, displayMode);
-        var rewrite = Button("Rewrite to first person", ThemeKey.SecondaryButtonBackground, ThemeKey.ButtonPrimaryText);
-        rewrite.Clicked += async (_, _) => await RunRephraseFlowAsync(
-            companion,
-            scopeLabel,
-            allPoints.Where(x => CompanionService.IsVisibleInDisplayMode(x, gamesById, displayMode)).ToList(),
-            "All points",
-            CompanionRephraseInstructionPage.FirstPersonPreset);
-        foreach (var action in new[] { addPoint, archived, rephrase, rewrite })
+        foreach (var action in new[] { addPoint, archived, rephrase })
         {
             action.Margin = 3;
             pointActions.Children.Add(action);
@@ -404,7 +397,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         };
         var rephrase = Button("Rephrase", ThemeKey.SecondaryButtonBackground, ThemeKey.ButtonPrimaryText);
         rephrase.Clicked += async (_, _) => await RunRephraseFlowAsync(
-            companion, scopeLabel, new[] { point }, $"Point {point.Id}", null);
+            companion, scopeLabel, new[] { point }, $"Point {point.Id}");
         var archive = Button(point.Status == "active" ? "Archive" : "Restore", ThemeKey.NeutralButtonBackground, ThemeKey.CardText2);
         archive.Clicked += async (_, _) => { point.Status = point.Status == "active" ? "archived" : "active"; await _service.SavePointAsync(point); await RefreshAsync(); };
         var delete = Button("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
@@ -508,15 +501,14 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             _ => null
         };
         if (scope == null) return;
-        await RunRephraseFlowAsync(companion, scopeLabel, scope, selected!, null);
+        await RunRephraseFlowAsync(companion, scopeLabel, scope, selected!);
     }
 
     private async Task RunRephraseFlowAsync(
         Companion companion,
         string scopeLabel,
         IReadOnlyList<CompanionDataPoint> points,
-        string rephraseScope,
-        string? initialInstruction)
+        string rephraseScope)
     {
         if (points.Count == 0)
         {
@@ -526,7 +518,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
 
         try
         {
-            var instructionPage = new CompanionRephraseInstructionPage(rephraseScope, points.Count, initialInstruction);
+            var instructionPage = new CompanionRephraseInstructionPage(rephraseScope, points.Count);
             await Navigation.PushModalAsync(instructionPage);
             string? instruction = await instructionPage.Result;
             if (instruction == null) return;
