@@ -336,7 +336,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             }
             point.GameId = newGameId;
             point.Category = newCategory;
-            await _service.SavePointAsync(point, companion, scopeLabel);
+            await _service.SavePointAsync(point);
 
             var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
             bool remainsVisible = CompanionService.IsVisibleInDisplayMode(point, gamesById, displayMode);
@@ -368,7 +368,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             int? newOverride = CompanionDataPointEditorOptions.VisibilityOverride(visibilityPicker.SelectedIndex);
             if (point.VisibilityOverride == newOverride) return;
             point.VisibilityOverride = newOverride;
-            await _service.SavePointAsync(point, companion, scopeLabel);
+            await _service.SavePointAsync(point);
 
             var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
             bool remainsVisible = CompanionService.IsVisibleInDisplayMode(point, gamesById, displayMode);
@@ -399,7 +399,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             var edited = await CompanionDataPointEditPage.ShowAsync(Navigation, point, games, categories);
             if (edited == null) return;
             edited.ApplyTo(point);
-            await _service.SavePointAsync(point, companion, scopeLabel);
+            await _service.SavePointAsync(point);
             await RefreshAsync();
         };
         var rephrase = Button("Rephrase", ThemeKey.SecondaryButtonBackground, ThemeKey.ButtonPrimaryText);

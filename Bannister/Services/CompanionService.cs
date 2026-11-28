@@ -120,10 +120,7 @@ public class CompanionService
             .ToList();
     }
 
-    public async Task SavePointAsync(
-        CompanionDataPoint point,
-        Companion? companionForIdeaUpdate = null,
-        string? scopeLabelForIdeaUpdate = null)
+    public async Task SavePointAsync(CompanionDataPoint point)
     {
         point.Priority = Math.Clamp(point.Priority, 1, 5);
         if (point.VisibilityOverride.HasValue && point.VisibilityOverride.Value is not (0 or 1 or 2))
@@ -131,23 +128,6 @@ public class CompanionService
         point.UpdatedAt = DateTime.UtcNow;
         var conn = await ConnectionAsync();
         if (point.Id == 0) await conn.InsertAsync(point); else await conn.UpdateAsync(point);
-
-        if (point.IdeaId.HasValue && companionForIdeaUpdate != null && !string.IsNullOrWhiteSpace(scopeLabelForIdeaUpdate))
-        {
-            try
-            {
-                string sourceLine = await GetContextPointSourceLineAsync(point);
-                await _ideaLogger.UpdateIdeaAsync(
-                    point.IdeaId.Value,
-                    BuildContextPointIdeaRequest(
-                        point.Username, companionForIdeaUpdate, scopeLabelForIdeaUpdate,
-                        point, sourceLine, includeCreatedAt: false));
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Point {point.Id} saved, but its linked idea could not be updated: {ex}");
-            }
-        }
     }
 
     public static int GetEffectiveVisibility(
@@ -254,6 +234,9 @@ public class CompanionService
     public async Task<string> SaveInterviewIdeaAsync(string username, Companion companion, CompanionInterview interview, string scopeLabel)
     {
         const string category = IdeasService.CompanionInterviewCategory;
+        if (interview.IdeaId.HasValue)
+            return category;
+
         var startedAt = interview.StartedAt.ToLocalTime();
         string title = $"{companion.Nickname} interview · {startedAt:yyyy-MM-dd}";
         string body = BuildInterviewIdeaBody(companion, interview, scopeLabel, startedAt);
@@ -268,16 +251,10 @@ public class CompanionService
             IsLlmSource = true
         };
 
-        int ideaId;
-        if (interview.IdeaId is int existingIdeaId)
-            ideaId = await _ideaLogger.UpdateIdeaAsync(existingIdeaId, request);
-        else
-        {
-            ideaId = await _ideaLogger.LogIdeaAsync(request, IdeaLogMode.Silent)
-                ?? throw new InvalidOperationException("Silent idea logging did not return an idea Id.");
-            interview.IdeaId = ideaId;
-            await SaveInterviewAsync(interview);
-        }
+        int ideaId = await _ideaLogger.LogIdeaAsync(request, IdeaLogMode.Silent)
+            ?? throw new InvalidOperationException("Silent idea logging did not return an idea Id.");
+        interview.IdeaId = ideaId;
+        await SaveInterviewAsync(interview);
 
         return category;
     }
@@ -622,7 +599,6 @@ public class CompanionService
         var existing = await GetPointsAsync(username, companion.Id, true);
         int added = 0, reprioritized = 0, archived = 0, updated = 0;
         var addedPoints = new List<CompanionDataPoint>();
-        var changedLinkedPoints = new Dictionary<int, CompanionDataPoint>();
         foreach (var proposal in adds)
         {
             if (string.IsNullOrWhiteSpace(proposal.Text)) continue;
@@ -645,7 +621,6 @@ public class CompanionService
         {
             var point = existing.FirstOrDefault(x => x.Id == proposal.PointId); if (point == null) continue;
             point.Priority = proposal.Priority; await SavePointAsync(point); reprioritized++;
-            if (point.IdeaId.HasValue) changedLinkedPoints[point.Id] = point;
         }
         foreach (var proposal in archives)
         {
@@ -656,7 +631,6 @@ public class CompanionService
         {
             var point = existing.FirstOrDefault(x => x.Id == proposal.PointId); if (point == null || string.IsNullOrWhiteSpace(proposal.Text)) continue;
             point.Text = proposal.Text.Trim(); await SavePointAsync(point); updated++;
-            if (point.IdeaId.HasValue) changedLinkedPoints[point.Id] = point;
         }
         if (interview != null)
         {
@@ -676,22 +650,6 @@ public class CompanionService
         {
             ideaLoggingFailures += addedPoints.Count;
             System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Failed to batch-log context points: {ex}");
-        }
-
-        foreach (var point in changedLinkedPoints.Values)
-        {
-            try
-            {
-                string sourceLine = await GetContextPointSourceLineAsync(point, interview);
-                await _ideaLogger.UpdateIdeaAsync(
-                    point.IdeaId!.Value,
-                    BuildContextPointIdeaRequest(username, companion, scopeLabel, point, sourceLine, includeCreatedAt: false));
-            }
-            catch (Exception ex)
-            {
-                ideaLoggingFailures++;
-                System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Failed to update context-point idea for point {point.Id}: {ex}");
-            }
         }
 
         return new CompanionApplyResult(added, reprioritized, archived, updated, ideaLoggingFailures);
@@ -773,24 +731,6 @@ public class CompanionService
             }
         }
         return failures;
-    }
-
-    private async Task<string> GetContextPointSourceLineAsync(
-        CompanionDataPoint point,
-        CompanionInterview? currentInterview = null)
-    {
-        if (string.Equals(point.Source, "manual", StringComparison.OrdinalIgnoreCase) || !point.InterviewId.HasValue)
-            return "From: manual";
-
-        CompanionInterview? sourceInterview = currentInterview != null && point.InterviewId.Value == currentInterview.Id
-            ? currentInterview
-            : await (await ConnectionAsync()).Table<CompanionInterview>()
-                .Where(x => x.Id == point.InterviewId.Value)
-                .FirstOrDefaultAsync();
-        sourceInterview ??= currentInterview;
-        return sourceInterview == null
-            ? "From: interview"
-            : $"From interview: {sourceInterview.StartedAt.ToLocalTime():yyyy-MM-dd}";
     }
 
     private static IdeaLogRequest BuildContextPointIdeaRequest(
