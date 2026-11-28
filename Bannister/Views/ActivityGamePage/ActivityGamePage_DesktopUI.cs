@@ -91,41 +91,9 @@ public partial class ActivityGamePage
         };
         innerStack.Children.Add(lblGameTitle);
 
-        // Current Level Label
-        lblCurrentLevel = (new Label
-        {
-            Text = "Level 1",
-            FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
-        innerStack.Children.Add(lblCurrentLevel);
-
-        // EXP Progress Bar
-        expProgressBar = (new ProgressBar
-        {
-            Progress = 0,
-            HeightRequest = 16,
-            Margin = new Thickness(0, 2)
-        }).ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator);
-        innerStack.Children.Add(expProgressBar);
-
-        // EXP to Next Level Label
-        lblExpToNext = (new Label
-        {
-            Text = "0 / 100 EXP",
-            FontSize = 10,
-            HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
-        innerStack.Children.Add(lblExpToNext);
-
-        lblExpTotal = (new Label
-        {
-            Text = "Total EXP: 0",
-            FontSize = 11,
-            HorizontalOptions = LayoutOptions.Center
-        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
-        innerStack.Children.Add(lblExpTotal);
+        expBarView = new ExpBarView(
+            _auth.CurrentUsername, "", ExpBarPresentation.CenteredCard);
+        innerStack.Children.Add(expBarView);
 
         // Dragon image below EXP info (smaller)
         var imgFrame = (new Frame

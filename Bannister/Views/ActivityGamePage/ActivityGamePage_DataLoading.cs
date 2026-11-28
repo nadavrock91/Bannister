@@ -39,6 +39,7 @@ public partial class ActivityGamePage
                 // We still need a dummy _game for some code paths
                 _game = new Game { GameId = $"grouping_{_groupingId}", DisplayName = _grouping.Name, Username = _auth.CurrentUsername };
                 _gameId = _game.GameId;
+                await expBarView.SetGameAsync(_game.GameId);
 
                 // In grouping mode, always show all activities (bypass display day filtering)
                 _showAllActivities = true;
@@ -73,6 +74,7 @@ public partial class ActivityGamePage
 
             Title = _game.DisplayName;
             lblGameTitle.Text = $"{_game.DisplayName} Game";
+            await expBarView.SetGameAsync(_game.GameId);
 
             // Record that this game was visited today
             await _games.RecordGameVisitAsync(username, _game.GameId);

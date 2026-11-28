@@ -27,8 +27,7 @@ public partial class ActivityGamePage
         }
 
         // Get current state BEFORE applying EXP
-        var (levelBefore, expIntoBefore, expNeededBefore) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game!.GameId);
-        double progressBefore = expNeededBefore > 0 ? (double)expIntoBefore / expNeededBefore : 0;
+        var (levelBefore, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game!.GameId);
 
         // Calculate totals and process each activity
         int totalExp = 0;
@@ -94,19 +93,8 @@ public partial class ActivityGamePage
         }
 
         // Get state AFTER applying EXP
-        var (levelAfter, expIntoAfter, expNeededAfter) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game!.GameId);
-        double progressAfter = expNeededAfter > 0 ? (double)expIntoAfter / expNeededAfter : 0;
+        var (levelAfter, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game!.GameId);
         bool leveledUp = levelAfter > levelBefore;
-
-        // Update labels immediately
-        lblCurrentLevel.Text = $"Level {levelAfter}";
-        lblCurrentLevel.ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
-        lblExpToNext.Text = $"{expIntoAfter} / {expNeededAfter} EXP";
-        lblExpTotal.Text = $"Total EXP: {totalExpValue:N0}";
-        if (expProgressBar != null)
-            expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessButtonBackground);
-
-        await AnimateExpBar(progressBefore, progressAfter, leveledUp);
         await RefreshExpAsync();
 
         // Clear selections and reset temporary multipliers

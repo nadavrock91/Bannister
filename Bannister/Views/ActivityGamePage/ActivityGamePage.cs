@@ -67,10 +67,7 @@ public partial class ActivityGamePage : Bannister.Views.ModeThemedPage
 
     // UI Controls
     private Label lblGameTitle;
-    private Label lblExpTotal;
-    private Label lblCurrentLevel;
-    private Label lblExpToNext;
-    private ProgressBar expProgressBar;
+    private ExpBarView expBarView = null!;
     private Image imgDragon;
     private Label lblDragonTitle;
     private Label lblDragonSubtitle;

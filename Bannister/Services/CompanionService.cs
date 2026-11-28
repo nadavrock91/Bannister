@@ -34,6 +34,13 @@ public sealed record ContextGameMigrationResult(
     int ReassignedInterviews,
     bool CreatedPersona);
 public sealed record CompanionAvatarState(int Level, byte[]? LevelImage, int ImageFit, int? LevelImageId);
+public sealed record CompanionGamePointCount(string GameId, string DisplayName, int PointCount);
+public sealed record CompanionStats(
+    int ActivePointCount,
+    int ArchivedPointCount,
+    int CompletedInterviewCount,
+    IReadOnlyList<CompanionGamePointCount> GamesCovered,
+    int ExpEarnedToday);
 
 public sealed class CompanionExtraction
 {
@@ -177,14 +184,53 @@ public class CompanionService
         await conn.DeleteAsync(item);
     }
 
-    public async Task<int> GetContextGameLevelAsync(string username)
+    public async Task<Game?> GetContextGameAsync(string username)
     {
         var matches = (await _games.GetGamesAsync(username))
             .Where(game => OuterGameService.NamesMatch(game.DisplayName, Requirements.GameName))
             .ToList();
-        if (matches.Count != 1)
-            return 1;
-        return (await _exp.GetProgressAsync(username, matches[0].GameId)).level;
+        return matches.Count == 1 ? matches[0] : null;
+    }
+
+    public async Task<int> GetContextGameLevelAsync(string username)
+    {
+        var game = await GetContextGameAsync(username);
+        return game == null ? 1 : (await _exp.GetProgressAsync(username, game.GameId)).level;
+    }
+
+    public async Task<CompanionStats> GetStatsAsync(string username, int companionId)
+    {
+        var conn = await ConnectionAsync();
+        var points = await conn.Table<CompanionDataPoint>()
+            .Where(x => x.Username == username && x.CompanionId == companionId)
+            .ToListAsync();
+        var interviews = await conn.Table<CompanionInterview>()
+            .Where(x => x.Username == username && x.CompanionId == companionId)
+            .ToListAsync();
+        var activePoints = points.Where(x => x.Status == "active").ToList();
+        var gamesById = (await _games.GetGamesAsync(username))
+            .ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
+        var gamesCovered = activePoints
+            .Where(x => !string.IsNullOrWhiteSpace(x.GameId))
+            .GroupBy(x => x.GameId!, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new CompanionGamePointCount(
+                group.Key,
+                gamesById.TryGetValue(group.Key, out var game) ? game.DisplayName : group.Key,
+                group.Count()))
+            .OrderByDescending(x => x.PointCount)
+            .ThenBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var contextGame = await GetContextGameAsync(username);
+        int expToday = contextGame == null
+            ? 0
+            : await _db.GetExpEarnedTodayAsync(username, contextGame.GameId);
+
+        return new CompanionStats(
+            activePoints.Count,
+            points.Count(x => x.Status == "archived"),
+            interviews.Count(x => !string.IsNullOrWhiteSpace(x.Notes)),
+            gamesCovered,
+            expToday);
     }
 
     public async Task<CompanionAvatarState> GetAvatarStateAsync(string username, Companion companion)

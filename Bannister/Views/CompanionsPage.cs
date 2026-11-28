@@ -17,6 +17,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
     private string? _pointCategoryFilter;
     private bool _pointGameFilterIsNoGame;
     private bool _pointCategoryFilterIsNoCategory;
+    private ExpBarView? _contextExpBar;
 
     public CompanionsPage(AuthService auth, CompanionService service, GameService games, PrivacyModeService privacyMode)
     {
@@ -49,8 +50,11 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
 
     private async Task BuildDetailAsync()
     {
+        _contextExpBar = null;
         var companion = _selected!;
         var avatarState = await _service.GetAvatarStateAsync(_auth.CurrentUsername, companion);
+        var contextGame = await _service.GetContextGameAsync(_auth.CurrentUsername);
+        var stats = await _service.GetStatsAsync(_auth.CurrentUsername, companion.Id);
         _content.Children.Add(PageHeading("The Context Game", 24));
         _content.Children.Add((new Label
         {
@@ -64,8 +68,6 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             Children =
             {
                 PageHeading(companion.Nickname, 24),
-                (new Label { Text = $"Level {avatarState.Level}", FontSize = 13, FontAttributes = FontAttributes.Bold })
-                    .ThemeColor(Label.TextColorProperty, ThemeKey.PageText2),
                 (new Label { Text = "All of Bannister", FontSize = 13 })
                     .ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText2)
             }
@@ -136,6 +138,22 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             Children = { editPersona, levelImages }
         }, 2);
         _content.Children.Add(personaHeader);
+        if (contextGame != null)
+        {
+            var expBar = new ExpBarView(
+                _auth.CurrentUsername, contextGame.GameId, ExpBarPresentation.Page);
+            _contextExpBar = expBar;
+            expBar.LevelChanged += async _ =>
+            {
+                avatarState = await _service.GetAvatarStateAsync(_auth.CurrentUsername, companion);
+                avatarHost.Content = CompanionAvatarPresentation.Create(
+                    companion, 72, avatarState.LevelImage, avatarState.ImageFit);
+                fitAvatar.IsEnabled = avatarState.LevelImage is { Length: > 0 } ||
+                    companion.AvatarImage is { Length: > 0 };
+            };
+            _content.Children.Add(expBar);
+        }
+        _content.Children.Add(BuildStatsRow(stats));
         var allGames = await GetAllGamesAsync();
         var gamesById = allGames.ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
         var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
@@ -444,6 +462,8 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         if (edited == null) return;
         var saved = await _service.SaveManualPointAsync(_auth.CurrentUsername, companion, scopeLabel, edited.Text, edited.Priority,
             edited.GameId, edited.Category, edited.VisibilityOverride);
+        if (_contextExpBar != null)
+            await _contextExpBar.RefreshAnimatedAsync();
         string ideaNote = saved.IdeaLoggingFailures > 0 ? "\nCould not log the data point to Ideas." : "";
         await DisplayAlert("Data Point Added", $"Data point saved.{ideaNote}{AwardMessage([saved.Award])}", "OK");
         await RefreshAsync();
@@ -629,6 +649,8 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             return result;
         });
         if (applied == null) return;
+        if (_contextExpBar != null)
+            await _contextExpBar.RefreshAnimatedAsync();
 
         string loggingNote = applied.IdeaLoggingFailures > 0
             ? $", idea logging failures {applied.IdeaLoggingFailures}"
@@ -736,6 +758,53 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
     private static string OmittedPointsNote(int omitted) => omitted > 0
         ? $"\n\n{omitted} data point{(omitted == 1 ? " was" : "s were")} left out because of the current privacy mode."
         : "\n\nNo data points were left out by the current privacy mode.";
+
+    private View BuildStatsRow(CompanionStats stats)
+    {
+        var row = new FlexLayout
+        {
+            Direction = Microsoft.Maui.Layouts.FlexDirection.Row,
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start
+        };
+        row.Children.Add(StatCard(stats.ActivePointCount.ToString("N0"), "Active points"));
+        row.Children.Add(StatCard(stats.ArchivedPointCount.ToString("N0"), "Archived"));
+        row.Children.Add(StatCard(stats.CompletedInterviewCount.ToString("N0"), "Interviews"));
+        var gamesCovered = StatCard(stats.GamesCovered.Count.ToString("N0"), "Games covered");
+        var showGames = new TapGestureRecognizer();
+        showGames.Tapped += async (_, _) =>
+        {
+            string details = stats.GamesCovered.Count == 0
+                ? "No active context points are assigned to a game."
+                : string.Join("\n", stats.GamesCovered.Select(x => $"{x.DisplayName}: {x.PointCount:N0}"));
+            await DisplayAlert("Games Covered", details, "OK");
+        };
+        gamesCovered.GestureRecognizers.Add(showGames);
+        row.Children.Add(gamesCovered);
+        row.Children.Add(StatCard(stats.ExpEarnedToday.ToString("N0"), "EXP today"));
+        return row;
+    }
+
+    private static Frame StatCard(string value, string label) =>
+        (new Frame
+        {
+            Padding = new Thickness(10, 7),
+            Margin = new Thickness(0, 0, 6, 6),
+            HasShadow = false,
+            MinimumWidthRequest = 105,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 1,
+                Children =
+                {
+                    (new Label { Text = value, FontSize = 16, FontAttributes = FontAttributes.Bold })
+                        .ThemeColor(Label.TextColorProperty, ThemeKey.CardText1),
+                    (new Label { Text = label, FontSize = 10 })
+                        .ThemeColor(Label.TextColorProperty, ThemeKey.CardText2)
+                }
+            }
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator)
+          .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
     private async Task<List<Game>> GetAllGamesAsync() =>
         (await _games.GetGamesAsync(_auth.CurrentUsername))

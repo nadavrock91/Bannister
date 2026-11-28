@@ -1,4 +1,3 @@
-using Bannister.Helpers;
 using Bannister.Services;
 
 namespace Bannister.Views;
@@ -13,58 +12,16 @@ public partial class ActivityGamePage
         if (_game == null) return;
 
         int totalExp = await _exp.GetTotalExpAsync(_auth.CurrentUsername, _game.GameId);
+        await expBarView.RefreshAsync();
 
-        // Handle negative EXP
         if (totalExp < 0)
         {
-            await Dispatcher.DispatchAsync(() =>
-            {
-                if (lblCurrentLevel != null)
-                {
-                    lblCurrentLevel.Text = "Negative EXP";
-                    lblCurrentLevel.ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
-                }
-                if (lblExpToNext != null)
-                    lblExpToNext.Text = $"{totalExp} EXP (below zero)";
-                if (lblExpTotal != null)
-                    lblExpTotal.Text = $"Total EXP: {totalExp:N0}";
-                if (expProgressBar != null)
-                {
-                    expProgressBar.Progress = 0;
-                    expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.ErrorText);
-                }
-            });
-
             _currentLevel = 0;
             return;
         }
 
-        // Normal positive EXP handling
-        var (level, expInto, expNeeded) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
+        var (level, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
         _currentLevel = level;
-
-        await Dispatcher.DispatchAsync(() =>
-        {
-            if (lblCurrentLevel != null)
-            {
-                lblCurrentLevel.Text = $"Level {level}";
-                lblCurrentLevel.ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
-            }
-            if (lblExpToNext != null)
-            {
-                lblExpToNext.Text = $"{expInto} / {expNeeded} EXP";
-            }
-            if (lblExpTotal != null)
-            {
-                lblExpTotal.Text = $"Total EXP: {totalExp:N0}";
-            }
-            if (expProgressBar != null)
-            {
-                double progress = expNeeded > 0 ? (double)expInto / expNeeded : 0;
-                expProgressBar.Progress = progress;
-                expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessButtonBackground);
-            }
-        });
 
         if (await ExpAwarder.Current.CheckDragonVictoryAsync(_auth.CurrentUsername, _game.GameId, level))
         {
@@ -72,30 +29,6 @@ public partial class ActivityGamePage
                 $"You have slain the dragon!\n\nYou reached Level {level}!",
                 "Awesome!");
             await LoadDragonAsync();
-        }
-    }
-
-    private async Task AnimateExpBar(double fromProgress, double toProgress, bool leveledUp)
-    {
-        try
-        {
-            if (leveledUp)
-            {
-                await expProgressBar.ProgressTo(1.0, 500, Easing.CubicOut);
-                await SoundHelper.PlayLevelUpSound();
-                await Task.Delay(200);
-                expProgressBar.Progress = 0;
-                await expProgressBar.ProgressTo(toProgress, 300, Easing.CubicOut);
-            }
-            else
-            {
-                await expProgressBar.ProgressTo(toProgress, 500, Easing.CubicOut);
-                await SoundHelper.PlayExpGainSound();
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Animation error: {ex.Message}");
         }
     }
 
@@ -159,8 +92,6 @@ public partial class ActivityGamePage
             return;
         }
 
-        var (levelBefore, expIntoBefore, expNeededBefore) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
-        double progressBefore = expNeededBefore > 0 ? (double)expIntoBefore / expNeededBefore : 0;
         int totalAwards = 0;
         int totalExpAwarded = 0;
         var bonusDetails = new List<string>();
@@ -211,23 +142,6 @@ public partial class ActivityGamePage
                 $"Awarded {totalExpAwarded} total EXP from {awardedActivityIds.Count} auto-award activit{(awardedActivityIds.Count == 1 ? "y" : "ies")} across {totalAwards} day{(totalAwards == 1 ? "" : "s")}.{bonusMessage}",
                 "OK");
 
-            var (levelAfter, expIntoAfter, expNeededAfter) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
-            double progressAfter = expNeededAfter > 0 ? (double)expIntoAfter / expNeededAfter : 0;
-            bool leveledUp = levelAfter > levelBefore;
-
-            if (lblCurrentLevel != null)
-                lblCurrentLevel.Text = $"Level {levelAfter}";
-            if (lblExpToNext != null)
-                lblExpToNext.Text = $"{expIntoAfter} / {expNeededAfter} EXP";
-            if (lblExpTotal != null)
-            {
-                int totalExp = await _exp.GetTotalExpAsync(_auth.CurrentUsername, _game.GameId);
-                lblExpTotal.Text = $"Total EXP: {totalExp:N0}";
-            }
-            if (expProgressBar != null)
-                expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessButtonBackground);
-
-            await AnimateExpBar(progressBefore, progressAfter, leveledUp);
             await RefreshExpAsync();
             await RefreshActivitiesAsync();
         }

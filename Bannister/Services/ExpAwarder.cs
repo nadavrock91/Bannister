@@ -22,6 +22,14 @@ public sealed record ExpAwardResult(
     public bool Succeeded => FailureReason == null;
 }
 
+public sealed record ExpAwardedEvent(
+    string Username,
+    string GameId,
+    int TotalExpBefore,
+    int TotalExpAfter,
+    int LevelBefore,
+    int LevelAfter);
+
 public sealed class ExpAwarder(
     DatabaseService db,
     ExpService exp,
@@ -33,6 +41,8 @@ public sealed class ExpAwarder(
 {
     private readonly DatabaseService _db = db;
     private readonly SemaphoreSlim _awardLock = new(1);
+
+    public event Func<ExpAwardedEvent, Task>? AwardSucceeded;
 
     public static ExpAwarder Current =>
         Application.Current?.Handler?.MauiContext?.Services.GetRequiredService<ExpAwarder>()
@@ -74,6 +84,8 @@ public sealed class ExpAwarder(
             }
 
             gameId ??= activity.Game;
+            int totalExpBefore = await exp.GetTotalExpAsync(username, gameId);
+            int levelBefore = ExpEngine.GetProgress(totalExpBefore).level;
             int level = displayedLevel ?? (await exp.GetProgressAsync(username, gameId)).level;
             int baseExp = GetBaseExp(activity, level, mode);
             bool backdatedMode = mode is ExpAwardMode.AutoAward or ExpAwardMode.CatchUp;
@@ -149,6 +161,11 @@ public sealed class ExpAwarder(
                 await CheckDragonVictoryAsync(username, gameId, progress.level);
             }
 
+            int totalExpAfter = await exp.GetTotalExpAsync(username, gameId);
+            int levelAfter = ExpEngine.GetProgress(totalExpAfter).level;
+            await RaiseAwardSucceededAsync(new ExpAwardedEvent(
+                username, gameId, totalExpBefore, totalExpAfter, levelBefore, levelAfter));
+
             return new(awarded, baseRequested, bonusRequested, firstZeroCount, bonusDetails);
         }
         catch (Exception ex)
@@ -159,6 +176,26 @@ public sealed class ExpAwarder(
         {
             _awardLock.Release();
         }
+    }
+
+    private async Task RaiseAwardSucceededAsync(ExpAwardedEvent change)
+    {
+        var handlers = AwardSucceeded?.GetInvocationList()
+            .Cast<Func<ExpAwardedEvent, Task>>()
+            .ToList();
+        if (handlers == null || handlers.Count == 0) return;
+
+        await Task.WhenAll(handlers.Select(async handler =>
+        {
+            try
+            {
+                await handler(change);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"EXP award listener failed: {ex.Message}");
+            }
+        }));
     }
 
     public async Task<bool> CheckDragonVictoryAsync(string username, string gameId, int level)
