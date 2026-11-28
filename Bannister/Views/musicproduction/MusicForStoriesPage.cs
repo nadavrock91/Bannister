@@ -2340,7 +2340,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
 
     private static (string SuggestedName, string TemplateBody) ParseTemplatePaste(string rawText)
     {
-        string text = rawText?.Trim() ?? "";
+        string text = TextParsing.NormalizeLineEndings(rawText).Trim();
         if (string.IsNullOrWhiteSpace(text))
             return ("", "");
 

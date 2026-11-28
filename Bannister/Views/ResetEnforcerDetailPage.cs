@@ -520,6 +520,7 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
 
     private static string? ParseVettedCondition(string response)
     {
+        response = TextParsing.NormalizeLineEndings(response);
         const string ApprovedBinary =
             "01100001 01110000 01110000 01110010 01101111 01110110 " +
             "01100101 01100100";
@@ -530,8 +531,7 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
             return null;
 
         // Extract CONDITION: line
-        var lines = response
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var lines = response.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         foreach (var line in lines)
         {
             var trimmed = line.Trim();

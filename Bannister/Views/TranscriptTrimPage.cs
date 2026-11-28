@@ -115,7 +115,7 @@ public class TranscriptTrimPage : Bannister.Views.ModeThemedPage
 
     private async void OnBuildComparisonClicked(object? sender, EventArgs e)
     {
-        string responseText = _keepListEntry.Text ?? "";
+        string responseText = TextParsing.NormalizeLineEndings(_keepListEntry.Text);
         var selection = ParseTrimResponse(responseText);
         if (selection.KeepNumbers.Count == 0)
         {
@@ -349,6 +349,7 @@ public class TranscriptTrimPage : Bannister.Views.ModeThemedPage
 
     private static TrimSelection ParseTrimResponse(string text)
     {
+        text = TextParsing.NormalizeLineEndings(text);
         var keepMatch = Regex.Match(
             text,
             @"keep\s*=\s*(.*?)(?:\r?\n|ratings\s*=|$)",

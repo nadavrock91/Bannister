@@ -56,8 +56,8 @@ public class WebsiteMultilineEditorPage : ContentPage
             };
             checkBox.CheckedChanged += (_, args) =>
             {
-                var lines = (_editor.Text ?? string.Empty)
-                    .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+                var lines = TextParsing.NormalizeLineEndings(_editor.Text)
+                    .Split('\n', StringSplitOptions.RemoveEmptyEntries)
                     .Select(line => line.Trim())
                     .ToList();
 

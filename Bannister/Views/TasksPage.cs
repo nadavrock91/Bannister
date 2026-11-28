@@ -1927,7 +1927,8 @@ public class TasksPage : Bannister.Views.ModeThemedPage
     private async Task ApplyPrioritizationResultAsync(string llmResponse, List<TaskItem> focusTasks)
     {
         var taskLookup = focusTasks.ToDictionary(t => t.Id);
-        var lines = llmResponse.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+        var lines = TextParsing.NormalizeLineEndings(llmResponse)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
         // Find lines matching the ID|PRIORITY|PICK|REASON format
         int updated = 0;

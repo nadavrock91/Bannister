@@ -51,7 +51,7 @@ public static class ThemeImportExport
         var warnings = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         int lineNumber = 0;
-        foreach (string line in response.Split('\n'))
+        foreach (string line in TextParsing.NormalizeLineEndings(response).Split('\n'))
         {
             lineNumber++;
             if (line.TrimStart().StartsWith("//", StringComparison.Ordinal)) continue;

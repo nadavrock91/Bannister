@@ -420,8 +420,9 @@ public class CompanionService
             """(?im)^\s*(?:point|updatePoint)\s*\[\s*(\d+)\s*\]\s*(?:=|:)\s*(?:"((?:\\.|[^"\\])*)"|'([^'\r\n]*)'|([^;\r\n]*?))\s*;?\s*$""",
             RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
+        string normalized = TextParsing.NormalizeLineEndings(response);
         int recognized = 0;
-        foreach (Match match in assignmentRegex.Matches(response.Replace("\r\n", "\n")))
+        foreach (Match match in assignmentRegex.Matches(normalized))
         {
             recognized++;
             int id = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);

@@ -6561,6 +6561,8 @@ Output ONLY the C# code block.
         if (string.IsNullOrWhiteSpace(response))
             return null;
 
+        response = TextParsing.NormalizeLineEndings(response);
+
         const string nextMarker = "NEXT TASK:";
         const string codexMarker = "CODEX PROMPT:";
         var nextIndex = IndexOfMarker(response, nextMarker);
