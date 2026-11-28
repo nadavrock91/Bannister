@@ -71,18 +71,21 @@ public class CompanionService
     private readonly IdeaLoggerService _ideaLogger;
     private readonly GameService _games;
     private readonly ExpService _exp;
+    private readonly ExpAwarder _expAwarder;
     public CompanionService(
         DatabaseService db,
         IdeaLoggerService ideaLogger,
         OuterGameService outerGames,
         GameService games,
-        ExpService exp)
+        ExpService exp,
+        ExpAwarder expAwarder)
     {
         _db = db;
         _outerGames = outerGames;
         _ideaLogger = ideaLogger;
         _games = games;
         _exp = exp;
+        _expAwarder = expAwarder;
     }
 
     private async Task<SQLite.ISQLiteAsyncConnection> ConnectionAsync() =>
@@ -970,23 +973,26 @@ public class CompanionService
         }
 
         var awards = new List<ExpAwardResult>();
-        if (interview is { ExpAwarded: false })
+        await using (_expAwarder.BeginBatch())
         {
-            var award = await _outerGames.AwardAsync(username, Requirements, InterviewCompleted, db =>
+            if (interview is { ExpAwarded: false })
             {
-                int changed = db.Execute(
-                    "UPDATE companion_interviews SET ExpAwarded = 1 WHERE Id = ? AND Username = ? AND ExpAwarded = 0",
-                    interview.Id, username);
-                if (changed == 0 && db.Find<CompanionInterview>(interview.Id) is not { ExpAwarded: true })
-                    throw new InvalidOperationException("The interview could not be marked as awarded.");
-                return changed != 0;
-            });
-            awards.Add(award);
+                var award = await _outerGames.AwardAsync(username, Requirements, InterviewCompleted, db =>
+                {
+                    int changed = db.Execute(
+                        "UPDATE companion_interviews SET ExpAwarded = 1 WHERE Id = ? AND Username = ? AND ExpAwarded = 0",
+                        interview.Id, username);
+                    if (changed == 0 && db.Find<CompanionInterview>(interview.Id) is not { ExpAwarded: true })
+                        throw new InvalidOperationException("The interview could not be marked as awarded.");
+                    return changed != 0;
+                });
+                awards.Add(award);
+            }
+            foreach (var _ in addedPoints)
+                awards.Add(await _outerGames.AwardAsync(username, Requirements, DataPointAdded));
+            foreach (var _ in replacementPoints)
+                awards.Add(await _outerGames.AwardAsync(username, Requirements, DataPointRefined));
         }
-        foreach (var _ in addedPoints)
-            awards.Add(await _outerGames.AwardAsync(username, Requirements, DataPointAdded));
-        foreach (var _ in replacementPoints)
-            awards.Add(await _outerGames.AwardAsync(username, Requirements, DataPointRefined));
 
         return new CompanionApplyResult(added, reprioritized, archived, updated, ideaLoggingFailures, awards);
     }

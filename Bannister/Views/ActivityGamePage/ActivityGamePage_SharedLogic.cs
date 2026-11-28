@@ -451,13 +451,16 @@ public partial class ActivityGamePage
                 {
                     // For streak containers, apply multiple times immediately
                     int totalExp = 0;
-                    for (int i = 0; i < times; i++)
+                    await using (times > 1 ? ExpAwarder.Current.BeginBatch() : null)
                     {
-                        var (earnedExp, _) = await ProcessActivityCompletionAsync(
-                            activity,
-                            attemptVM.CurrentLevel,
-                            $"{activity.Name} (Batch {i + 1}/{times})");
-                        totalExp += earnedExp;
+                        for (int i = 0; i < times; i++)
+                        {
+                            var (earnedExp, _) = await ProcessActivityCompletionAsync(
+                                activity,
+                                attemptVM.CurrentLevel,
+                                $"{activity.Name} (Batch {i + 1}/{times})");
+                            totalExp += earnedExp;
+                        }
                     }
 
                     await RefreshExpAsync();

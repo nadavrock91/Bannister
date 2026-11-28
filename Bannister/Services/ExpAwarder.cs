@@ -30,6 +30,26 @@ public sealed record ExpAwardedEvent(
     int LevelBefore,
     int LevelAfter);
 
+public sealed class ExpAwardBatch : IAsyncDisposable
+{
+    private readonly ExpAwarder _owner;
+    private readonly object _context;
+    private bool _disposed;
+
+    internal ExpAwardBatch(ExpAwarder owner, object context)
+    {
+        _owner = owner;
+        _context = context;
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        if (_disposed) return ValueTask.CompletedTask;
+        _disposed = true;
+        return _owner.EndBatchAsync(_context);
+    }
+}
+
 public sealed class ExpAwarder(
     DatabaseService db,
     ExpService exp,
@@ -39,14 +59,45 @@ public sealed class ExpAwarder(
     DragonService dragons,
     AttemptService attempts)
 {
+    private sealed class BatchContext(BatchContext? parent)
+    {
+        public BatchContext? Parent { get; } = parent;
+        public Dictionary<string, ExpAwardedEvent> Changes { get; } =
+            new(StringComparer.OrdinalIgnoreCase);
+    }
+
     private readonly DatabaseService _db = db;
     private readonly SemaphoreSlim _awardLock = new(1);
+    private readonly AsyncLocal<BatchContext?> _currentBatch = new();
 
     public event Func<ExpAwardedEvent, Task>? AwardSucceeded;
 
     public static ExpAwarder Current =>
         Application.Current?.Handler?.MauiContext?.Services.GetRequiredService<ExpAwarder>()
         ?? throw new InvalidOperationException("ExpAwarder is unavailable.");
+
+    public ExpAwardBatch BeginBatch()
+    {
+        var context = new BatchContext(_currentBatch.Value);
+        _currentBatch.Value = context;
+        return new ExpAwardBatch(this, context);
+    }
+
+    internal ValueTask EndBatchAsync(object contextObject)
+    {
+        if (contextObject is not BatchContext context || !ReferenceEquals(_currentBatch.Value, context))
+            throw new InvalidOperationException("EXP batch scopes must be disposed in reverse order.");
+
+        _currentBatch.Value = context.Parent;
+        if (context.Parent != null)
+        {
+            foreach (var change in context.Changes.Values)
+                AddBatchChange(context.Parent, change);
+            return ValueTask.CompletedTask;
+        }
+
+        return new ValueTask(RaiseBatchSucceededAsync(context.Changes.Values.ToList()));
+    }
 
     public static int GetBaseExp(Activity activity, int level, ExpAwardMode mode = ExpAwardMode.Normal)
     {
@@ -73,6 +124,10 @@ public sealed class ExpAwarder(
     {
         await _awardLock.WaitAsync();
         int awarded = 0, baseRequested = 0, bonusRequested = 0;
+        int totalExpBefore = 0;
+        int levelBefore = 0;
+        string? resolvedGameId = null;
+        bool capturedBefore = false;
         bool firstZeroCount = false;
         string bonusDetails = "";
         try
@@ -84,8 +139,10 @@ public sealed class ExpAwarder(
             }
 
             gameId ??= activity.Game;
-            int totalExpBefore = await exp.GetTotalExpAsync(username, gameId);
-            int levelBefore = ExpEngine.GetProgress(totalExpBefore).level;
+            resolvedGameId = gameId;
+            totalExpBefore = await exp.GetTotalExpAsync(username, gameId);
+            levelBefore = ExpEngine.GetProgress(totalExpBefore).level;
+            capturedBefore = true;
             int level = displayedLevel ?? (await exp.GetProgressAsync(username, gameId)).level;
             int baseExp = GetBaseExp(activity, level, mode);
             bool backdatedMode = mode is ExpAwardMode.AutoAward or ExpAwardMode.CatchUp;
@@ -163,19 +220,68 @@ public sealed class ExpAwarder(
 
             int totalExpAfter = await exp.GetTotalExpAsync(username, gameId);
             int levelAfter = ExpEngine.GetProgress(totalExpAfter).level;
-            await RaiseAwardSucceededAsync(new ExpAwardedEvent(
+            await PublishAwardSucceededAsync(new ExpAwardedEvent(
                 username, gameId, totalExpBefore, totalExpAfter, levelBefore, levelAfter));
 
             return new(awarded, baseRequested, bonusRequested, firstZeroCount, bonusDetails);
         }
         catch (Exception ex)
         {
+            if (_currentBatch.Value != null && capturedBefore && resolvedGameId != null)
+            {
+                try
+                {
+                    int totalExpAfter = await exp.GetTotalExpAsync(username, resolvedGameId);
+                    if (totalExpAfter != totalExpBefore)
+                    {
+                        AddBatchChange(_currentBatch.Value, new ExpAwardedEvent(
+                            username, resolvedGameId, totalExpBefore, totalExpAfter, levelBefore,
+                            ExpEngine.GetProgress(totalExpAfter).level));
+                    }
+                }
+                catch (Exception batchEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to capture partial EXP batch change: {batchEx.Message}");
+                }
+            }
             return new(awarded, baseRequested, bonusRequested, firstZeroCount, bonusDetails, ex.Message);
         }
         finally
         {
             _awardLock.Release();
         }
+    }
+
+    private Task PublishAwardSucceededAsync(ExpAwardedEvent change)
+    {
+        if (_currentBatch.Value == null)
+            return RaiseAwardSucceededAsync(change);
+
+        AddBatchChange(_currentBatch.Value, change);
+        return Task.CompletedTask;
+    }
+
+    private static void AddBatchChange(BatchContext context, ExpAwardedEvent change)
+    {
+        string key = $"{change.Username}\0{change.GameId}";
+        if (context.Changes.TryGetValue(key, out var existing))
+        {
+            context.Changes[key] = existing with
+            {
+                TotalExpAfter = change.TotalExpAfter,
+                LevelAfter = change.LevelAfter
+            };
+        }
+        else
+        {
+            context.Changes.Add(key, change);
+        }
+    }
+
+    private async Task RaiseBatchSucceededAsync(IReadOnlyList<ExpAwardedEvent> changes)
+    {
+        foreach (var change in changes)
+            await RaiseAwardSucceededAsync(change);
     }
 
     private async Task RaiseAwardSucceededAsync(ExpAwardedEvent change)

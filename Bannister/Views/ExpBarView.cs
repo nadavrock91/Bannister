@@ -244,6 +244,7 @@ public sealed class ExpBarView : ContentView
             if (change.LevelAfter > change.LevelBefore)
             {
                 await _progressBar.ProgressTo(1.0, 500, Easing.CubicOut);
+                await SoundHelper.PlayExpGainSound();
                 await SoundHelper.PlayLevelUpSound();
                 await Task.Delay(200);
                 _progressBar.Progress = 0;

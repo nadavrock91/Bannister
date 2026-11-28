@@ -97,37 +97,40 @@ public partial class ActivityGamePage
         var bonusDetails = new List<string>();
         var awardedActivityIds = new HashSet<int>();
 
-        foreach (var activity in confirmPage.SelectedActivities)
+        await using (ExpAwarder.Current.BeginBatch())
         {
-            var startDate = GetAutoAwardStartDate(activity, today);
-
-            if (startDate > today)
-                continue;
-
-            foreach (var day in EachAutoAwardDay(startDate, today))
+            foreach (var activity in confirmPage.SelectedActivities)
             {
-                DateTime targetTime = day.Date == today.Date
-                    ? DateTime.Now
-                    : DateTime.SpecifyKind(day.Date.AddHours(12), DateTimeKind.Local);
+                var startDate = GetAutoAwardStartDate(activity, today);
 
-                var awardResult = await ExpAwarder.Current.AwardAsync(
-                    _auth.CurrentUsername, activity, ExpAwardMode.AutoAward, loggedAt: targetTime,
-                    onZeroCountCompleted: PromptMoveCompletedZeroCountAsync, checkDragon: false);
-                if (!awardResult.Succeeded)
+                if (startDate > today)
+                    continue;
+
+                foreach (var day in EachAutoAwardDay(startDate, today))
                 {
-                    await DisplayAlert("Auto-award failed", awardResult.FailureReason, "OK");
-                    return;
+                    DateTime targetTime = day.Date == today.Date
+                        ? DateTime.Now
+                        : DateTime.SpecifyKind(day.Date.AddHours(12), DateTimeKind.Local);
+
+                    var awardResult = await ExpAwarder.Current.AwardAsync(
+                        _auth.CurrentUsername, activity, ExpAwardMode.AutoAward, loggedAt: targetTime,
+                        onZeroCountCompleted: PromptMoveCompletedZeroCountAsync, checkDragon: false);
+                    if (!awardResult.Succeeded)
+                    {
+                        await DisplayAlert("Auto-award failed", awardResult.FailureReason, "OK");
+                        return;
+                    }
+
+                    totalExpAwarded += awardResult.BaseExpRequested + awardResult.BonusExpRequested;
+                    if (!string.IsNullOrEmpty(awardResult.BonusDetails))
+                        bonusDetails.Add(awardResult.BonusDetails);
+                    totalAwards++;
+                    awardedActivityIds.Add(activity.Id);
                 }
 
-                totalExpAwarded += awardResult.BaseExpRequested + awardResult.BonusExpRequested;
-                if (!string.IsNullOrEmpty(awardResult.BonusDetails))
-                    bonusDetails.Add(awardResult.BonusDetails);
-                totalAwards++;
-                awardedActivityIds.Add(activity.Id);
+                activity.LastAutoAwarded = today;
+                await _activities.UpdateActivityAsync(activity);
             }
-
-            activity.LastAutoAwarded = today;
-            await _activities.UpdateActivityAsync(activity);
         }
 
         if (totalAwards > 0)

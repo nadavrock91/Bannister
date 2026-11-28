@@ -303,13 +303,16 @@ public class GameCatchUpPage : Bannister.Views.ModeThemedPage
                 .ThenBy(x => x.Activity.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            foreach (var item in selectedRows)
+            await using (ExpAwarder.Current.BeginBatch())
             {
-                var localNoon = DateTime.SpecifyKind(item.Row.Date.Date.AddHours(12), DateTimeKind.Local);
-                for (int i = 0; i < item.Row.Count; i++)
+                foreach (var item in selectedRows)
                 {
-                    await ApplyActivityAsync(item.Activity, localNoon);
-                    totalApplications++;
+                    var localNoon = DateTime.SpecifyKind(item.Row.Date.Date.AddHours(12), DateTimeKind.Local);
+                    for (int i = 0; i < item.Row.Count; i++)
+                    {
+                        await ApplyActivityAsync(item.Activity, localNoon);
+                        totalApplications++;
+                    }
                 }
             }
 

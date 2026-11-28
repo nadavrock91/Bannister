@@ -33,41 +33,42 @@ public partial class ActivityGamePage
         int totalExp = 0;
         var details = new List<string>();
 
-        foreach (var activityVM in selected)
+        await using (selected.Count > 1 ? ExpAwarder.Current.BeginBatch() : null)
         {
-            var award = await ExpAwarder.Current.AwardAsync(
-                _auth.CurrentUsername, activityVM.Activity, gameId: GetActivityGameId(activityVM.Activity),
-                displayedLevel: activityVM.CurrentLevel, effectiveMultiplier: activityVM.EffectiveMultiplier,
-                onZeroCountCompleted: PromptMoveCompletedZeroCountAsync, checkDragon: false);
-            if (!award.Succeeded)
+            foreach (var activityVM in selected)
             {
-                await DisplayAlert("EXP Failed", award.FailureReason, "OK");
-                break;
-            }
+                var award = await ExpAwarder.Current.AwardAsync(
+                    _auth.CurrentUsername, activityVM.Activity, gameId: GetActivityGameId(activityVM.Activity),
+                    displayedLevel: activityVM.CurrentLevel, effectiveMultiplier: activityVM.EffectiveMultiplier,
+                    onZeroCountCompleted: PromptMoveCompletedZeroCountAsync, checkDragon: false);
+                if (!award.Succeeded)
+                {
+                    await DisplayAlert("EXP Failed", award.FailureReason, "OK");
+                    break;
+                }
 
-            bool isFirstZeroCountCompletion = award.FirstZeroCountCompletion;
-            var displayName = activityVM.Activity.IsImageOnly ? "" : activityVM.Name;
-            string bonusDetails = award.BonusDetails;
-            totalExp += award.BaseExpRequested + award.BonusExpRequested;
+                bool isFirstZeroCountCompletion = award.FirstZeroCountCompletion;
+                var displayName = activityVM.Activity.IsImageOnly ? "" : activityVM.Name;
+                string bonusDetails = award.BonusDetails;
+                totalExp += award.BaseExpRequested + award.BonusExpRequested;
 
-            // Update ViewModel with new values from activity
-            activityVM.DisplayDayStreak = activityVM.Activity.DisplayDayStreak;
-            activityVM.TimesCompleted = activityVM.Activity.TimesCompleted;
+                // Update ViewModel with new values from activity
+                activityVM.DisplayDayStreak = activityVM.Activity.DisplayDayStreak;
+                activityVM.TimesCompleted = activityVM.Activity.TimesCompleted;
 
-            // Build detail string
-            string multiplierInfo = activityVM.TemporaryMultiplier > 1 
-                ? $" (x{activityVM.TemporaryMultiplier} times)" 
-                : activityVM.Multiplier > 1 
-                    ? $" (x{activityVM.Multiplier})" 
-                    : "";
-            string zeroCountInfo = isFirstZeroCountCompletion ? " (Zero Count x10)" : "";
-            int displayedExp = award.BaseExpRequested;
-            string displayedSign = displayedExp >= 0 ? "+" : "";
-            details.Add($"{displayName}{multiplierInfo}{zeroCountInfo}: {displayedSign}{displayedExp}");
-            
-            if (!string.IsNullOrEmpty(bonusDetails))
-            {
-                details.Add(bonusDetails);
+                // Build detail string
+                string multiplierInfo = activityVM.TemporaryMultiplier > 1
+                    ? $" (x{activityVM.TemporaryMultiplier} times)"
+                    : activityVM.Multiplier > 1
+                        ? $" (x{activityVM.Multiplier})"
+                        : "";
+                string zeroCountInfo = isFirstZeroCountCompletion ? " (Zero Count x10)" : "";
+                int displayedExp = award.BaseExpRequested;
+                string displayedSign = displayedExp >= 0 ? "+" : "";
+                details.Add($"{displayName}{multiplierInfo}{zeroCountInfo}: {displayedSign}{displayedExp}");
+
+                if (!string.IsNullOrEmpty(bonusDetails))
+                    details.Add(bonusDetails);
             }
         }
 
