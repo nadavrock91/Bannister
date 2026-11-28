@@ -502,6 +502,7 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<DoNotItem>();
             await _db!.CreateTableAsync<OpeningClipImageSessionItem>();
             await _db!.CreateTableAsync<Companion>();
+            await _db!.CreateTableAsync<CompanionLevelImage>();
             await _db!.CreateTableAsync<CompanionDataPoint>();
             await _db!.CreateTableAsync<CompanionInterview>();
             await _db!.CreateTableAsync<AppSetting>();

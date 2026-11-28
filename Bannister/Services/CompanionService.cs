@@ -33,6 +33,7 @@ public sealed record ContextGameMigrationResult(
     int ReassignedPoints,
     int ReassignedInterviews,
     bool CreatedPersona);
+public sealed record CompanionAvatarState(int Level, byte[]? LevelImage);
 
 public sealed class CompanionExtraction
 {
@@ -61,11 +62,20 @@ public class CompanionService
     private readonly DatabaseService _db;
     private readonly OuterGameService _outerGames;
     private readonly IdeaLoggerService _ideaLogger;
-    public CompanionService(DatabaseService db, IdeaLoggerService ideaLogger, OuterGameService outerGames)
+    private readonly GameService _games;
+    private readonly ExpService _exp;
+    public CompanionService(
+        DatabaseService db,
+        IdeaLoggerService ideaLogger,
+        OuterGameService outerGames,
+        GameService games,
+        ExpService exp)
     {
         _db = db;
         _outerGames = outerGames;
         _ideaLogger = ideaLogger;
+        _games = games;
+        _exp = exp;
     }
 
     private async Task<SQLite.ISQLiteAsyncConnection> ConnectionAsync() =>
@@ -158,11 +168,128 @@ public class CompanionService
     public async Task DeleteCompanionAsync(Companion item)
     {
         var conn = await ConnectionAsync();
+        foreach (var image in await conn.Table<CompanionLevelImage>().Where(x => x.CompanionId == item.Id).ToListAsync())
+            await conn.DeleteAsync(image);
         foreach (var point in await conn.Table<CompanionDataPoint>().Where(x => x.CompanionId == item.Id).ToListAsync())
             await conn.DeleteAsync(point);
         foreach (var interview in await conn.Table<CompanionInterview>().Where(x => x.CompanionId == item.Id).ToListAsync())
             await conn.DeleteAsync(interview);
         await conn.DeleteAsync(item);
+    }
+
+    public async Task<int> GetContextGameLevelAsync(string username)
+    {
+        var matches = (await _games.GetGamesAsync(username))
+            .Where(game => OuterGameService.NamesMatch(game.DisplayName, Requirements.GameName))
+            .ToList();
+        if (matches.Count != 1)
+            return 1;
+        return (await _exp.GetProgressAsync(username, matches[0].GameId)).level;
+    }
+
+    public async Task<CompanionAvatarState> GetAvatarStateAsync(string username, Companion companion)
+    {
+        int level = await GetContextGameLevelAsync(username);
+        var image = await (await ConnectionAsync()).Table<CompanionLevelImage>()
+            .Where(x => x.Username == username && x.CompanionId == companion.Id && x.Level <= level)
+            .OrderByDescending(x => x.Level)
+            .FirstOrDefaultAsync();
+        return new CompanionAvatarState(level, image?.ImageBytes);
+    }
+
+    public async Task<List<CompanionLevelImage>> GetLevelImagesAsync(string username, int companionId) =>
+        await (await ConnectionAsync()).Table<CompanionLevelImage>()
+            .Where(x => x.Username == username && x.CompanionId == companionId)
+            .OrderBy(x => x.Level)
+            .ToListAsync();
+
+    public async Task<bool> SaveLevelImageAsync(
+        string username,
+        int companionId,
+        int level,
+        byte[] imageBytes,
+        bool replaceExisting)
+    {
+        if (level is < 1 or > ExpEngine.MaxLevel)
+            throw new ArgumentOutOfRangeException(nameof(level));
+        if (imageBytes.Length == 0)
+            throw new ArgumentException("The image is empty.", nameof(imageBytes));
+
+        bool saved = false;
+        var conn = await ConnectionAsync();
+        await conn.RunInTransactionAsync(db =>
+        {
+            var existing = db.Table<CompanionLevelImage>().FirstOrDefault(x =>
+                x.Username == username && x.CompanionId == companionId && x.Level == level);
+            if (existing != null)
+            {
+                if (!replaceExisting) return;
+                existing.ImageBytes = imageBytes;
+                existing.CreatedAt = DateTime.UtcNow;
+                db.Update(existing);
+            }
+            else
+            {
+                db.Insert(new CompanionLevelImage
+                {
+                    Username = username,
+                    CompanionId = companionId,
+                    Level = level,
+                    ImageBytes = imageBytes,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            saved = true;
+        });
+        return saved;
+    }
+
+    public async Task<bool> ChangeLevelImageLevelAsync(
+        string username,
+        int companionId,
+        int imageId,
+        int newLevel,
+        bool replaceExisting)
+    {
+        if (newLevel is < 1 or > ExpEngine.MaxLevel)
+            throw new ArgumentOutOfRangeException(nameof(newLevel));
+
+        bool changed = false;
+        var conn = await ConnectionAsync();
+        await conn.RunInTransactionAsync(db =>
+        {
+            var image = db.Find<CompanionLevelImage>(imageId);
+            if (image == null || image.Username != username || image.CompanionId != companionId)
+                return;
+            if (image.Level == newLevel)
+            {
+                changed = true;
+                return;
+            }
+
+            var collision = db.Table<CompanionLevelImage>().FirstOrDefault(x =>
+                x.Username == username && x.CompanionId == companionId && x.Level == newLevel);
+            if (collision != null)
+            {
+                if (!replaceExisting) return;
+                db.Delete(collision);
+            }
+            image.Level = newLevel;
+            db.Update(image);
+            changed = true;
+        });
+        return changed;
+    }
+
+    public async Task DeleteLevelImageAsync(string username, int companionId, int imageId)
+    {
+        var conn = await ConnectionAsync();
+        await conn.RunInTransactionAsync(db =>
+        {
+            var image = db.Find<CompanionLevelImage>(imageId);
+            if (image != null && image.Username == username && image.CompanionId == companionId)
+                db.Delete(image);
+        });
     }
 
     public async Task<List<CompanionDataPoint>> GetPointsAsync(string username, int companionId, bool includeArchived = false)

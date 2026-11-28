@@ -1,6 +1,5 @@
 using Bannister.Models;
 using Bannister.Services;
-using SkiaSharp;
 
 namespace Bannister.Views;
 
@@ -51,6 +50,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
     private async Task BuildDetailAsync()
     {
         var companion = _selected!;
+        var avatarState = await _service.GetAvatarStateAsync(_auth.CurrentUsername, companion);
         _content.Children.Add(PageHeading("The Context Game", 24));
         _content.Children.Add((new Label
         {
@@ -64,6 +64,8 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             Children =
             {
                 PageHeading(companion.Nickname, 24),
+                (new Label { Text = $"Level {avatarState.Level}", FontSize = 13, FontAttributes = FontAttributes.Bold })
+                    .ThemeColor(Label.TextColorProperty, ThemeKey.PageText2),
                 (new Label { Text = "All of Bannister", FontSize = 13 })
                     .ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText2)
             }
@@ -78,19 +80,27 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             },
             ColumnSpacing = 12
         };
-        personaHeader.Add(CompanionAvatarPresentation.Create(companion, 72), 0);
+        personaHeader.Add(CompanionAvatarPresentation.Create(companion, 72, avatarState.LevelImage), 0);
         personaHeader.Add(personaText, 1);
         var editPersona = Button("Edit", ThemeKey.WarningBackground, ThemeKey.WarningText);
         editPersona.VerticalOptions = LayoutOptions.Center;
         editPersona.Clicked += async (_, _) =>
         {
-            var edited = await CompanionEditPage.ShowAsync(Navigation, companion);
+            var edited = await CompanionEditPage.ShowAsync(Navigation, companion, avatarState.LevelImage);
             if (edited == null) return;
             await _service.SaveCompanionAsync(edited);
             _selected = edited;
             await RefreshAsync();
         };
-        personaHeader.Add(editPersona, 2);
+        var levelImages = Button("Level Images", ThemeKey.SecondaryButtonBackground, ThemeKey.ButtonPrimaryText);
+        levelImages.Clicked += async (_, _) => await Navigation.PushAsync(
+            new CompanionLevelImagesPage(_auth.CurrentUsername, companion, _service));
+        personaHeader.Add(new VerticalStackLayout
+        {
+            Spacing = 6,
+            VerticalOptions = LayoutOptions.Center,
+            Children = { editPersona, levelImages }
+        }, 2);
         _content.Children.Add(personaHeader);
         var allGames = await GetAllGamesAsync();
         var gamesById = allGames.ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
@@ -994,7 +1004,7 @@ internal sealed class CompanionDataPointEditPage : ModeThemedPage
 internal sealed class CompanionEditPage : ModeThemedPage
 {
     private readonly TaskCompletionSource<Companion?> _completion = new();
-    private CompanionEditPage(Companion item)
+    private CompanionEditPage(Companion item, byte[]? displayedImage)
     {
         Title = "Edit Context Game Persona";
         byte[]? pendingImage = item.AvatarImage;
@@ -1016,13 +1026,13 @@ internal sealed class CompanionEditPage : ModeThemedPage
             .ThemeColor(Entry.PlaceholderColorProperty, ThemeKey.CardText3);
         var avatarHost = new ContentView
         {
-            Content = CompanionAvatarPresentation.Create(item, 112),
+            Content = CompanionAvatarPresentation.Create(item, 112, displayedImage),
             HorizontalOptions = LayoutOptions.Start
         };
         void RefreshAvatar()
         {
             var preview = new Companion { Nickname = nickname.Text ?? item.Nickname, AvatarImage = pendingImage };
-            avatarHost.Content = CompanionAvatarPresentation.Create(preview, 112);
+            avatarHost.Content = CompanionAvatarPresentation.Create(preview, 112, displayedImage);
         }
         nickname.TextChanged += (_, _) => { if (pendingImage is not { Length: > 0 }) RefreshAvatar(); };
         var replaceImage = (new Button { Text = pendingImage is { Length: > 0 } ? "Replace Image" : "Choose Image" })
@@ -1041,14 +1051,13 @@ internal sealed class CompanionEditPage : ModeThemedPage
                     FileTypes = FilePickerFileType.Images
                 });
                 if (picked == null) return;
-                string extension = Path.GetExtension(picked.FileName).ToLowerInvariant();
-                if (extension is not (".png" or ".jpg" or ".jpeg" or ".webp"))
+                if (!CompanionAvatarImageProcessor.IsSupportedFileName(picked.FileName))
                 {
                     await DisplayAlert("Unsupported Image", "Choose a PNG, JPG, or WebP image.", "OK");
                     return;
                 }
                 await using var stream = await picked.OpenReadAsync();
-                pendingImage = ResizeImage(stream);
+                pendingImage = CompanionAvatarImageProcessor.LoadAndResizePng(stream);
                 replaceImage.Text = "Replace Image";
                 removeImage.IsEnabled = true;
                 RefreshAvatar();
@@ -1068,14 +1077,18 @@ internal sealed class CompanionEditPage : ModeThemedPage
         var save = (new Button { Text = "Save" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         save.Clicked += async (_, _) =>
         {
-            if (string.IsNullOrWhiteSpace(nickname.Text)) { await DisplayAlert("Name Required", "Enter a persona name.", "OK"); return; }
-            if (!int.TryParse(questionCount.Text, out int questions) || questions is < 1 or > 50) { await DisplayAlert("Invalid Number of Questions", "Enter a whole number from 1 to 50.", "OK"); return; }
-            item.Nickname = nickname.Text.Trim();
+            string normalizedNickname = (nickname.Text ?? "").ReplaceLineEndings("\n").Trim();
+            string normalizedPersona = (persona.Text ?? "").ReplaceLineEndings("\n").Trim();
+            string normalizedStance = (stance.Text ?? "").ReplaceLineEndings("\n").Trim();
+            string normalizedQuestionCount = (questionCount.Text ?? "").ReplaceLineEndings("\n").Trim();
+            if (string.IsNullOrWhiteSpace(normalizedNickname)) { await DisplayAlert("Name Required", "Enter a persona name.", "OK"); return; }
+            if (!int.TryParse(normalizedQuestionCount, out int questions) || questions is < 1 or > 50) { await DisplayAlert("Invalid Number of Questions", "Enter a whole number from 1 to 50.", "OK"); return; }
+            item.Nickname = normalizedNickname;
             item.Scope = "meta";
             item.GameId = null;
             item.Topic = "";
-            item.PersonaDescription = persona.Text?.Trim() ?? "";
-            item.InterviewStance = string.IsNullOrWhiteSpace(stance.Text) ? "get to know the user across all of Bannister" : stance.Text.Trim();
+            item.PersonaDescription = normalizedPersona;
+            item.InterviewStance = string.IsNullOrWhiteSpace(normalizedStance) ? "get to know the user across all of Bannister" : normalizedStance;
             item.DefaultQuestionCount = questions;
             item.AvatarImage = pendingImage;
             item.AvatarPath = null;
@@ -1094,35 +1107,8 @@ internal sealed class CompanionEditPage : ModeThemedPage
             new HorizontalStackLayout { Spacing = 8, Children = { save, cancel } }
         } } };
     }
-    private static byte[] ResizeImage(Stream stream)
-    {
-        using var source = SKBitmap.Decode(stream) ?? throw new InvalidOperationException("The selected file is not a readable image.");
-        const int maxSide = 512;
-        SKBitmap? resized = null;
-        SKBitmap output = source;
-        int longestSide = Math.Max(source.Width, source.Height);
-        if (longestSide > maxSide)
-        {
-            double scale = maxSide / (double)longestSide;
-            int width = Math.Max(1, (int)Math.Round(source.Width * scale));
-            int height = Math.Max(1, (int)Math.Round(source.Height * scale));
-            resized = source.Resize(new SKImageInfo(width, height), SKFilterQuality.High)
-                ?? throw new InvalidOperationException("The selected image could not be resized.");
-            output = resized;
-        }
-        try
-        {
-            using var image = SKImage.FromBitmap(output);
-            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-            return data.ToArray();
-        }
-        finally
-        {
-            resized?.Dispose();
-        }
-    }
     private async Task CloseAsync(Companion? result) { await Navigation.PopModalAsync(); _completion.TrySetResult(result); }
-    public static async Task<Companion?> ShowAsync(INavigation navigation, Companion item) { var page = new CompanionEditPage(item); await navigation.PushModalAsync(page); return await page._completion.Task; }
+    public static async Task<Companion?> ShowAsync(INavigation navigation, Companion item, byte[]? displayedImage = null) { var page = new CompanionEditPage(item, displayedImage); await navigation.PushModalAsync(page); return await page._completion.Task; }
 }
 
 internal sealed class CompanionTextInputPage : ModeThemedPage

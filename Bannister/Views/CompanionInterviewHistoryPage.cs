@@ -46,6 +46,7 @@ public sealed class CompanionInterviewHistoryPage : Bannister.Views.ModeThemedPa
         _loading = true;
         try
         {
+            var avatarState = await _service.GetAvatarStateAsync(_username, _companion);
             var interviews = await _service.GetInterviewsAsync(_username, _companion.Id);
             _content.Children.Clear();
             var headerText = new VerticalStackLayout
@@ -56,12 +57,14 @@ public sealed class CompanionInterviewHistoryPage : Bannister.Views.ModeThemedPa
                 {
                     (new Label { Text = _companion.Nickname, FontSize = 22, FontAttributes = FontAttributes.Bold })
                         .ThemeColor(Label.TextColorProperty, ThemeKey.PageText1),
+                    (new Label { Text = $"Level {avatarState.Level}", FontSize = 13, FontAttributes = FontAttributes.Bold })
+                        .ThemeColor(Label.TextColorProperty, ThemeKey.PageText2),
                     (new Label { Text = "Interview History", FontSize = 13 })
                         .ThemeColor(Label.TextColorProperty, ThemeKey.PageText2)
                 }
             };
             var header = new HorizontalStackLayout { Spacing = 12 };
-            header.Children.Add(CompanionAvatarPresentation.Create(_companion, 64));
+            header.Children.Add(CompanionAvatarPresentation.Create(_companion, 64, avatarState.LevelImage));
             header.Children.Add(headerText);
             _content.Children.Add(header);
             if (interviews.Count == 0)
