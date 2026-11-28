@@ -121,11 +121,11 @@ internal static class CompanionInterviewPresentation
         Func<Task> deleteInterview)
     {
         var row = new VerticalStackLayout { Spacing = 4 };
-        row.Children.Add(new Label
+        row.Children.Add((new Label
         {
             Text = $"{interview.StartedAt.ToLocalTime():dd MMM yyyy HH:mm} · {interview.QuestionCount} questions",
             FontAttributes = FontAttributes.Bold
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1));
         row.Children.Add((new Label
         {
             Text = $"Added {interview.PointsAdded} · Reprioritized {interview.PointsReprioritized} · Archived {interview.PointsArchived}",

@@ -984,7 +984,7 @@ internal sealed class CompanionDataPointEditPage : ModeThemedPage
     }
 }
 
-internal sealed class CompanionEditPage : ContentPage
+internal sealed class CompanionEditPage : ModeThemedPage
 {
     private readonly TaskCompletionSource<Companion?> _completion = new();
     private CompanionEditPage(Companion item)
@@ -993,16 +993,20 @@ internal sealed class CompanionEditPage : ContentPage
         byte[]? pendingImage = item.AvatarImage;
         var nickname = (new Entry { Placeholder = "Name", Text = item.Nickname })
             .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground)
-            .ThemeColor(Entry.TextColorProperty, ThemeKey.InputText);
+            .ThemeColor(Entry.TextColorProperty, ThemeKey.InputText)
+            .ThemeColor(Entry.PlaceholderColorProperty, ThemeKey.CardText3);
         var persona = (new Editor { Placeholder = "Persona description", Text = item.PersonaDescription, HeightRequest = 90 })
             .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground)
-            .ThemeColor(Editor.TextColorProperty, ThemeKey.InputText);
+            .ThemeColor(Editor.TextColorProperty, ThemeKey.InputText)
+            .ThemeColor(Editor.PlaceholderColorProperty, ThemeKey.CardText3);
         var stance = (new Editor { Placeholder = "Interview stance", Text = item.InterviewStance, HeightRequest = 90 })
             .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground)
-            .ThemeColor(Editor.TextColorProperty, ThemeKey.InputText);
+            .ThemeColor(Editor.TextColorProperty, ThemeKey.InputText)
+            .ThemeColor(Editor.PlaceholderColorProperty, ThemeKey.CardText3);
         var questionCount = (new Entry { Placeholder = "Number of questions", Text = item.DefaultQuestionCount.ToString(), Keyboard = Keyboard.Numeric })
             .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground)
-            .ThemeColor(Entry.TextColorProperty, ThemeKey.InputText);
+            .ThemeColor(Entry.TextColorProperty, ThemeKey.InputText)
+            .ThemeColor(Entry.PlaceholderColorProperty, ThemeKey.CardText3);
         var avatarHost = new ContentView
         {
             Content = CompanionAvatarPresentation.Create(item, 112),
@@ -1070,7 +1074,10 @@ internal sealed class CompanionEditPage : ContentPage
             item.AvatarPath = null;
             await CloseAsync(item);
         };
-        var cancel = new Button { Text = "Cancel" }; cancel.Clicked += async (_, _) => await CloseAsync(null);
+        var cancel = (new Button { Text = "Cancel" })
+            .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground)
+            .ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
+        cancel.Clicked += async (_, _) => await CloseAsync(null);
         Content = new ScrollView { Content = new VerticalStackLayout { Padding = 18, Spacing = 9, Children =
         {
             (new Label { Text = Title, FontSize = 22, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1),
@@ -1111,17 +1118,23 @@ internal sealed class CompanionEditPage : ContentPage
     public static async Task<Companion?> ShowAsync(INavigation navigation, Companion item) { var page = new CompanionEditPage(item); await navigation.PushModalAsync(page); return await page._completion.Task; }
 }
 
-internal sealed class CompanionTextInputPage : ContentPage
+internal sealed class CompanionTextInputPage : ModeThemedPage
 {
     private readonly TaskCompletionSource<string?> _completion = new();
     private CompanionTextInputPage(string title, string initial, string placeholder)
     {
         Title = title;
-        var editor = (new Editor { Text = initial, Placeholder = placeholder, HeightRequest = 320, AutoSize = EditorAutoSizeOption.Disabled }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
+        var editor = (new Editor { Text = initial, Placeholder = placeholder, HeightRequest = 320, AutoSize = EditorAutoSizeOption.Disabled })
+            .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground)
+            .ThemeColor(Editor.TextColorProperty, ThemeKey.InputText)
+            .ThemeColor(Editor.PlaceholderColorProperty, ThemeKey.CardText3);
         var paste = (new Button { Text = "Paste" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         paste.Clicked += async (_, _) => { try { if (!Clipboard.HasText) return; var text = await Clipboard.GetTextAsync(); if (string.IsNullOrEmpty(text)) return; string current = editor.Text ?? ""; int start = Math.Clamp(editor.CursorPosition, 0, current.Length); int length = Math.Clamp(editor.SelectionLength, 0, current.Length - start); editor.Text = current.Remove(start, length).Insert(start, text); editor.CursorPosition = start + text.Length; editor.SelectionLength = 0; } finally { editor.Focus(); } };
         var ok = (new Button { Text = "OK" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.ButtonPrimaryText); ok.Clicked += async (_, _) => await CloseAsync(editor.Text);
-        var cancel = new Button { Text = "Cancel" }; cancel.Clicked += async (_, _) => await CloseAsync(null);
+        var cancel = (new Button { Text = "Cancel" })
+            .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground)
+            .ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
+        cancel.Clicked += async (_, _) => await CloseAsync(null);
         Content = new Grid { Padding = 16, RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) }, Children = { editor } };
         var buttons = new FlexLayout { Direction = Microsoft.Maui.Layouts.FlexDirection.Row, Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start, Children = { paste, ok, cancel } }; Grid.SetRow(buttons, 1); ((Grid)Content).Children.Add(buttons);
     }
@@ -1129,21 +1142,22 @@ internal sealed class CompanionTextInputPage : ContentPage
     public static async Task<string?> ShowAsync(INavigation navigation, string title, string initial, string placeholder) { var page = new CompanionTextInputPage(title, initial, placeholder); await navigation.PushModalAsync(page); return await page._completion.Task; }
 }
 
-internal sealed class CompanionExtractionReviewPage : ContentPage
+internal sealed class CompanionExtractionReviewPage : ModeThemedPage
 {
     private readonly TaskCompletionSource<CompanionApplyResult?> _completion = new();
     private CompanionExtractionReviewPage(CompanionExtraction result, Func<List<CompanionAddProposal>, List<CompanionPriorityProposal>, List<CompanionArchiveProposal>, List<CompanionUpdateProposal>, Task<CompanionApplyResult>> apply)
     {
         Title = "Review Extraction";
         var stack = new VerticalStackLayout { Padding = 16, Spacing = 8 };
-        stack.Children.Add(new Label { Text = "Review Proposed Changes", FontSize = 22, FontAttributes = FontAttributes.Bold });
+        stack.Children.Add((new Label { Text = "Review Proposed Changes", FontSize = 22, FontAttributes = FontAttributes.Bold })
+            .ThemeColor(Label.TextColorProperty, ThemeKey.PageText1));
         var adds = AddRows(stack, "Add points", result.Adds, x =>
             $"P{x.Priority}: {x.Text}\nGame: {(string.IsNullOrWhiteSpace(x.GameName) ? "No game" : x.GameName)} · Category: {(string.IsNullOrWhiteSpace(x.Category) ? "No category" : x.Category)}");
         var priorities = AddRows(stack, "Priority changes", result.Priorities, x => $"Point {x.PointId} → priority {x.Priority}");
         var archives = AddRows(stack, "Archives", result.Archives, x => $"Point {x.PointId}: {x.Reason}");
         var updates = AddRows(stack, "Text updates", result.Updates, x => $"Point {x.PointId}: {x.Text}");
-        if (result.Warnings.Count > 0) { stack.Children.Add((new Label { Text = $"Warnings ({result.Warnings.Count})", FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1)); foreach (var warning in result.Warnings) stack.Children.Add((new Label { Text = warning, FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3)); }
-        if (result.SkippedLines.Count > 0) { stack.Children.Add((new Label { Text = $"Skipped invalid lines ({result.SkippedLines.Count})", FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1)); foreach (var line in result.SkippedLines) stack.Children.Add((new Label { Text = line, FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3)); }
+        if (result.Warnings.Count > 0) { stack.Children.Add((new Label { Text = $"Warnings ({result.Warnings.Count})", FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1)); foreach (var warning in result.Warnings) stack.Children.Add((new Label { Text = warning, FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText3)); }
+        if (result.SkippedLines.Count > 0) { stack.Children.Add((new Label { Text = $"Skipped invalid lines ({result.SkippedLines.Count})", FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1)); foreach (var line in result.SkippedLines) stack.Children.Add((new Label { Text = line, FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText3)); }
         var applyButton = (new Button { Text = "Apply Selected" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.ButtonPrimaryText);
         applyButton.Clicked += async (_, _) =>
         {
@@ -1158,10 +1172,13 @@ internal sealed class CompanionExtractionReviewPage : ContentPage
                 await CloseWithErrorAsync(ex);
             }
         };
-        var cancel = new Button { Text = "Cancel" }; cancel.Clicked += async (_, _) => await CloseAsync(null);
+        var cancel = (new Button { Text = "Cancel" })
+            .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground)
+            .ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
+        cancel.Clicked += async (_, _) => await CloseAsync(null);
         stack.Children.Add(new HorizontalStackLayout { Spacing = 8, Children = { applyButton, cancel } }); Content = new ScrollView { Content = stack };
     }
-    private static List<CheckBox> AddRows<T>(VerticalStackLayout stack, string title, List<T> values, Func<T, string> text) { var checks = new List<CheckBox>(); if (values.Count == 0) return checks; stack.Children.Add(new Label { Text = title, FontSize = 17, FontAttributes = FontAttributes.Bold }); foreach (var value in values) { var check = new CheckBox { IsChecked = true }; checks.Add(check); stack.Children.Add(new HorizontalStackLayout { Spacing = 6, Children = { check, new Label { Text = text(value), VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.WordWrap } } }); } return checks; }
+    private static List<CheckBox> AddRows<T>(VerticalStackLayout stack, string title, List<T> values, Func<T, string> text) { var checks = new List<CheckBox>(); if (values.Count == 0) return checks; stack.Children.Add((new Label { Text = title, FontSize = 17, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1)); foreach (var value in values) { var check = new CheckBox { IsChecked = true }; checks.Add(check); stack.Children.Add(new HorizontalStackLayout { Spacing = 6, Children = { check, (new Label { Text = text(value), VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText2) } }); } return checks; }
     private static List<T> Selected<T>(List<T> values, List<CheckBox> checks) => values.Where((_, i) => checks[i].IsChecked).ToList();
     private async Task CloseAsync(CompanionApplyResult? result) { await Navigation.PopModalAsync(); _completion.TrySetResult(result); }
     private async Task CloseWithErrorAsync(Exception exception) { await Navigation.PopModalAsync(); _completion.TrySetException(exception); }

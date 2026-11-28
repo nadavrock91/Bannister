@@ -49,7 +49,8 @@ internal sealed class CompanionRephraseInstructionPage : CompanionRephraseResult
             HeightRequest = 150,
             AutoSize = EditorAutoSizeOption.TextChanges
         }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.InputBackground)
-          .ThemeColor(Editor.TextColorProperty, ThemeKey.InputText);
+          .ThemeColor(Editor.TextColorProperty, ThemeKey.InputText)
+          .ThemeColor(Editor.PlaceholderColorProperty, ThemeKey.CardText3);
 
         var copy = Action("Copy Prompt", ThemeKey.ButtonPrimaryBackground);
         copy.Clicked += async (_, _) =>
@@ -98,7 +99,8 @@ internal sealed class CompanionRephrasePastePage : CompanionRephraseResultPage<s
             HeightRequest = 380,
             AutoSize = EditorAutoSizeOption.Disabled
         }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.InputBackground)
-          .ThemeColor(Editor.TextColorProperty, ThemeKey.InputText);
+          .ThemeColor(Editor.TextColorProperty, ThemeKey.InputText)
+          .ThemeColor(Editor.PlaceholderColorProperty, ThemeKey.CardText3);
         var paste = Action("Paste from clipboard", ThemeKey.ButtonPrimaryBackground);
         paste.Clicked += async (_, _) =>
         {
