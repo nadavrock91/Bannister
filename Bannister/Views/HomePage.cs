@@ -3044,8 +3044,15 @@ public class HomePage : Bannister.Views.ModeThemedPage
 
     private async void OnCompanionsClicked(object? sender, EventArgs e)
     {
-        await Navigation.PushAsync(new CompanionsPage(
-            _auth, _companionService, _games, _privacyMode));
+        try
+        {
+            await OuterGameGatePage.OpenAsync(Navigation, _auth, _games, _activities, CompanionService.Requirements,
+                () => new CompanionsPage(_auth, _companionService, _games, _privacyMode));
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("The Context Game", ex.Message, "OK");
+        }
     }
 
     private async void OnVideoEditingClicked(object? sender, EventArgs e)

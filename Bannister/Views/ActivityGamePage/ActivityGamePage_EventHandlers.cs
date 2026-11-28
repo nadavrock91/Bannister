@@ -36,48 +36,33 @@ public partial class ActivityGamePage
 
         foreach (var activityVM in selected)
         {
-            int baseExp = activityVM.ExpGain;
-            int effectiveMultiplier = activityVM.EffectiveMultiplier;
-            int expForThisActivity = baseExp * effectiveMultiplier;
-            bool isFirstZeroCountCompletion = activityVM.Activity.IsZeroCount && activityVM.Activity.TimesCompleted == 0;
+            var award = await ExpAwarder.Current.AwardAsync(
+                _auth.CurrentUsername, activityVM.Activity, gameId: GetActivityGameId(activityVM.Activity),
+                displayedLevel: activityVM.CurrentLevel, effectiveMultiplier: activityVM.EffectiveMultiplier,
+                onZeroCountCompleted: PromptMoveCompletedZeroCountAsync, checkDragon: false);
+            if (!award.Succeeded)
+            {
+                await DisplayAlert("EXP Failed", award.FailureReason, "OK");
+                break;
+            }
+
+            bool isFirstZeroCountCompletion = award.FirstZeroCountCompletion;
             var displayName = activityVM.Activity.IsImageOnly ? "" : activityVM.Name;
-
-            if (isFirstZeroCountCompletion)
-            {
-                string expGameId = _isGroupingMode ? activityVM.Activity.Game : _game!.GameId;
-                await _exp.ApplyExpAsync(_auth.CurrentUsername, expGameId, displayName, expForThisActivity * 10, activityVM.Id);
-            }
-            else
-            {
-                // Apply EXP multiple times if multiplier > 1 (just the EXP logging)
-                for (int i = 0; i < effectiveMultiplier; i++)
-                {
-                    // In grouping mode, use the activity's own game for EXP
-                    string expGameId = _isGroupingMode ? activityVM.Activity.Game : _game!.GameId;
-                    await _exp.ApplyExpAsync(_auth.CurrentUsername, expGameId, displayName, baseExp, activityVM.Id);
-                }
-            }
-
-            // Process completion ONCE per activity using shared logic
-            // This handles: streak tracking, habit completion, display day streak,
-            // times completed, NewHabit progress, and streak bonus
-            var (bonusExp, bonusDetails) = await ProcessActivityCompletionCoreAsync(activityVM.Activity);
-            
-            totalExp += (isFirstZeroCountCompletion ? expForThisActivity * 10 : expForThisActivity) + bonusExp;
+            string bonusDetails = award.BonusDetails;
+            totalExp += award.BaseExpRequested + award.BonusExpRequested;
 
             // Update ViewModel with new values from activity
             activityVM.DisplayDayStreak = activityVM.Activity.DisplayDayStreak;
             activityVM.TimesCompleted = activityVM.Activity.TimesCompleted;
 
             // Build detail string
-            string sign = expForThisActivity >= 0 ? "+" : "";
             string multiplierInfo = activityVM.TemporaryMultiplier > 1 
                 ? $" (x{activityVM.TemporaryMultiplier} times)" 
                 : activityVM.Multiplier > 1 
                     ? $" (x{activityVM.Multiplier})" 
                     : "";
             string zeroCountInfo = isFirstZeroCountCompletion ? " (Zero Count x10)" : "";
-            int displayedExp = isFirstZeroCountCompletion ? expForThisActivity * 10 : expForThisActivity;
+            int displayedExp = award.BaseExpRequested;
             string displayedSign = displayedExp >= 0 ? "+" : "";
             details.Add($"{displayName}{multiplierInfo}{zeroCountInfo}: {displayedSign}{displayedExp}");
             
@@ -894,63 +879,6 @@ public partial class ActivityGamePage
         await RefreshActivitiesAsync();
     }
 
-    /// <summary>
-    /// Record that a habit's positive activity was completed.
-    /// ONLY increments the streak counter - does NOT graduate or change allowance.
-    /// Graduation happens only when entering the Habits page.
-    /// </summary>
-    private async Task RecordNewHabitProgressAsync(int activityId)
-    {
-        try
-        {
-            var dbService = Application.Current?.Handler?.MauiContext?.Services.GetService<DatabaseService>();
-            if (dbService == null) return;
-
-            var conn = await dbService.GetConnectionAsync();
-            
-            var habit = await conn.Table<NewHabit>()
-                .Where(h => h.Username == _auth.CurrentUsername 
-                    && h.PositiveActivityId == activityId 
-                    && h.Status == "active")
-                .FirstOrDefaultAsync();
-
-            if (habit == null) return;
-
-            var today = DateTime.UtcNow.Date;
-
-            if (habit.LastAppliedDate.HasValue && habit.LastAppliedDate.Value.Date == today)
-            {
-                System.Diagnostics.Debug.WriteLine($"[NEWHABIT] Already recorded today for {habit.HabitName}");
-                return;
-            }
-
-            bool isConsecutive = habit.LastAppliedDate.HasValue 
-                && (today - habit.LastAppliedDate.Value.Date).TotalDays == 1;
-
-            if (isConsecutive || habit.ConsecutiveDays == 0)
-            {
-                habit.ConsecutiveDays++;
-            }
-            else
-            {
-                habit.ConsecutiveDays = 1;
-            }
-
-            habit.LastAppliedDate = today;
-
-            // NOTE: We do NOT graduate here anymore.
-            // Graduation only happens in the Habits page with user confirmation.
-            // This method ONLY updates the streak counter.
-
-            await conn.UpdateAsync(habit);
-            System.Diagnostics.Debug.WriteLine($"[NEWHABIT] Recorded day {habit.ConsecutiveDays}/{habit.DaysToGraduate} for {habit.HabitName}");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[NEWHABIT] Error recording progress: {ex.Message}");
-        }
-    }
-
     private void OnSelectAllClicked(object? sender, EventArgs e)
     {
         if (_currentlyVisibleActivities == null) return;
@@ -1370,7 +1298,7 @@ public partial class ActivityGamePage
             ? "Manual EXP Adjustment" 
             : $"Manual: {reason.Trim()}";
 
-        await _exp.ApplyExpAsync(_auth.CurrentUsername, _game.GameId, description, amount, 0);
+        await ExpAwarder.Current.ApplyAdjustmentAsync(_auth.CurrentUsername, _game.GameId, description, amount, 0);
         await RefreshExpAsync();
         
         string sign = amount > 0 ? "+" : "";

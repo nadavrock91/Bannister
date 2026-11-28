@@ -558,7 +558,6 @@ public partial class ActivityGamePage
         }
 
         // Calculate EXP — always single application amount
-        int expAmount = attemptVM.ExpGain * activity.Multiplier;
 
         // Compute day label for EXP log
         string dayLabel;
@@ -579,7 +578,7 @@ public partial class ActivityGamePage
 
         var (totalExp, bonusDetails) = await ProcessActivityCompletionAsync(
             activity,
-            expAmount,
+            attemptVM.CurrentLevel,
             dayLabel);
 
         await RefreshExpAsync();

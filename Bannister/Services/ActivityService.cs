@@ -167,11 +167,25 @@ namespace Bannister.Services
             return activity;
         }
 
-        public async Task<Activity> CreateActivityAsync(Activity activity)
+        public async Task<Activity> CreateActivityAsync(Activity activity, bool requireUniqueName = false)
         {
             var conn = await _db.GetConnectionAsync();
             activity.IsActive = true;
-            await conn.InsertAsync(activity);
+            if (requireUniqueName)
+            {
+                await conn.RunInTransactionAsync(db =>
+                {
+                    var existing = db.Table<Activity>().Where(row =>
+                        row.Username == activity.Username && row.Game == activity.Game && row.IsActive);
+                    if (existing.ToList().Any(row => OuterGameService.NamesMatch(row.Name, activity.Name)))
+                        throw new InvalidOperationException($"An activity named '{activity.Name}' already exists in this game.");
+                    db.Insert(activity);
+                });
+            }
+            else
+            {
+                await conn.InsertAsync(activity);
+            }
 
             // Log to ideas
             string ideaText = $"{activity.Name} ({activity.Category}, +{activity.ExpGain} EXP)";

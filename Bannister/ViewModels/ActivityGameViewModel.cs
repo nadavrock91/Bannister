@@ -42,18 +42,9 @@ public class ActivityGameViewModel : INotifyPropertyChanged
     /// <summary>
     /// EXP gain - calculated dynamically for PercentOfLevel type
     /// </summary>
-    public int ExpGain
-    {
-        get
-        {
-            if (_activity.RewardType == "PercentOfLevel")
-            {
-                return ExpEngine.ExpForPercentOfLevel(_currentLevel, _activity.PercentOfLevel, _activity.PercentCutoffLevel);
-            }
-            return _activity.ExpGain;
-        }
-    }
-    
+    public int ExpGain =>
+        ExpAwarder.GetBaseExp(_activity, _currentLevel);
+
     public string Category => _activity.Category ?? "Misc";
     public string ImagePath => _activity.ImagePath ?? "";
     public int Multiplier => _activity.Multiplier;

@@ -56,4 +56,5 @@ public class CompanionInterview
     public int PointsAdded { get; set; }
     public int PointsReprioritized { get; set; }
     public int PointsArchived { get; set; }
+    public bool ExpAwarded { get; set; }
 }

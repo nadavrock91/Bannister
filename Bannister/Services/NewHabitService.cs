@@ -1074,7 +1074,7 @@ public class NewHabitService
             if (negativeActivity != null)
             {
                 string gameToUse = game ?? habit.Game;
-                await expService.ApplyExpAsync(habit.Username, gameToUse, negativeActivity.Name, negativeActivity.ExpGain, negativeActivity.Id);
+                await ExpAwarder.Current.ApplyAdjustmentAsync(habit.Username, gameToUse, negativeActivity.Name, negativeActivity.ExpGain, negativeActivity.Id);
                 System.Diagnostics.Debug.WriteLine($"[NEW HABIT] Applied penalty {negativeActivity.ExpGain} for manual fail '{habit.HabitName}'");
             }
         }
@@ -1105,7 +1105,7 @@ public class NewHabitService
         var negativeActivity = await _activities.GetActivityAsync(habit.NegativeActivityId);
         if (negativeActivity != null)
         {
-            await expService.ApplyExpAsync(habit.Username, game, negativeActivity.Name, negativeActivity.ExpGain, negativeActivity.Id);
+            await ExpAwarder.Current.ApplyAdjustmentAsync(habit.Username, game, negativeActivity.Name, negativeActivity.ExpGain, negativeActivity.Id);
             System.Diagnostics.Debug.WriteLine($"[NEW HABIT] Applied penalty {negativeActivity.ExpGain} for missing '{habit.HabitName}'");
         }
 

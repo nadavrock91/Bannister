@@ -392,8 +392,10 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
     {
         var edited = await CompanionDataPointEditPage.ShowAsync(Navigation, null, games, categories);
         if (edited == null) return;
-        await _service.SaveManualPointAsync(_auth.CurrentUsername, companion, scopeLabel, edited.Text, edited.Priority,
+        var saved = await _service.SaveManualPointAsync(_auth.CurrentUsername, companion, scopeLabel, edited.Text, edited.Priority,
             edited.GameId, edited.Category, edited.VisibilityOverride);
+        string ideaNote = saved.IdeaLoggingFailures > 0 ? "\nCould not log the data point to Ideas." : "";
+        await DisplayAlert("Data Point Added", $"Data point saved.{ideaNote}{AwardMessage([saved.Award])}", "OK");
         await RefreshAsync();
     }
 
@@ -555,7 +557,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         List<Game> games,
         string response)
     {
-        var extraction = CompanionService.ParseExtraction(response);
+        var extraction = CompanionService.ParseExtraction(response.ReplaceLineEndings("\n"));
         CompanionService.ResolveExtractionGames(extraction, games);
         int recognizedCount = extraction.Adds.Count + extraction.Priorities.Count + extraction.Archives.Count + extraction.Updates.Count;
         if (recognizedCount == 0)
@@ -582,9 +584,20 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             : "";
         await DisplayAlert(
             "Extraction Applied",
-            $"Added {applied.Added}{loggingNote}, reprioritized {applied.Reprioritized}, archived {applied.Archived}, updated {applied.Updated}",
+            $"Added {applied.Added}{loggingNote}, reprioritized {applied.Reprioritized}, archived {applied.Archived}, updated {applied.Updated}{AwardMessage(applied.Awards)}",
             "OK");
         await RefreshAsync();
+    }
+
+    private static string AwardMessage(IReadOnlyList<ExpAwardResult> awards)
+    {
+        if (awards.Count == 0) return "";
+        var messages = new List<string>();
+        if (awards.Any(award => award.Succeeded && !award.AlreadyAwarded || award.ExpAwarded != 0))
+            messages.Add($"EXP awarded: {awards.Sum(award => award.ExpAwarded):+#;-#;0}");
+        messages.AddRange(awards.Select(award => award.FailureReason)
+            .OfType<string>().Distinct().Select(reason => $"EXP award failed: {reason}"));
+        return messages.Count == 0 ? "" : "\n\n" + string.Join("\n", messages);
     }
 
     private async Task SaveConversationAsync(Companion companion, CompanionInterview interview, string scopeLabel, List<Game> games)

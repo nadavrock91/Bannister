@@ -296,13 +296,8 @@ public class AutoAwardConfirmationPage : ContentPage
         return true;
     }
 
-    private int GetActivityExp(Activity activity)
-    {
-        if (activity.RewardType == "PercentOfLevel")
-            return ExpEngine.ExpForPercentOfLevel(_currentLevel, activity.PercentOfLevel, activity.PercentCutoffLevel);
-
-        return activity.ExpGain;
-    }
+    private int GetActivityExp(Activity activity) =>
+        ExpAwarder.GetBaseExp(activity, _currentLevel, ExpAwardMode.AutoAward);
 
     private int GetPendingDayCount(Activity activity) =>
         _pendingDayCounts.TryGetValue(activity.Id, out int days) ? Math.Max(1, days) : 1;

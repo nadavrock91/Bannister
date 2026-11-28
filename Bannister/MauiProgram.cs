@@ -77,6 +77,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<ActivityService>();
         builder.Services.AddSingleton<ActivitySuggestionService>();
         builder.Services.AddSingleton<ExpService>();
+        builder.Services.AddSingleton<ExpAwarder>();
+        builder.Services.AddSingleton<OuterGameService>();
         builder.Services.AddSingleton<DragonService>();
         builder.Services.AddSingleton<AttemptService>();
         builder.Services.AddSingleton<BackupService>();

@@ -429,65 +429,8 @@ Padding = 14, CornerRadius = 10,
             catch { }
         }
 
-        // Insert EXP records not already present in the actual ExpLog table.
+        int expInserted = await ExpAwarder.Current.ImportSharedExpAsync(_auth.CurrentUsername, expRecords, expStates);
         var conn = await GetDbConnectionAsync();
-        int expInserted = 0;
-        foreach (var rec in expRecords)
-        {
-            var existing = await conn.Table<ExpLog>()
-                .Where(r => r.Username == _auth.CurrentUsername &&
-                    r.Game == rec.GameId &&
-                    r.ActivityName == rec.ActivityName &&
-                    r.LoggedAt == rec.Timestamp)
-                .FirstOrDefaultAsync();
-            if (existing != null) continue;
-
-            var state = await conn.Table<ExpState>()
-                .Where(s => s.Username == _auth.CurrentUsername &&
-                    s.Game == rec.GameId)
-                .FirstOrDefaultAsync();
-            int totalBefore = state?.TotalExp ?? 0;
-            var (levelBefore, _, _) = ExpEngine.GetProgress(totalBefore);
-            var (levelAfter, _, _) = ExpEngine.GetProgress(
-                totalBefore + rec.ExpGained);
-            await conn.InsertAsync(new ExpLog
-            {
-                Username = _auth.CurrentUsername,
-                Game = rec.GameId,
-                ActivityName = rec.ActivityName,
-                DeltaExp = rec.ExpGained,
-                TotalExp = totalBefore + rec.ExpGained,
-                LevelBefore = levelBefore,
-                LevelAfter = levelAfter,
-                LoggedAt = rec.Timestamp
-            });
-            expInserted++;
-        }
-
-        // ExpState stores TotalExp; game level is derived by ExpEngine.
-        foreach (var state in expStates)
-        {
-            var localState = await conn.Table<ExpState>()
-                .Where(s => s.Username == _auth.CurrentUsername &&
-                    s.Game == state.GameId)
-                .FirstOrDefaultAsync();
-            if (localState == null)
-            {
-                await conn.InsertAsync(new ExpState
-                {
-                    Username = _auth.CurrentUsername,
-                    Game = state.GameId,
-                    TotalExp = state.TotalExp,
-                    UpdatedAt = state.LastUpdated
-                });
-            }
-            else if (state.TotalExp > localState.TotalExp)
-            {
-                localState.TotalExp = state.TotalExp;
-                localState.UpdatedAt = state.LastUpdated;
-                await conn.UpdateAsync(localState);
-            }
-        }
 
         // Apply StreakGoals using the actual StreakGoal table; the current
         // StreakService has no goal CRUD methods.

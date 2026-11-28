@@ -107,98 +107,114 @@ namespace Bannister.Services
             return result.OrderBy(x => x.Item1.LevelCapAt).ToList();
         }
 
-        public async Task<int> ApplyExpAsync(string username, string game, string activityName, int deltaExp, int activityId = 0,
-            DateTime? backdatedTo = null)
+        internal async Task<(int Awarded, bool AlreadyAwarded)> ApplyExpAsync(
+            string username, string game, string activityName, int deltaExp, int activityId = 0,
+            DateTime? backdatedTo = null, Func<SQLite.SQLiteConnection, bool>? markAward = null)
         {
             if (_db.IsReadOnly)
             {
                 ReadOnlyModeNotifier.ShowBlockedWriteMessage();
-                return await GetTotalExpAsync(username, game);
+                throw new InvalidOperationException("EXP cannot be awarded on a read-only device.");
             }
 
             var conn = await _db.GetConnectionAsync();
             var loggedAtUtc = NormalizeLoggedAtUtc(backdatedTo);
 
-            // Get current state
-            var state = await conn.Table<ExpState>()
-                .Where(x => x.Username == username && x.Game == game)
-                .FirstOrDefaultAsync();
-
-            int currentExp = state?.TotalExp ?? 0;
-            var (currentLevel, _, _) = ExpEngine.GetProgress(currentExp);
-
-            // Check for level cap blocking (only for positive EXP)
-            int actualDeltaExp = deltaExp;
-            string blockedReason = null;
-            
-            if (deltaExp > 0)
+            int awarded = 0;
+            bool alreadyAwarded = false;
+            await conn.RunInTransactionAsync(db =>
             {
-                var blockingActivity = await GetBlockingLevelCapAsync(username, game, currentLevel);
-                if (blockingActivity != null)
+                if (markAward != null && !markAward(db))
                 {
-                    // Calculate how much EXP would be needed to level up
-                    int expForNextLevel = ExpEngine.CumulativeExpForLevel(currentLevel + 1);
-                    
-                    // If gaining this EXP would push us to next level, cap it
-                    if (currentExp + deltaExp >= expForNextLevel)
+                    alreadyAwarded = true;
+                    return;
+                }
+
+                // Get current state
+                var state = db.Table<ExpState>()
+                    .Where(x => x.Username == username && x.Game == game)
+                    .FirstOrDefault();
+
+                int currentExp = state?.TotalExp ?? 0;
+                var (currentLevel, _, _) = ExpEngine.GetProgress(currentExp);
+
+                // Check for level cap blocking (only for positive EXP)
+                int actualDeltaExp = deltaExp;
+                string blockedReason = null;
+
+                if (deltaExp > 0)
+                {
+                    var blockingActivity = db.Table<Activity>()
+                        .Where(a => a.Username == username && a.Game == game && a.HasLevelCap && a.IsActive)
+                        .FirstOrDefault(a => currentLevel >= a.LevelCapAt &&
+                            a.DisplayDayStreak < a.LevelCapStreakRequired);
+                    if (blockingActivity != null)
                     {
-                        // Cap EXP so we stay at exactly the threshold minus 1
-                        int maxAllowedExp = expForNextLevel - 1;
-                        actualDeltaExp = Math.Max(0, maxAllowedExp - currentExp);
-                        
-                        blockedReason = $"Level capped at {blockingActivity.LevelCapAt} by '{blockingActivity.Name}' " +
-                                       $"(need {blockingActivity.LevelCapStreakRequired}-day streak, current: {blockingActivity.DisplayDayStreak})";
-                        
-                        System.Diagnostics.Debug.WriteLine($"[LEVEL CAP] {blockedReason}");
-                        System.Diagnostics.Debug.WriteLine($"[LEVEL CAP] Original EXP: {deltaExp}, Capped to: {actualDeltaExp}");
+                        // Calculate how much EXP would be needed to level up
+                        int expForNextLevel = ExpEngine.CumulativeExpForLevel(currentLevel + 1);
+
+                        // If gaining this EXP would push us to next level, cap it
+                        if (currentExp + deltaExp >= expForNextLevel)
+                        {
+                            // Cap EXP so we stay at exactly the threshold minus 1
+                            int maxAllowedExp = expForNextLevel - 1;
+                            actualDeltaExp = Math.Max(0, maxAllowedExp - currentExp);
+
+                            blockedReason = $"Level capped at {blockingActivity.LevelCapAt} by '{blockingActivity.Name}' " +
+                                           $"(need {blockingActivity.LevelCapStreakRequired}-day streak, current: {blockingActivity.DisplayDayStreak})";
+
+                            System.Diagnostics.Debug.WriteLine($"[LEVEL CAP] {blockedReason}");
+                            System.Diagnostics.Debug.WriteLine($"[LEVEL CAP] Original EXP: {deltaExp}, Capped to: {actualDeltaExp}");
+                        }
                     }
                 }
-            }
 
-            int newTotal = currentExp + actualDeltaExp;
+                int newTotal = currentExp + actualDeltaExp;
 
-            // Calculate levels before and after
-            var (levelBefore, _, _) = ExpEngine.GetProgress(currentExp);
-            var (levelAfter, _, _) = ExpEngine.GetProgress(newTotal);
+                // Calculate levels before and after
+                var (levelBefore, _, _) = ExpEngine.GetProgress(currentExp);
+                var (levelAfter, _, _) = ExpEngine.GetProgress(newTotal);
 
-            // Update or insert state
-            if (state != null)
-            {
-                state.TotalExp = newTotal;
-                state.UpdatedAt = DateTime.UtcNow;
-                await conn.UpdateAsync(state);
-            }
-            else
-            {
-                await conn.InsertAsync(new ExpState
+                // Update or insert state
+                if (state != null)
+                {
+                    state.TotalExp = newTotal;
+                    state.UpdatedAt = DateTime.UtcNow;
+                    db.Update(state);
+                }
+                else
+                {
+                    db.Insert(new ExpState
+                    {
+                        Username = username,
+                        Game = game,
+                        TotalExp = newTotal,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+
+                // Log the change with level tracking
+                // Include blocked info in activity name if applicable
+                string loggedName = blockedReason != null
+                    ? $"{activityName} [CAPPED: {actualDeltaExp}/{deltaExp}]"
+                    : activityName;
+
+                db.Insert(new ExpLog
                 {
                     Username = username,
                     Game = game,
+                    ActivityId = activityId,
+                    ActivityName = loggedName,
+                    DeltaExp = actualDeltaExp,
                     TotalExp = newTotal,
-                    UpdatedAt = DateTime.UtcNow
+                    LevelBefore = levelBefore,
+                    LevelAfter = levelAfter,
+                    LoggedAt = loggedAtUtc
                 });
-            }
 
-            // Log the change with level tracking
-            // Include blocked info in activity name if applicable
-            string loggedName = blockedReason != null 
-                ? $"{activityName} [CAPPED: {actualDeltaExp}/{deltaExp}]"
-                : activityName;
-
-            await conn.InsertAsync(new ExpLog
-            {
-                Username = username,
-                Game = game,
-                ActivityId = activityId,
-                ActivityName = loggedName,
-                DeltaExp = actualDeltaExp,
-                TotalExp = newTotal,
-                LevelBefore = levelBefore,
-                LevelAfter = levelAfter,
-                LoggedAt = loggedAtUtc
+                awarded = actualDeltaExp;
             });
-
-            return newTotal;
+            return (awarded, alreadyAwarded);
         }
 
         public async Task<List<ExpLog>> GetExpLogsForActivityOnDateAsync(string username, string game, int activityId, DateTime date)
@@ -235,7 +251,7 @@ namespace Bannister.Services
         /// Handle level down when a streak is broken on a level-cap activity.
         /// Returns true if a level down occurred.
         /// </summary>
-        public async Task<(bool leveledDown, int fromLevel, int toLevel, int expLost)> 
+        internal async Task<(bool leveledDown, int fromLevel, int toLevel, int expLost)>
             HandleStreakBreakLevelDownAsync(string username, string game, Activity activity)
         {
             if (!activity.HasLevelCap || !activity.LevelDownOnStreakBreak)

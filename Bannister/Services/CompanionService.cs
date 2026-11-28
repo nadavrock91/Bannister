@@ -15,7 +15,7 @@ public sealed record CompanionAddProposal(
 public sealed record CompanionPriorityProposal(int PointId, int Priority);
 public sealed record CompanionArchiveProposal(int PointId, string Reason);
 public sealed record CompanionUpdateProposal(int PointId, string Text);
-public sealed record CompanionApplyResult(int Added, int Reprioritized, int Archived, int Updated, int IdeaLoggingFailures);
+public sealed record CompanionApplyResult(int Added, int Reprioritized, int Archived, int Updated, int IdeaLoggingFailures, IReadOnlyList<ExpAwardResult> Awards);
 public sealed record CompanionPromptResult(string Prompt, int OmittedPointCount);
 public sealed record CompanionRephraseChange(int PointId, string OldText, string NewText);
 public sealed record CompanionRephraseParseResult(
@@ -46,11 +46,23 @@ public sealed class CompanionExtraction
 
 public class CompanionService
 {
+    private const string InterviewCompleted = "interview_completed";
+    private const string DataPointAdded = "data_point_added";
+
+    public static OuterGameRequirements Requirements { get; } = new(
+        "context_game", "The Context Game",
+        [
+            new(InterviewCompleted, "Context Game: Interview completed", 20, "Apply the extraction from a completed interview."),
+            new(DataPointAdded, "Context Game: Data point added", 2, "Save a new data point by hand or accept one from an interview extraction.")
+        ]);
+
     private readonly DatabaseService _db;
+    private readonly OuterGameService _outerGames;
     private readonly IdeaLoggerService _ideaLogger;
-    public CompanionService(DatabaseService db, IdeaLoggerService ideaLogger)
+    public CompanionService(DatabaseService db, IdeaLoggerService ideaLogger, OuterGameService outerGames)
     {
         _db = db;
+        _outerGames = outerGames;
         _ideaLogger = ideaLogger;
     }
 
@@ -210,7 +222,7 @@ public class CompanionService
         };
     }
 
-    public async Task<int> SaveManualPointAsync(
+    public async Task<(int IdeaLoggingFailures, ExpAwardResult Award)> SaveManualPointAsync(
         string username,
         Companion companion,
         string scopeLabel,
@@ -232,15 +244,19 @@ public class CompanionService
             VisibilityOverride = visibilityOverride
         };
         await SavePointAsync(point);
+        int ideaLoggingFailures;
         try
         {
-            return (await LogNewContextPointsAsync(username, companion, scopeLabel, new[] { point }, null)).Failures;
+            ideaLoggingFailures = (await LogNewContextPointsAsync(username, companion, scopeLabel, new[] { point }, null)).Failures;
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Failed to log manual context point {point.Id}: {ex}");
-            return 1;
+            ideaLoggingFailures = 1;
         }
+
+        var award = await _outerGames.AwardAsync(username, Requirements, DataPointAdded);
+        return (ideaLoggingFailures, award);
     }
 
     public async Task DeletePointAsync(CompanionDataPoint point) =>
@@ -254,7 +270,20 @@ public class CompanionService
     public async Task SaveInterviewAsync(CompanionInterview interview)
     {
         var conn = await ConnectionAsync();
-        if (interview.Id == 0) await conn.InsertAsync(interview); else await conn.UpdateAsync(interview);
+        if (interview.Id == 0)
+        {
+            await conn.InsertAsync(interview);
+            return;
+        }
+
+        await conn.RunInTransactionAsync(db =>
+        {
+            // A screen can still hold a copy from before the award was committed.
+            var stored = db.Find<CompanionInterview>(interview.Id);
+            if (stored == null) return;
+            interview.ExpAwarded = stored.ExpAwarded;
+            db.Update(interview);
+        });
     }
 
     public async Task DeleteInterviewAsync(int interviewId, bool deletePoints)
@@ -689,7 +718,24 @@ public class CompanionService
             System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Failed to batch-log context points: {ex}");
         }
 
-        return new CompanionApplyResult(added, reprioritized, archived, updated, ideaLoggingFailures);
+        var awards = new List<ExpAwardResult>();
+        if (interview is { ExpAwarded: false })
+        {
+            var award = await _outerGames.AwardAsync(username, Requirements, InterviewCompleted, db =>
+            {
+                int changed = db.Execute(
+                    "UPDATE companion_interviews SET ExpAwarded = 1 WHERE Id = ? AND Username = ? AND ExpAwarded = 0",
+                    interview.Id, username);
+                if (changed == 0 && db.Find<CompanionInterview>(interview.Id) is not { ExpAwarded: true })
+                    throw new InvalidOperationException("The interview could not be marked as awarded.");
+                return changed != 0;
+            });
+            awards.Add(award);
+        }
+        foreach (var _ in addedPoints)
+            awards.Add(await _outerGames.AwardAsync(username, Requirements, DataPointAdded));
+
+        return new CompanionApplyResult(added, reprioritized, archived, updated, ideaLoggingFailures, awards);
     }
 
     public async Task<CompanionRephraseApplyResult> ApplyRephraseAsync(

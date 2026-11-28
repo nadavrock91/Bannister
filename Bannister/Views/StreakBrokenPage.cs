@@ -398,7 +398,7 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
             // Apply penalty
             if (penalty < 0)
             {
-                await _exp.ApplyExpAsync(_auth.CurrentUsername, _gameId, $"{activity.Name} (Streak Broken)", penalty, activity.Id);
+                await ExpAwarder.Current.ApplyAdjustmentAsync(_auth.CurrentUsername, _gameId, $"{activity.Name} (Streak Broken)", penalty, activity.Id);
                 _totalPenalty += penalty;
                 _penaltyDetails.Add($"{activity.Name}: {brokenStreak} day streak → {penalty} EXP");
             }
@@ -406,7 +406,7 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
             // Check for level down
             if (activity.HasLevelCap && activity.LevelDownOnStreakBreak)
             {
-                var levelDownResult = await _exp.HandleStreakBreakLevelDownAsync(
+                var levelDownResult = await ExpAwarder.Current.ApplyStreakBreakLevelDownAsync(
                     _auth.CurrentUsername, 
                     _gameId, 
                     activity);
@@ -499,7 +499,7 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
             
             if (expAmount > 0)
             {
-                await _exp.ApplyExpAsync(
+                await ExpAwarder.Current.ApplyAdjustmentAsync(
                     _auth.CurrentUsername, 
                     _gameId, 
                     $"{activity.Name} (Retroactive {missedDate})", 

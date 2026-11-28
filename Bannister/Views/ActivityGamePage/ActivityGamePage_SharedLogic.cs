@@ -24,117 +24,17 @@ public partial class ActivityGamePage
                 "ContextMenuOrderService is not registered.");
     }
 
-/// <summary>
- /// Full activity completion including EXP application.
- /// Used by streak cards which do everything in a single click.
- /// 
- /// This is the SINGLE SOURCE OF TRUTH for activity completion logic.
- /// </summary>
- /// <param name="activity">The activity being completed</param>
- /// <param name="expAmount">Base EXP amount (already multiplied if needed)</param>
- /// <param name="logDescription">Description for the EXP log entry</param>
- /// <returns>Total EXP awarded including any bonuses, and bonus details string</returns>
     private async Task<(int totalExp, string bonusDetails)> ProcessActivityCompletionAsync(
-        Activity activity,
-        int expAmount,
-        string logDescription)
+        Activity activity, int displayedLevel, string logDescription)
     {
-        string activityGameId = GetActivityGameId(activity);
-        int appliedExpAmount = ApplyZeroCountFirstCompletionMultiplier(activity, expAmount);
+        var award = await ExpAwarder.Current.AwardAsync(
+            _auth.CurrentUsername, activity, ExpAwardMode.StreakCard, GetActivityGameId(activity),
+            displayedLevel, logDescription: logDescription,
+            onZeroCountCompleted: PromptMoveCompletedZeroCountAsync, checkDragon: false);
+        if (!award.Succeeded)
+            throw new InvalidOperationException(award.FailureReason);
 
-        // 1. Apply base EXP
-        await _exp.ApplyExpAsync(
-            _auth.CurrentUsername,
-            activityGameId,
-            logDescription,
-            appliedExpAmount,
-            activity.Id);
-
-        // 2. Process all the other side effects
-        var (bonusExp, bonusDetails) = await ProcessActivityCompletionCoreAsync(activity);
-
-        return (appliedExpAmount + bonusExp, bonusDetails);
-    }
-
-    /// <summary>
-    /// Core completion logic WITHOUT applying base EXP.
-    /// Used by Calculate EXP which handles EXP application separately (for multiplier support).
-    /// 
-    /// Handles: streak tracking, habit completion, display day streak,
-    /// times completed, NewHabit progress, and streak bonus.
-    /// 
-    /// UPDATE THIS METHOD when adding new completion side effects.
-    /// </summary>
-    /// <param name="activity">The activity being completed</param>
-    /// <returns>Bonus EXP (from streak milestones) and bonus details string</returns>
-    private async Task<(int bonusExp, string bonusDetails)> ProcessActivityCompletionCoreAsync(Activity activity)
-    {
-        int bonusExp = 0;
-        var bonusDetails = new List<string>();
-
-        // 1. Record streak usage if this activity is streak-tracked
-        if (activity.IsStreakTracked)
-        {
-            await _streaks.RecordActivityUsageAsync(
-                _auth.CurrentUsername,
-                GetActivityGameId(activity),
-                activity.Id,
-                activity.Name,
-                activity);
-        }
-
-        // 2. Record habit completion if this activity has habit tracking
-        if (activity.HabitType != "None")
-        {
-            await _activities.RecordHabitCompletionAsync(activity);
-        }
-
-        // 3. Record display day streak
-        await _activities.RecordDisplayDayStreakAsync(activity);
-
-        // 4. Increment times completed and atomically exit zero-count state when this is the first completion.
-        bool completedZeroCount = activity.IsZeroCount && activity.TimesCompleted == 0;
-        activity.TimesCompleted++;
-        if (completedZeroCount)
-        {
-            activity.IsZeroCount = false;
-            activity.ZeroCountCompletedAt = DateTime.Now;
-            activity.Category = "Misc";
-        }
-        await _activities.UpdateActivityAsync(activity);
-
-        if (completedZeroCount)
-            await PromptMoveCompletedZeroCountAsync(activity);
-
-        // 5. Update NewHabit progress if this activity is linked to a NewHabit
-        await RecordNewHabitProgressAsync(activity.Id);
-
-        // 6. Check for streak milestone bonus (only for positive EXP activities)
-        if (activity.ExpGain > 0)
-        {
-            int streakBonus = ActivityService.CalculateStreakBonus(activity.DisplayDayStreak);
-            if (streakBonus > 0)
-            {
-                var bonusName = activity.IsImageOnly ? "" : activity.Name;
-                await _exp.ApplyExpAsync(
-                    _auth.CurrentUsername,
-                    GetActivityGameId(activity),
-                    $"{bonusName} (Streak Bonus)",
-                    streakBonus,
-                    activity.Id);
-                bonusExp = streakBonus;
-                bonusDetails.Add($" {bonusName} streak bonus ({activity.DisplayDayStreak} days): +{streakBonus}");
-            }
-        }
-
-        return (bonusExp, string.Join("\n", bonusDetails));
-    }
-
-    private static int ApplyZeroCountFirstCompletionMultiplier(Activity activity, int expAmount)
-    {
-        return activity.IsZeroCount && activity.TimesCompleted == 0
-            ? expAmount * 10
-            : expAmount;
+        return (award.BaseExpRequested + award.BonusExpRequested, award.BonusDetails);
     }
 
     private async Task PromptMoveCompletedZeroCountAsync(Activity activity)
@@ -553,10 +453,9 @@ public partial class ActivityGamePage
                     int totalExp = 0;
                     for (int i = 0; i < times; i++)
                     {
-                        int expAmount = attemptVM.ExpGain * activity.Multiplier;
                         var (earnedExp, _) = await ProcessActivityCompletionAsync(
                             activity,
-                            expAmount,
+                            attemptVM.CurrentLevel,
                             $"{activity.Name} (Batch {i + 1}/{times})");
                         totalExp += earnedExp;
                     }

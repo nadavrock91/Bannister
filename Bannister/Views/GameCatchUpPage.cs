@@ -343,69 +343,10 @@ public class GameCatchUpPage : Bannister.Views.ModeThemedPage
 
     private async Task ApplyActivityAsync(Activity activity, DateTime localNoon)
     {
-        string gameId = activity.Game;
-        var (currentLevel, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, gameId);
-        int baseExp = CalculateExpGain(activity, currentLevel);
-        int multiplier = Math.Max(1, activity.Multiplier);
-
-        for (int i = 0; i < multiplier; i++)
-        {
-            string name = multiplier > 1
-                ? $"{activity.Name} (Catch-Up {i + 1}/{multiplier})"
-                : $"{activity.Name} (Catch-Up)";
-
-            await _exp.ApplyExpAsync(
-                _auth.CurrentUsername,
-                gameId,
-                name,
-                baseExp,
-                activity.Id,
-                localNoon);
-        }
-
-        if (activity.IsStreakTracked)
-        {
-            await _streaks.RecordActivityUsageAsync(
-                _auth.CurrentUsername,
-                gameId,
-                activity.Id,
-                activity.Name,
-                activity,
-                localNoon);
-        }
-
-        if (activity.HabitType != "None")
-            await _activities.RecordHabitCompletionAsync(activity, localNoon);
-
-        await _activities.RecordDisplayDayStreakAsync(activity, localNoon);
-
-        activity.TimesCompleted++;
-        await _activities.UpdateActivityAsync(activity);
-
-        await _newHabits.RecordHabitDoneAsync(activity.Id, localNoon);
-
-        if (activity.ExpGain > 0)
-        {
-            int streakBonus = ActivityService.CalculateStreakBonus(activity.DisplayDayStreak);
-            if (streakBonus > 0)
-            {
-                await _exp.ApplyExpAsync(
-                    _auth.CurrentUsername,
-                    gameId,
-                    $"{(activity.IsImageOnly ? "" : activity.Name)} (Catch-Up Streak Bonus)",
-                    streakBonus,
-                    activity.Id,
-                    localNoon);
-            }
-        }
-    }
-
-    private static int CalculateExpGain(Activity activity, int currentLevel)
-    {
-        if (activity.RewardType == "PercentOfLevel")
-            return ExpEngine.ExpForPercentOfLevel(currentLevel, activity.PercentOfLevel, activity.PercentCutoffLevel);
-
-        return activity.ExpGain;
+        var award = await ExpAwarder.Current.AwardAsync(
+            _auth.CurrentUsername, activity, ExpAwardMode.CatchUp, loggedAt: localNoon, checkDragon: false);
+        if (!award.Succeeded)
+            throw new InvalidOperationException(award.FailureReason);
     }
 
     private async Task<int?> ShowCountPromptAsync(CatchUpDayRow row)

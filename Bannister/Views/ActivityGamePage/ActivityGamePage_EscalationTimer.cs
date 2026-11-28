@@ -631,42 +631,7 @@ public partial class ActivityGamePage
     {
         if (_game == null) return;
 
-        // Get current level
-        var (currentLevel, expIntoLevel, expNeeded) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
-
-        // Calculate EXP loss for 2 levels
-        int expLoss = 0;
-
-        // If at level 2 or higher, lose exactly 2 levels worth
-        if (currentLevel >= 2)
-        {
-            // Calculate total EXP at current level start
-            int currentLevelStartExp = ExpEngine.TotalExpAtLevelStart(currentLevel);
-            
-            // Calculate total EXP at 2 levels lower
-            int targetLevel = currentLevel - 2;
-            int targetLevelStartExp = ExpEngine.TotalExpAtLevelStart(targetLevel);
-            
-            // Loss is the difference plus current progress
-            expLoss = (currentLevelStartExp - targetLevelStartExp) + expIntoLevel;
-        }
-        else if (currentLevel == 1)
-        {
-            // At level 1, lose all current EXP
-            expLoss = expIntoLevel;
-        }
-
-        // Apply the penalty (negative EXP)
-        if (expLoss > 0)
-        {
-            await _exp.ApplyExpAsync(
-                _auth.CurrentUsername,
-                _game.GameId,
-                "❌ Meaningful Escalation Penalty",
-                -expLoss,
-                0 // No activity ID
-            );
-        }
+        int expLoss = await ExpAwarder.Current.ApplyEscalationPenaltyAsync(_auth.CurrentUsername, _game.GameId);
 
         // Reset the timer
         await _games.ResetMeaningfulEscalationAsync(_auth.CurrentUsername, _game.GameId);

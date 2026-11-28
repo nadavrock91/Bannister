@@ -126,33 +126,11 @@ public partial class ExpLogPage : Bannister.Views.ModeThemedPage
 
         try
         {
-            var conn = await _db.GetConnectionAsync();
-            
-            // Get the log entry
-            var logEntry = await conn.Table<ExpLog>().FirstOrDefaultAsync(l => l.Id == vm.Id);
-            if (logEntry == null)
+            if (!await ExpAwarder.Current.DeleteLogEntryAsync(_auth.CurrentUsername, _gameId, vm.Id))
             {
                 await DisplayAlert("Error", "Log entry not found.", "OK");
                 return;
             }
-
-            // Get the game's ExpState to reduce total EXP
-            var expState = await conn.Table<ExpState>()
-                .FirstOrDefaultAsync(e => e.Username == _auth.CurrentUsername && e.Game == _gameId);
-
-            if (expState != null)
-            {
-                // Subtract the EXP (handle both positive and negative entries)
-                expState.TotalExp -= logEntry.DeltaExp;
-                expState.UpdatedAt = DateTime.UtcNow;
-                
-                await conn.UpdateAsync(expState);
-                System.Diagnostics.Debug.WriteLine($"[DELETE LOG] Reduced TotalExp by {logEntry.DeltaExp}, new total: {expState.TotalExp}");
-            }
-
-            // Delete the log entry
-            await conn.DeleteAsync(logEntry);
-            System.Diagnostics.Debug.WriteLine($"[DELETE LOG] Deleted log entry Id={vm.Id}");
 
             // Remove from UI
             _viewModels.Remove(vm);

@@ -66,28 +66,12 @@ public partial class ActivityGamePage
             }
         });
 
-        if (level >= 100)
+        if (await ExpAwarder.Current.CheckDragonVictoryAsync(_auth.CurrentUsername, _game.GameId, level))
         {
-            bool isSlain = await _dragons.IsDragonSlainAsync(_auth.CurrentUsername, _game.GameId);
-            if (!isSlain)
-            {
-                await _dragons.SlayDragonAsync(_auth.CurrentUsername, _game.GameId);
-
-                var dragon = await _dragons.GetDragonAsync(_auth.CurrentUsername, _game.GameId);
-                if (dragon != null)
-                {
-                    await _attempts.MarkAttemptSuccessfulAsync(
-                        _auth.CurrentUsername,
-                        _game.GameId,
-                        dragon.Title);
-                }
-
-                await DisplayAlert("🎉 Victory!",
-                    $"You have slain the dragon!\n\nYou reached Level {level}!",
-                    "Awesome!");
-
-                await LoadDragonAsync();
-            }
+            await DisplayAlert("?? Victory!",
+                $"You have slain the dragon!\n\nYou reached Level {level}!",
+                "Awesome!");
+            await LoadDragonAsync();
         }
     }
 
@@ -195,9 +179,18 @@ public partial class ActivityGamePage
                     ? DateTime.Now
                     : DateTime.SpecifyKind(day.Date.AddHours(12), DateTimeKind.Local);
 
-                var awardResult = await ApplyAutoAwardActivityAsync(activity, targetTime);
-                totalExpAwarded += awardResult.TotalExp;
-                bonusDetails.AddRange(awardResult.BonusDetails);
+                var awardResult = await ExpAwarder.Current.AwardAsync(
+                    _auth.CurrentUsername, activity, ExpAwardMode.AutoAward, loggedAt: targetTime,
+                    onZeroCountCompleted: PromptMoveCompletedZeroCountAsync, checkDragon: false);
+                if (!awardResult.Succeeded)
+                {
+                    await DisplayAlert("Auto-award failed", awardResult.FailureReason, "OK");
+                    return;
+                }
+
+                totalExpAwarded += awardResult.BaseExpRequested + awardResult.BonusExpRequested;
+                if (!string.IsNullOrEmpty(awardResult.BonusDetails))
+                    bonusDetails.Add(awardResult.BonusDetails);
                 totalAwards++;
                 awardedActivityIds.Add(activity.Id);
             }
@@ -257,87 +250,6 @@ public partial class ActivityGamePage
 
         return !string.Equals(activity.Category, "Expired", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(activity.Category, "Stale", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private async Task<(int TotalExp, List<string> BonusDetails)> ApplyAutoAwardActivityAsync(Models.Activity activity, DateTime loggedAt)
-    {
-        string gameId = activity.Game;
-        var (currentLevel, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, gameId);
-        int expAmount = CalculateAutoAwardExpGain(activity, currentLevel) * Math.Max(1, activity.Multiplier);
-        expAmount = ApplyZeroCountFirstCompletionMultiplier(activity, expAmount);
-        int totalExp = expAmount;
-        var bonusDetails = new List<string>();
-
-        await _exp.ApplyExpAsync(
-            _auth.CurrentUsername,
-            gameId,
-            $"{activity.Name} (Auto Award)",
-            expAmount,
-            activity.Id,
-            loggedAt);
-
-        if (activity.IsStreakTracked)
-        {
-            await _streaks.RecordActivityUsageAsync(
-                _auth.CurrentUsername,
-                gameId,
-                activity.Id,
-                activity.Name,
-                activity,
-                loggedAt);
-        }
-
-        if (activity.HabitType != "None")
-            await _activities.RecordHabitCompletionAsync(activity, loggedAt);
-
-        await _activities.RecordDisplayDayStreakAsync(activity, loggedAt);
-
-        bool completedZeroCount = activity.IsZeroCount && activity.TimesCompleted == 0;
-        activity.TimesCompleted++;
-        if (completedZeroCount)
-        {
-            activity.IsZeroCount = false;
-            activity.ZeroCountCompletedAt = DateTime.Now;
-            activity.Category = "Misc";
-        }
-        await _activities.UpdateActivityAsync(activity);
-
-        if (completedZeroCount)
-            await PromptMoveCompletedZeroCountAsync(activity);
-
-        var newHabits = Application.Current?.Handler?.MauiContext?.Services.GetService<NewHabitService>();
-        if (newHabits != null)
-            await newHabits.RecordHabitDoneAsync(activity.Id, loggedAt);
-
-        if (activity.ExpGain > 0)
-        {
-            int streakBonus = ActivityService.CalculateStreakBonus(activity.DisplayDayStreak);
-            if (streakBonus > 0)
-            {
-                var autoRewardBonusName = activity.IsImageOnly ? "" : activity.Name;
-                await _exp.ApplyExpAsync(
-                    _auth.CurrentUsername,
-                    gameId,
-                    $"{autoRewardBonusName} (Auto Award Streak Bonus)",
-                    streakBonus,
-                    activity.Id,
-                    loggedAt);
-                totalExp += streakBonus;
-                bonusDetails.Add(
-                    $"🔥 {autoRewardBonusName} streak bonus " +
-                    $"({activity.DisplayDayStreak} days): +{streakBonus}");
-            }
-        }
-
-        return (totalExp, bonusDetails);
-    }
-
-    private static int CalculateAutoAwardExpGain(Models.Activity activity, int currentLevel)
-    {
-        if (activity.RewardType == "PercentOfLevel")
-            return ExpEngine.ExpForPercentOfLevel(currentLevel, activity.PercentOfLevel, activity.PercentCutoffLevel);
-
-        return activity.ExpGain;
     }
 
     private static IEnumerable<DateTime> EachAutoAwardDay(DateTime start, DateTime end)

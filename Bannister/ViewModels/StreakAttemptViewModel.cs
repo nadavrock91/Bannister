@@ -54,19 +54,9 @@ public class StreakAttemptViewModel : INotifyPropertyChanged
         }
     }
     
-    public int ExpGain
-    {
-        get
-        {
-            if (_parentActivity.RewardType == "PercentOfLevel")
-            {
-                int effectiveLevel = Math.Min(_currentLevel, _parentActivity.PercentCutoffLevel);
-                return Services.ExpEngine.ExpForPercentOfLevel(effectiveLevel, _parentActivity.PercentOfLevel);
-            }
-            return _parentActivity.ExpGain;
-        }
-    }
-    
+    public int ExpGain =>
+        Services.ExpAwarder.GetBaseExp(_parentActivity, _currentLevel, Services.ExpAwardMode.StreakCard);
+
     public string ExpGainDisplay => $"+{ExpGain}";
     public int Multiplier => _parentActivity.Multiplier;
     public bool ShowMultiplier => _parentActivity.Multiplier > 1;

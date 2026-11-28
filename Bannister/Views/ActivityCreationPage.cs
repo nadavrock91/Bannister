@@ -40,6 +40,9 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
 
     // UI Controls
     private Entry txtName;
+    private Editor _descriptionEditor;
+    private bool _saving;
+    private bool _closingModal;
     private Entry entryCategory;
     private CollectionView categorySuggestions;
     private Entry txtMeaningful;
@@ -206,7 +209,8 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         int? prefillStreakTargetDays = null,
         string? prefillRewardType = null,
         string? prefillPercent = null,
-        bool prefillIsImageOnly = false)
+        bool prefillIsImageOnly = false,
+        string? prefillDescription = null)
     {
         var privacyMode = Application.Current?.Handler?.MauiContext?
             .Services.GetService<PrivacyModeService>()
@@ -215,7 +219,7 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         var page = new ActivityCreationPage(
             auth, activities, games, privacyMode);
         page._isModalMode = true;
-        page._modalTcs = new TaskCompletionSource<Activity?>();
+        page._modalTcs = new TaskCompletionSource<Activity?>(TaskCreationOptions.RunContinuationsAsynchronously);
         page.GameId = gameId;
         page._prefillName = prefillName;
         page._prefillLevel = prefillLevel;
@@ -231,6 +235,14 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         page._prefillPercent = prefillPercent;
         page._prefillIsImageOnly = prefillIsImageOnly;
         
+        if (!string.IsNullOrWhiteSpace(prefillDescription))
+        {
+            page._descriptionEditor.Text = prefillDescription;
+            page._descriptionEditor.IsVisible = true;
+        }
+        var cancel = new ToolbarItem { Text = "Cancel" };
+        cancel.Clicked += async (_, _) => await page.CancelModalAsync();
+        page.ToolbarItems.Add(cancel);
         await navigation.PushModalAsync(new NavigationPage(page));
         return await page._modalTcs.Task;
     }
@@ -381,6 +393,10 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
             Placeholder = "Enter activity name"
         };
         mainStack.Children.Add(txtName);
+        _descriptionEditor = (new Editor { Placeholder = "Description", IsVisible = false, AutoSize = EditorAutoSizeOption.TextChanges })
+            .ThemeColor(Editor.TextColorProperty, ThemeKey.PageText1)
+            .ThemeColor(Editor.PlaceholderColorProperty, ThemeKey.PageText2);
+        mainStack.Children.Add(_descriptionEditor);
 
         // Category with suggestions
         mainStack.Children.Add((new Label
@@ -1338,6 +1354,8 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
 
     private async void OnSaveClicked(object sender, EventArgs e)
     {
+        if (_saving || _closingModal) return;
+        _saving = true;
         try
         {
             if (string.IsNullOrWhiteSpace(txtName.Text))
@@ -1400,7 +1418,13 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
 
             // Check if converting to streak container
             bool isStreakContainer = chkStreakTracked.IsChecked;
-            string activityName = txtName.Text.Trim();
+            string activityName = txtName.Text.ReplaceLineEndings("\n").Trim();
+            if ((await _activities.GetActivitiesAsync(_auth.CurrentUsername, GameId))
+                .Any(existing => OuterGameService.NamesMatch(existing.Name, activityName)))
+            {
+                await DisplayAlert("Duplicate activity", $"An activity named '{activityName}' already exists in this game.", "OK");
+                return;
+            }
             bool isZeroCount = chkIsZeroCount.IsChecked;
             if (isZeroCount && !isStreakContainer)
                 category = "Zero Counts";
@@ -1462,7 +1486,7 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
                 PercentCutoffLevel = percentCutoff,
                 ImagePath = _selectedImageFilename ?? "",
                 IsImageOnly = _isImageOnly,
-                Notes = _isImageOnly ? activityName : "",
+                Notes = _descriptionEditor.Text?.ReplaceLineEndings("\n").Trim() ?? (_isImageOnly ? activityName : ""),
                 ActivityVisibility = _selectedVisibility,
                 VisibilityMigrated = true,
                 IsStreakTracked = chkStreakTracked.IsChecked,
@@ -1505,7 +1529,7 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
                 activity.EndDate = dateEnd.Date.Add(timeEnd.Time);
             }
 
-            await _activities.CreateActivityAsync(activity);
+            await _activities.CreateActivityAsync(activity, requireUniqueName: true);
             
             _activities.LastCreatedActivityId = activity.Id;
 
@@ -1521,8 +1545,8 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
 
             if (_isModalMode)
             {
-                _modalTcs?.TrySetResult(activity);
                 await Navigation.PopModalAsync();
+                _modalTcs?.TrySetResult(activity);
             }
             else
             {
@@ -1544,20 +1568,39 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         {
             await DisplayAlert("Error", $"Failed to save activity: {ex.Message}", "OK");
         }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task CancelModalAsync()
+    {
+        if (_saving || _closingModal || _modalTcs?.Task.IsCompleted != false) return;
+        _closingModal = true;
+        try
+        {
+            await Navigation.PopModalAsync();
+            _modalTcs.TrySetResult(null);
+        }
+        finally
+        {
+            _closingModal = false;
+        }
     }
 
     protected override bool OnBackButtonPressed()
     {
-        if (_isModalMode)
-        {
-            _modalTcs?.TrySetResult(null);
-        }
-        return base.OnBackButtonPressed();
+        if (!_isModalMode)
+            return base.OnBackButtonPressed();
+
+        _ = CancelModalAsync();
+        return true;
     }
 
     private static int? ParseManualPriority(string? value)
     {
-        return int.TryParse(value?.Trim(), out int priority) && priority > 0
+        return int.TryParse(value?.ReplaceLineEndings("\n").Trim(), out int priority) && priority > 0
             ? priority
             : null;
     }
