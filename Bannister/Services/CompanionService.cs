@@ -26,7 +26,7 @@ public sealed record CompanionRephraseParseResult(
     IReadOnlyList<int> EmptyTextIds,
     IReadOnlyList<string> Warnings,
     int RecognizedAssignmentCount);
-public sealed record CompanionRephraseApplyResult(int Updated, int IdeaLoggingFailures, int Skipped);
+public sealed record CompanionRephraseApplyResult(int Updated, int Skipped);
 
 public sealed class CompanionExtraction
 {
@@ -700,15 +700,13 @@ public class CompanionService
     public async Task<CompanionRephraseApplyResult> ApplyRephraseAsync(
         string username,
         Companion companion,
-        string scopeLabel,
         IReadOnlyCollection<int> exportedScopeIds,
         IEnumerable<CompanionRephraseChange> changes)
     {
         var allowed = exportedScopeIds.ToHashSet();
         var current = await GetPointsAsync(username, companion.Id, includeArchived: true);
         var byId = current.ToDictionary(x => x.Id);
-        int updated = 0, ideaFailures = 0, skipped = 0;
-        var changedLinkedPoints = new List<CompanionDataPoint>();
+        int updated = 0, skipped = 0;
         var conn = await ConnectionAsync();
 
         foreach (var change in changes)
@@ -729,30 +727,14 @@ public class CompanionService
             }
 
             // This path intentionally bypasses SavePointAsync: rephrasing changes only Text,
-            // including preserving UpdatedAt and every classification/source field.
+            // preserving UpdatedAt, IdeaId, and every classification/source field. In particular,
+            // a linked Ideas item remains untouched.
             point.Text = newText;
             await conn.UpdateAsync(point);
             updated++;
-            if (point.IdeaId.HasValue) changedLinkedPoints.Add(point);
         }
 
-        foreach (var point in changedLinkedPoints)
-        {
-            try
-            {
-                string sourceLine = await GetContextPointSourceLineAsync(point);
-                await _ideaLogger.UpdateIdeaAsync(
-                    point.IdeaId!.Value,
-                    BuildContextPointIdeaRequest(username, companion, scopeLabel, point, sourceLine, includeCreatedAt: false));
-            }
-            catch (Exception ex)
-            {
-                ideaFailures++;
-                System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Rephrased point {point.Id}, but its linked idea could not be updated: {ex}");
-            }
-        }
-
-        return new(updated, ideaFailures, skipped);
+        return new(updated, skipped);
     }
 
     private async Task<int> LogNewContextPointsAsync(

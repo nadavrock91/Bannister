@@ -559,12 +559,9 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             if (selected == null || selected.Count == 0) return;
 
             var applied = await _service.ApplyRephraseAsync(
-                _auth.CurrentUsername, companion, scopeLabel, exportedIds, selected);
-            string ideaNote = applied.IdeaLoggingFailures == 0
-                ? ""
-                : $"\n{applied.IdeaLoggingFailures} linked Ideas item(s) could not be updated.";
+                _auth.CurrentUsername, companion, exportedIds, selected);
             string skippedNote = applied.Skipped == 0 ? "" : $"\n{applied.Skipped} point(s) were no longer eligible or had already changed.";
-            await DisplayAlert("Rephrase Applied", $"Updated {applied.Updated} point{(applied.Updated == 1 ? "" : "s")}.{ideaNote}{skippedNote}", "OK");
+            await DisplayAlert("Rephrase Applied", $"Updated {applied.Updated} point{(applied.Updated == 1 ? "" : "s")}.{skippedNote}", "OK");
             await RefreshAsync();
         }
         catch (Exception ex)
