@@ -222,27 +222,19 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
                 Source = ImageSource.FromFile(enforcer.ImagePath),
                 HeightRequest = 70,
                 WidthRequest = 70,
-                Aspect = AspectFromInt(enforcer.ImageAspect),
+                Aspect = ImageFitCycle.ToAspect(enforcer.ImageAspect),
                 VerticalOptions = LayoutOptions.Center
             };
             inner.Add(cardImg, 0, 0);
             Grid.SetRowSpan(cardImg, 2);
 
-            var cycleBtn = (new Button
-            {
-                Text = "⟳",
-                FontSize = 10,
-                HeightRequest = 22,
-                WidthRequest = 70,
-                CornerRadius = 4,
-                Padding = 0
-            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
+            var cycleBtn = ImageFitCycle.CreateButton(compact: true, includeLabel: false);
             var capturedEnf = enforcer;
             cycleBtn.Clicked += async (_, _) =>
             {
-                capturedEnf.ImageAspect = (capturedEnf.ImageAspect + 1) % 3;
+                capturedEnf.ImageAspect = ImageFitCycle.Next(capturedEnf.ImageAspect);
                 await _service.UpdateEnforcerAsync(capturedEnf);
-                cardImg.Aspect = AspectFromInt(capturedEnf.ImageAspect);
+                cardImg.Aspect = ImageFitCycle.ToAspect(capturedEnf.ImageAspect);
             };
             inner.Add(cycleBtn, 0, 2);
         }
@@ -405,13 +397,6 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
 
         return card;
     }
-
-    private static Aspect AspectFromInt(int value) => value switch
-    {
-        1 => Aspect.AspectFill,
-        2 => Aspect.Fill,
-        _ => Aspect.AspectFit
-    };
 
     private async Task AddEnforcerAsync()
     {

@@ -605,6 +605,8 @@ namespace Bannister.Services
             try { await _db!.ExecuteAsync("ALTER TABLE companion_data_points ADD COLUMN ReplacedByPointId INTEGER NULL"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE companion_data_points ADD COLUMN ReplacesPointId INTEGER NULL"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE companions ADD COLUMN AvatarImage BLOB NULL"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE companions ADD COLUMN AvatarImageFit INTEGER NOT NULL DEFAULT 0"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE companion_level_images ADD COLUMN ImageFit INTEGER NOT NULL DEFAULT 0"); } catch { }
 
             System.Diagnostics.Debug.WriteLine("✓ All Bannister tables created/verified");
         }

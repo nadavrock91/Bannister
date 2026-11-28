@@ -51,7 +51,7 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
         _enforcerImage = new Image
         {
             HeightRequest = 200,
-            Aspect = AspectFromInt(_enforcer.ImageAspect),
+            Aspect = ImageFitCycle.ToAspect(_enforcer.ImageAspect),
             HorizontalOptions = LayoutOptions.Fill,
             IsVisible = false
         };
@@ -74,17 +74,10 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
             await ChangeImageAsync();
         imgBtnRow.Children.Add(changeImageBtn);
 
-        var cycleAspectBtn = (new Button
-        {
-            Text = "⟳ Fit",
-            CornerRadius = 8,
-            FontSize = 12,
-            HeightRequest = 36,
-            Padding = new Thickness(10, 0)
-        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
+        var cycleAspectBtn = ImageFitCycle.CreateButton();
         cycleAspectBtn.Clicked += async (_, _) =>
         {
-            _enforcer.ImageAspect = (_enforcer.ImageAspect + 1) % 3;
+            _enforcer.ImageAspect = ImageFitCycle.Next(_enforcer.ImageAspect);
             await _service.UpdateEnforcerAsync(_enforcer);
             UpdateImageDisplay();
         };
@@ -776,7 +769,7 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
             _enforcerImage.Source =
                 ImageSource.FromFile(_enforcer.ImagePath);
             _enforcerImage.Aspect =
-                AspectFromInt(_enforcer.ImageAspect);
+                ImageFitCycle.ToAspect(_enforcer.ImageAspect);
             _enforcerImage.IsVisible = true;
         }
         else
@@ -806,10 +799,4 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
         }
     }
 
-    private static Aspect AspectFromInt(int value) => value switch
-    {
-        1 => Aspect.AspectFill,
-        2 => Aspect.Fill,
-        _ => Aspect.AspectFit
-    };
 }

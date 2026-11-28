@@ -80,13 +80,47 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             },
             ColumnSpacing = 12
         };
-        personaHeader.Add(CompanionAvatarPresentation.Create(companion, 72, avatarState.LevelImage), 0);
+        var avatarHost = new ContentView
+        {
+            Content = CompanionAvatarPresentation.Create(
+                companion, 72, avatarState.LevelImage, avatarState.ImageFit)
+        };
+        var fitAvatar = ImageFitCycle.CreateButton(compact: true);
+        fitAvatar.IsEnabled = avatarState.LevelImage is { Length: > 0 } ||
+            companion.AvatarImage is { Length: > 0 };
+        fitAvatar.Clicked += async (_, _) =>
+        {
+            int nextFit = ImageFitCycle.Next(avatarState.ImageFit);
+            if (avatarState.LevelImageId.HasValue)
+            {
+                bool updated = await _service.UpdateLevelImageFitAsync(
+                    _auth.CurrentUsername,
+                    companion.Id,
+                    avatarState.LevelImageId.Value,
+                    nextFit);
+                if (!updated) return;
+            }
+            else
+            {
+                companion.AvatarImageFit = nextFit;
+                await _service.SaveCompanionAsync(companion);
+            }
+            avatarState = avatarState with { ImageFit = nextFit };
+            avatarHost.Content = CompanionAvatarPresentation.Create(
+                companion, 72, avatarState.LevelImage, avatarState.ImageFit);
+        };
+        personaHeader.Add(new VerticalStackLayout
+        {
+            Spacing = 4,
+            Children = { avatarHost, fitAvatar }
+        }, 0);
         personaHeader.Add(personaText, 1);
         var editPersona = Button("Edit", ThemeKey.WarningBackground, ThemeKey.WarningText);
         editPersona.VerticalOptions = LayoutOptions.Center;
         editPersona.Clicked += async (_, _) =>
         {
-            var edited = await CompanionEditPage.ShowAsync(Navigation, companion, avatarState.LevelImage);
+            var edited = await CompanionEditPage.ShowAsync(
+                Navigation, companion, avatarState.LevelImage, avatarState.ImageFit);
             if (edited == null) return;
             await _service.SaveCompanionAsync(edited);
             _selected = edited;
@@ -1004,10 +1038,11 @@ internal sealed class CompanionDataPointEditPage : ModeThemedPage
 internal sealed class CompanionEditPage : ModeThemedPage
 {
     private readonly TaskCompletionSource<Companion?> _completion = new();
-    private CompanionEditPage(Companion item, byte[]? displayedImage)
+    private CompanionEditPage(Companion item, byte[]? displayedImage, int? displayedImageFit)
     {
         Title = "Edit Context Game Persona";
         byte[]? pendingImage = item.AvatarImage;
+        int pendingImageFit = item.AvatarImageFit;
         var nickname = (new Entry { Placeholder = "Name", Text = item.Nickname })
             .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground)
             .ThemeColor(Entry.TextColorProperty, ThemeKey.InputText)
@@ -1026,13 +1061,19 @@ internal sealed class CompanionEditPage : ModeThemedPage
             .ThemeColor(Entry.PlaceholderColorProperty, ThemeKey.CardText3);
         var avatarHost = new ContentView
         {
-            Content = CompanionAvatarPresentation.Create(item, 112, displayedImage),
+            Content = CompanionAvatarPresentation.Create(item, 112, displayedImage, displayedImageFit),
             HorizontalOptions = LayoutOptions.Start
         };
         void RefreshAvatar()
         {
-            var preview = new Companion { Nickname = nickname.Text ?? item.Nickname, AvatarImage = pendingImage };
-            avatarHost.Content = CompanionAvatarPresentation.Create(preview, 112, displayedImage);
+            var preview = new Companion
+            {
+                Nickname = nickname.Text ?? item.Nickname,
+                AvatarImage = pendingImage,
+                AvatarImageFit = pendingImageFit
+            };
+            avatarHost.Content = CompanionAvatarPresentation.Create(
+                preview, 112, displayedImage, displayedImageFit);
         }
         nickname.TextChanged += (_, _) => { if (pendingImage is not { Length: > 0 }) RefreshAvatar(); };
         var replaceImage = (new Button { Text = pendingImage is { Length: > 0 } ? "Replace Image" : "Choose Image" })
@@ -1058,6 +1099,7 @@ internal sealed class CompanionEditPage : ModeThemedPage
                 }
                 await using var stream = await picked.OpenReadAsync();
                 pendingImage = CompanionAvatarImageProcessor.LoadAndResizePng(stream);
+                pendingImageFit = ImageFitCycle.DefaultMode;
                 replaceImage.Text = "Replace Image";
                 removeImage.IsEnabled = true;
                 RefreshAvatar();
@@ -1070,6 +1112,7 @@ internal sealed class CompanionEditPage : ModeThemedPage
         removeImage.Clicked += (_, _) =>
         {
             pendingImage = null;
+            pendingImageFit = ImageFitCycle.DefaultMode;
             replaceImage.Text = "Choose Image";
             removeImage.IsEnabled = false;
             RefreshAvatar();
@@ -1091,6 +1134,7 @@ internal sealed class CompanionEditPage : ModeThemedPage
             item.InterviewStance = string.IsNullOrWhiteSpace(normalizedStance) ? "get to know the user across all of Bannister" : normalizedStance;
             item.DefaultQuestionCount = questions;
             item.AvatarImage = pendingImage;
+            item.AvatarImageFit = pendingImageFit;
             item.AvatarPath = null;
             await CloseAsync(item);
         };
@@ -1108,7 +1152,16 @@ internal sealed class CompanionEditPage : ModeThemedPage
         } } };
     }
     private async Task CloseAsync(Companion? result) { await Navigation.PopModalAsync(); _completion.TrySetResult(result); }
-    public static async Task<Companion?> ShowAsync(INavigation navigation, Companion item, byte[]? displayedImage = null) { var page = new CompanionEditPage(item, displayedImage); await navigation.PushModalAsync(page); return await page._completion.Task; }
+    public static async Task<Companion?> ShowAsync(
+        INavigation navigation,
+        Companion item,
+        byte[]? displayedImage = null,
+        int? displayedImageFit = null)
+    {
+        var page = new CompanionEditPage(item, displayedImage, displayedImageFit);
+        await navigation.PushModalAsync(page);
+        return await page._completion.Task;
+    }
 }
 
 internal sealed class CompanionTextInputPage : ModeThemedPage

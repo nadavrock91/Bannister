@@ -6,7 +6,11 @@ namespace Bannister.Views;
 
 internal static class CompanionAvatarPresentation
 {
-    public static View Create(Companion companion, double size, byte[]? levelImage = null)
+    public static View Create(
+        Companion companion,
+        double size,
+        byte[]? levelImage = null,
+        int? levelImageFit = null)
     {
         View content;
         byte[]? imageBytes = levelImage is { Length: > 0 } ? levelImage : companion.AvatarImage;
@@ -15,7 +19,10 @@ internal static class CompanionAvatarPresentation
             content = new Image
             {
                 Source = ImageSource.FromStream(() => new MemoryStream(imageBytes, writable: false)),
-                Aspect = Aspect.AspectFill,
+                Aspect = ImageFitCycle.ToAspect(
+                    levelImage is { Length: > 0 }
+                        ? levelImageFit ?? ImageFitCycle.DefaultMode
+                        : companion.AvatarImageFit),
                 HeightRequest = size,
                 WidthRequest = size
             };

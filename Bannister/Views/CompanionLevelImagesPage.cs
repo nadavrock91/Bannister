@@ -132,9 +132,24 @@ internal sealed class CompanionLevelImagesPage : ModeThemedPage
         var thumbnail = new Image
         {
             Source = BytesSource(levelImage.ImageBytes),
-            Aspect = Aspect.AspectFill,
+            Aspect = ImageFitCycle.ToAspect(levelImage.ImageFit),
             HeightRequest = 110,
             WidthRequest = 90
+        };
+        var fit = ImageFitCycle.CreateButton(compact: true);
+        fit.Clicked += async (_, _) =>
+        {
+            int nextFit = ImageFitCycle.Next(levelImage.ImageFit);
+            bool updated = await _service.UpdateLevelImageFitAsync(
+                _username, _companion.Id, levelImage.Id, nextFit);
+            if (!updated) return;
+            levelImage.ImageFit = nextFit;
+            thumbnail.Aspect = ImageFitCycle.ToAspect(nextFit);
+        };
+        var thumbnailControls = new VerticalStackLayout
+        {
+            Spacing = 4,
+            Children = { thumbnail, fit }
         };
         var details = new VerticalStackLayout
         {
@@ -157,7 +172,7 @@ internal sealed class CompanionLevelImagesPage : ModeThemedPage
             Children = { replace, changeLevel, remove }
         });
 
-        var row = new HorizontalStackLayout { Spacing = 12, Children = { thumbnail, details } };
+        var row = new HorizontalStackLayout { Spacing = 12, Children = { thumbnailControls, details } };
         return (new Frame { Padding = 12, HasShadow = false, Content = row })
             .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground)
             .ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
@@ -406,7 +421,7 @@ internal sealed class CompanionConceptSheetPreviewPage : ModeThemedPage
                         new Image
                         {
                             Source = ImageSource.FromStream(() => new MemoryStream(cellBytes, writable: false)),
-                            Aspect = Aspect.AspectFit,
+                            Aspect = ImageFitCycle.ToAspect(ImageFitCycle.DefaultMode),
                             HeightRequest = 230
                         },
                         selectionRow,

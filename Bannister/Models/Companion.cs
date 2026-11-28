@@ -19,6 +19,7 @@ public class Companion
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string? AvatarPath { get; set; }
     public byte[]? AvatarImage { get; set; }
+    public int AvatarImageFit { get; set; }
 }
 
 [Table("companion_level_images")]
@@ -31,6 +32,7 @@ public class CompanionLevelImage
     [Indexed("IX_companion_level_images_persona_level", 2, Unique = true)]
     public int Level { get; set; }
     public byte[] ImageBytes { get; set; } = [];
+    public int ImageFit { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 

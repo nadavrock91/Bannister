@@ -33,7 +33,7 @@ public sealed record ContextGameMigrationResult(
     int ReassignedPoints,
     int ReassignedInterviews,
     bool CreatedPersona);
-public sealed record CompanionAvatarState(int Level, byte[]? LevelImage);
+public sealed record CompanionAvatarState(int Level, byte[]? LevelImage, int ImageFit, int? LevelImageId);
 
 public sealed class CompanionExtraction
 {
@@ -194,7 +194,11 @@ public class CompanionService
             .Where(x => x.Username == username && x.CompanionId == companion.Id && x.Level <= level)
             .OrderByDescending(x => x.Level)
             .FirstOrDefaultAsync();
-        return new CompanionAvatarState(level, image?.ImageBytes);
+        return new CompanionAvatarState(
+            level,
+            image?.ImageBytes,
+            ImageFitCycle.Normalize(image?.ImageFit ?? companion.AvatarImageFit),
+            image?.Id);
     }
 
     public async Task<List<CompanionLevelImage>> GetLevelImagesAsync(string username, int companionId) =>
@@ -225,6 +229,7 @@ public class CompanionService
             {
                 if (!replaceExisting) return;
                 existing.ImageBytes = imageBytes;
+                existing.ImageFit = ImageFitCycle.DefaultMode;
                 existing.CreatedAt = DateTime.UtcNow;
                 db.Update(existing);
             }
@@ -290,6 +295,26 @@ public class CompanionService
             if (image != null && image.Username == username && image.CompanionId == companionId)
                 db.Delete(image);
         });
+    }
+
+    public async Task<bool> UpdateLevelImageFitAsync(
+        string username,
+        int companionId,
+        int imageId,
+        int imageFit)
+    {
+        bool updated = false;
+        var conn = await ConnectionAsync();
+        await conn.RunInTransactionAsync(db =>
+        {
+            var image = db.Find<CompanionLevelImage>(imageId);
+            if (image == null || image.Username != username || image.CompanionId != companionId)
+                return;
+            image.ImageFit = ImageFitCycle.Normalize(imageFit);
+            db.Update(image);
+            updated = true;
+        });
+        return updated;
     }
 
     public async Task<List<CompanionDataPoint>> GetPointsAsync(string username, int companionId, bool includeArchived = false)

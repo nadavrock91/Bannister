@@ -64,7 +64,8 @@ public sealed class CompanionInterviewHistoryPage : Bannister.Views.ModeThemedPa
                 }
             };
             var header = new HorizontalStackLayout { Spacing = 12 };
-            header.Children.Add(CompanionAvatarPresentation.Create(_companion, 64, avatarState.LevelImage));
+            header.Children.Add(CompanionAvatarPresentation.Create(
+                _companion, 64, avatarState.LevelImage, avatarState.ImageFit));
             header.Children.Add(headerText);
             _content.Children.Add(header);
             if (interviews.Count == 0)
