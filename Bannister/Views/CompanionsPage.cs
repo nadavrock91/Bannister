@@ -152,17 +152,33 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             _content.Children.Add((new Label { Text = $"Current interview: {CompanionInterviewPresentation.StepText(_selectedInterview)}", FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1));
 
         _content.Children.Add(PageHeading(_showArchived ? "Data Points (including archived)" : "Active Data Points", 18));
-        var pointActions = new HorizontalStackLayout { Spacing = 8 };
+        var pointActions = new FlexLayout
+        {
+            Direction = Microsoft.Maui.Layouts.FlexDirection.Row,
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap
+        };
         var addPoint = Button("+ Add Data Point", ThemeKey.SuccessButtonBackground, ThemeKey.ButtonPrimaryText);
         var allPoints = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id, _showArchived);
         var allCategories = await _service.GetPointCategoriesAsync(_auth.CurrentUsername);
         addPoint.Clicked += async (_, _) => await AddPointAsync(companion, scopeLabel, games, allCategories);
         var archived = Button(_showArchived ? "Hide Archived" : "Show Archived", ThemeKey.NeutralButtonBackground, ThemeKey.CardText2);
         archived.Clicked += async (_, _) => { _showArchived = !_showArchived; await RefreshAsync(); };
+        var rephrase = Button("Rephrase with LLM", ThemeKey.ButtonPrimaryBackground, ThemeKey.ButtonPrimaryText);
+        rephrase.Clicked += async (_, _) => await ChooseRephraseScopeAsync(
+            companion, scopeLabel, allPoints, gamesById, displayMode);
         var rewrite = Button("Rewrite to first person", ThemeKey.SecondaryButtonBackground, ThemeKey.ButtonPrimaryText);
-        rewrite.Clicked += async (_, _) => await RewritePointsToFirstPersonAsync(
-            companion, scopeLabel, allGames, gamesById, displayMode);
-        pointActions.Children.Add(addPoint); pointActions.Children.Add(archived); pointActions.Children.Add(rewrite); _content.Children.Add(pointActions);
+        rewrite.Clicked += async (_, _) => await RunRephraseFlowAsync(
+            companion,
+            scopeLabel,
+            allPoints.Where(x => CompanionService.IsVisibleInDisplayMode(x, gamesById, displayMode)).ToList(),
+            "All points",
+            CompanionRephraseInstructionPage.FirstPersonPreset);
+        foreach (var action in new[] { addPoint, archived, rephrase, rewrite })
+        {
+            action.Margin = 3;
+            pointActions.Children.Add(action);
+        }
+        _content.Children.Add(pointActions);
         var modeVisiblePoints = allPoints.Where(x => CompanionService.IsVisibleInDisplayMode(x, gamesById, displayMode)).ToList();
         if (modeVisiblePoints.Count != allPoints.Count)
             _content.Children.Add((new Label
@@ -251,12 +267,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         });
         Grid.SetColumn(categoryFilterStack, 1);
 
-        var points = modeVisiblePoints.Where(x =>
-                (_pointGameFilterIsNoGame ? string.IsNullOrWhiteSpace(x.GameId) :
-                    _pointGameFilter == null || string.Equals(x.GameId, _pointGameFilter, StringComparison.OrdinalIgnoreCase)) &&
-                (_pointCategoryFilterIsNoCategory ? string.IsNullOrWhiteSpace(x.Category) :
-                    _pointCategoryFilter == null || string.Equals(x.Category, _pointCategoryFilter, StringComparison.OrdinalIgnoreCase)))
-            .ToList();
+        var points = FilterCurrentlyDisplayedPoints(modeVisiblePoints);
         if (points.Count == 0) _content.Children.Add((new Label { Text = "No data points yet." }).ThemeColor(Label.TextColorProperty, ThemeKey.ButtonPrimaryText, ThemeKey.PageText1));
         foreach (var point in points)
         {
@@ -391,11 +402,14 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             await _service.SavePointAsync(point, companion, scopeLabel);
             await RefreshAsync();
         };
+        var rephrase = Button("Rephrase", ThemeKey.SecondaryButtonBackground, ThemeKey.ButtonPrimaryText);
+        rephrase.Clicked += async (_, _) => await RunRephraseFlowAsync(
+            companion, scopeLabel, new[] { point }, $"Point {point.Id}", null);
         var archive = Button(point.Status == "active" ? "Archive" : "Restore", ThemeKey.NeutralButtonBackground, ThemeKey.CardText2);
         archive.Clicked += async (_, _) => { point.Status = point.Status == "active" ? "archived" : "active"; await _service.SavePointAsync(point); await RefreshAsync(); };
         var delete = Button("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
         delete.Clicked += async (_, _) => { if (!await DisplayAlert("Delete Data Point", "Delete this data point?", "Delete", "Cancel")) return; await _service.DeletePointAsync(point); await RefreshAsync(); };
-        actions.Children.Add(edit); actions.Children.Add(archive); actions.Children.Add(delete); stack.Children.Add(actions);
+        actions.Children.Add(edit); actions.Children.Add(rephrase); actions.Children.Add(archive); actions.Children.Add(delete); stack.Children.Add(actions);
         return Card(stack);
     }
 
@@ -449,38 +463,114 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         }
     }
 
-    private async Task RewritePointsToFirstPersonAsync(
+    private List<CompanionDataPoint> FilterCurrentlyDisplayedPoints(IEnumerable<CompanionDataPoint> points) =>
+        points.Where(x =>
+            (_pointGameFilterIsNoGame ? string.IsNullOrWhiteSpace(x.GameId) :
+                _pointGameFilter == null || string.Equals(x.GameId, _pointGameFilter, StringComparison.OrdinalIgnoreCase)) &&
+            (_pointCategoryFilterIsNoCategory ? string.IsNullOrWhiteSpace(x.Category) :
+                _pointCategoryFilter == null || string.Equals(x.Category, _pointCategoryFilter, StringComparison.OrdinalIgnoreCase)))
+        .ToList();
+
+    private async Task ChooseRephraseScopeAsync(
         Companion companion,
         string scopeLabel,
-        List<Game> games,
+        IReadOnlyList<CompanionDataPoint> points,
         IReadOnlyDictionary<string, Game> gamesById,
         ActivityDisplayMode displayMode)
     {
+        var visible = points.Where(x => CompanionService.IsVisibleInDisplayMode(x, gamesById, displayMode)).ToList();
+        var category = visible.Where(x =>
+            _pointCategoryFilterIsNoCategory ? string.IsNullOrWhiteSpace(x.Category) :
+            _pointCategoryFilter == null || string.Equals(x.Category, _pointCategoryFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+        var game = visible.Where(x =>
+            _pointGameFilterIsNoGame ? string.IsNullOrWhiteSpace(x.GameId) :
+            _pointGameFilter == null || string.Equals(x.GameId, _pointGameFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+        var displayed = FilterCurrentlyDisplayedPoints(visible);
+
+        string categoryName = _pointCategoryFilterIsNoCategory ? "No category" : _pointCategoryFilter ?? "All categories";
+        string gameName = _pointGameFilterIsNoGame ? "No game" :
+            _pointGameFilter == null ? "All games" :
+            gamesById.TryGetValue(_pointGameFilter, out var selectedGame) ? selectedGame.DisplayName : _pointGameFilter;
+        string allOption = $"All points ({visible.Count})";
+        string categoryOption = $"Current Category: {categoryName} ({category.Count})";
+        string gameOption = $"Current Game: {gameName} ({game.Count})";
+        string displayedOption = $"Currently displayed ({displayed.Count})";
+        string? selected = await DisplayActionSheet(
+            "Rephrase which points?", "Cancel", null,
+            allOption, categoryOption, gameOption, displayedOption);
+
+        IReadOnlyList<CompanionDataPoint>? scope = selected switch
+        {
+            var value when value == allOption => visible,
+            var value when value == categoryOption => category,
+            var value when value == gameOption => game,
+            var value when value == displayedOption => displayed,
+            _ => null
+        };
+        if (scope == null) return;
+        await RunRephraseFlowAsync(companion, scopeLabel, scope, selected!, null);
+    }
+
+    private async Task RunRephraseFlowAsync(
+        Companion companion,
+        string scopeLabel,
+        IReadOnlyList<CompanionDataPoint> points,
+        string rephraseScope,
+        string? initialInstruction)
+    {
+        if (points.Count == 0)
+        {
+            await DisplayAlert("No Points", "There are no points in that scope.", "OK");
+            return;
+        }
+
         try
         {
-            var allActivePoints = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id);
-            var points = allActivePoints
-                .Where(x => CompanionService.IsVisibleInDisplayMode(x, gamesById, displayMode))
-                .ToList();
-            await Clipboard.SetTextAsync(CompanionService.BuildFirstPersonRewritePrompt(companion, points));
-            await DisplayAlert(
-                "Rewrite Prompt Copied",
-                "Run the copied prompt in your LLM, then return here and paste the result." +
-                OmittedPointsNote(allActivePoints.Count - points.Count),
-                "OK");
+            var instructionPage = new CompanionRephraseInstructionPage(rephraseScope, points.Count, initialInstruction);
+            await Navigation.PushModalAsync(instructionPage);
+            string? instruction = await instructionPage.Result;
+            if (instruction == null) return;
 
-            var response = await CompanionTextInputPage.ShowAsync(
-                Navigation,
-                "Paste Extraction Result",
-                "",
-                "Paste the updatePoint result...");
+            string prompt = CompanionService.BuildRephrasePrompt(companion, points, instruction);
+            await Clipboard.SetTextAsync(prompt);
+            await DisplayAlert("Rephrase Prompt Copied", "Run the copied prompt in your LLM, then paste its response on the next screen.", "OK");
+
+            var pastePage = new CompanionRephrasePastePage();
+            await Navigation.PushModalAsync(pastePage);
+            string? response = await pastePage.Result;
             if (string.IsNullOrWhiteSpace(response)) return;
-            await ReviewAndApplyExtractionAsync(companion, null, scopeLabel, games, response, updatesOnly: true);
+
+            var currentCompanionPoints = await _service.GetPointsAsync(
+                _auth.CurrentUsername, companion.Id, includeArchived: true);
+            var exportedIds = points.Select(x => x.Id).ToList();
+            var parsed = CompanionService.ParseRephraseResult(response, currentCompanionPoints, exportedIds);
+            if (parsed.RecognizedAssignmentCount == 0)
+            {
+                await DisplayAlert(
+                    "Could Not Parse Response",
+                    "No point[id] = \"new text\" entries were recognized. Nothing was changed.",
+                    "OK");
+                return;
+            }
+
+            var reviewPage = new CompanionRephraseReviewPage(parsed, currentCompanionPoints);
+            await Navigation.PushModalAsync(reviewPage);
+            var selected = await reviewPage.Result;
+            if (selected == null || selected.Count == 0) return;
+
+            var applied = await _service.ApplyRephraseAsync(
+                _auth.CurrentUsername, companion, scopeLabel, exportedIds, selected);
+            string ideaNote = applied.IdeaLoggingFailures == 0
+                ? ""
+                : $"\n{applied.IdeaLoggingFailures} linked Ideas item(s) could not be updated.";
+            string skippedNote = applied.Skipped == 0 ? "" : $"\n{applied.Skipped} point(s) were no longer eligible or had already changed.";
+            await DisplayAlert("Rephrase Applied", $"Updated {applied.Updated} point{(applied.Updated == 1 ? "" : "s")}.{ideaNote}{skippedNote}", "OK");
+            await RefreshAsync();
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[COMPANIONS] First-person rewrite import failed: {ex}");
-            await DisplayAlert("Extraction Import Failed", ex.Message, "OK");
+            System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Rephrase import failed: {ex}");
+            await DisplayAlert("Rephrase Failed", ex.Message, "OK");
         }
     }
 
@@ -489,23 +579,10 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         CompanionInterview? interview,
         string scopeLabel,
         List<Game> games,
-        string response,
-        bool updatesOnly = false)
+        string response)
     {
         var extraction = CompanionService.ParseExtraction(response);
         CompanionService.ResolveExtractionGames(extraction, games);
-        if (updatesOnly)
-        {
-            if (extraction.Adds.Count > 0)
-                extraction.Warnings.Add($"Ignored {extraction.Adds.Count} added point(s); first-person rewriting can only update existing text");
-            if (extraction.Priorities.Count > 0)
-                extraction.Warnings.Add($"Ignored {extraction.Priorities.Count} priority change(s); first-person rewriting keeps priorities unchanged");
-            if (extraction.Archives.Count > 0)
-                extraction.Warnings.Add($"Ignored {extraction.Archives.Count} archive action(s); first-person rewriting keeps point status unchanged");
-            extraction.Adds.Clear();
-            extraction.Priorities.Clear();
-            extraction.Archives.Clear();
-        }
         int recognizedCount = extraction.Adds.Count + extraction.Priorities.Count + extraction.Archives.Count + extraction.Updates.Count;
         if (recognizedCount == 0)
         {

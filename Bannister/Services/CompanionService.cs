@@ -17,6 +17,16 @@ public sealed record CompanionArchiveProposal(int PointId, string Reason);
 public sealed record CompanionUpdateProposal(int PointId, string Text);
 public sealed record CompanionApplyResult(int Added, int Reprioritized, int Archived, int Updated, int IdeaLoggingFailures);
 public sealed record CompanionPromptResult(string Prompt, int OmittedPointCount);
+public sealed record CompanionRephraseChange(int PointId, string OldText, string NewText);
+public sealed record CompanionRephraseParseResult(
+    IReadOnlyList<CompanionRephraseChange> Changes,
+    IReadOnlyList<int> IdsNotFound,
+    IReadOnlyList<int> IdsOutsideScope,
+    IReadOnlyList<int> UnchangedIds,
+    IReadOnlyList<int> EmptyTextIds,
+    IReadOnlyList<string> Warnings,
+    int RecognizedAssignmentCount);
+public sealed record CompanionRephraseApplyResult(int Updated, int IdeaLoggingFailures, int Skipped);
 
 public sealed class CompanionExtraction
 {
@@ -390,26 +400,92 @@ public class CompanionService
         return sb.ToString();
     }
 
-    public static string BuildFirstPersonRewritePrompt(
+    public static string BuildRephrasePrompt(
         Companion companion,
-        IReadOnlyList<CompanionDataPoint> activePoints)
+        IReadOnlyList<CompanionDataPoint> points,
+        string instruction)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Rewrite the active context points for the companion {companion.Nickname} that are not already written in the first person.");
-        sb.AppendLine("Write each rewritten point as I would say it about myself, using first-person language such as \"I want...\", \"I go...\", or \"I feel...\".");
-        sb.AppendLine("Never use \"he\", \"she\", \"the user\", or my name.");
-        sb.AppendLine("Change the wording only. Keep the original meaning, facts, specificity, and scope unchanged.");
-        sb.AppendLine("Keep each point a single, self-contained statement.");
-        sb.AppendLine("Return a line only for a point that is currently not first person.");
+        sb.AppendLine("Rephrase these Bannister Companion data points.");
+        sb.AppendLine($"Companion: {companion.Nickname}");
+        sb.AppendLine($"Instruction: {instruction.Trim()}");
         sb.AppendLine();
-        sb.AppendLine("ACTIVE POINTS:");
-        if (activePoints.Count == 0) sb.AppendLine("- None.");
-        foreach (var point in activePoints)
+        sb.AppendLine("Apply the instruction to the text only. Keep each point's meaning unless the instruction explicitly asks you to change it.");
+        sb.AppendLine("Do not add, drop, merge, split, or reorder ids. Return exactly one entry for every id, in the same order.");
+        sb.AppendLine("Keep every id exactly as written. Do not change any game, category, visibility, priority, status, source, or date.");
+        sb.AppendLine();
+        sb.AppendLine("POINTS:");
+        foreach (var point in points)
             sb.AppendLine($"[ID:{point.Id}] {point.Text}");
         sb.AppendLine();
-        sb.AppendLine("Return ONLY lines in exactly this format, with no explanations or Markdown:");
-        sb.AppendLine("updatePoint[<id>] = \"first-person text\";");
+        sb.AppendLine("Return only this strict block, with one line per id and no other text:");
+        sb.AppendLine("BEGIN COMPANION REPHRASE");
+        sb.AppendLine("point[<id>] = \"new text\";");
+        sb.AppendLine("END COMPANION REPHRASE");
+        sb.AppendLine("Escape any quotation mark inside the text as \\\".");
         return sb.ToString();
+    }
+
+    public static CompanionRephraseParseResult ParseRephraseResult(
+        string response,
+        IReadOnlyList<CompanionDataPoint> companionPoints,
+        IReadOnlyCollection<int> exportedScopeIds)
+    {
+        var byId = companionPoints.ToDictionary(x => x.Id);
+        var scope = exportedScopeIds.ToHashSet();
+        var values = new Dictionary<int, string>();
+        var warnings = new List<string>();
+        var notFound = new HashSet<int>();
+        var outsideScope = new HashSet<int>();
+        var unchanged = new HashSet<int>();
+        var empty = new HashSet<int>();
+        var assignmentRegex = new Regex(
+            """(?im)^\s*(?:point|updatePoint)\s*\[\s*(\d+)\s*\]\s*(?:=|:)\s*(?:"((?:\\.|[^"\\])*)"|'([^'\r\n]*)'|([^;\r\n]*?))\s*;?\s*$""",
+            RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+        int recognized = 0;
+        foreach (Match match in assignmentRegex.Matches(response.Replace("\r\n", "\n")))
+        {
+            recognized++;
+            int id = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+            string raw = match.Groups[2].Success ? match.Groups[2].Value :
+                match.Groups[3].Success ? match.Groups[3].Value : match.Groups[4].Value;
+            string text = DecodeLlmValue(raw).Trim();
+            if (!values.TryAdd(id, text))
+                warnings.Add($"Point {id} appeared more than once; the first entry was kept.");
+        }
+
+        var changes = new List<CompanionRephraseChange>();
+        foreach (var (id, text) in values)
+        {
+            if (!byId.TryGetValue(id, out var point)) { notFound.Add(id); continue; }
+            if (!scope.Contains(id)) { outsideScope.Add(id); continue; }
+            if (string.IsNullOrWhiteSpace(text)) { empty.Add(id); continue; }
+            if (string.Equals(point.Text.Trim(), text, StringComparison.Ordinal)) { unchanged.Add(id); continue; }
+            changes.Add(new(id, point.Text, text));
+        }
+        foreach (int id in scope)
+            if (!values.ContainsKey(id)) unchanged.Add(id);
+
+        return new(
+            changes.OrderBy(x => pointsOrder(exportedScopeIds, x.PointId)).ToList(),
+            notFound.OrderBy(x => x).ToList(),
+            outsideScope.OrderBy(x => x).ToList(),
+            unchanged.OrderBy(x => x).ToList(),
+            empty.OrderBy(x => x).ToList(),
+            warnings,
+            recognized);
+
+        static int pointsOrder(IReadOnlyCollection<int> ids, int id)
+        {
+            int index = 0;
+            foreach (int candidate in ids)
+            {
+                if (candidate == id) return index;
+                index++;
+            }
+            return int.MaxValue;
+        }
     }
 
     public static CompanionExtraction ParseExtraction(string response)
@@ -619,6 +695,64 @@ public class CompanionService
         }
 
         return new CompanionApplyResult(added, reprioritized, archived, updated, ideaLoggingFailures);
+    }
+
+    public async Task<CompanionRephraseApplyResult> ApplyRephraseAsync(
+        string username,
+        Companion companion,
+        string scopeLabel,
+        IReadOnlyCollection<int> exportedScopeIds,
+        IEnumerable<CompanionRephraseChange> changes)
+    {
+        var allowed = exportedScopeIds.ToHashSet();
+        var current = await GetPointsAsync(username, companion.Id, includeArchived: true);
+        var byId = current.ToDictionary(x => x.Id);
+        int updated = 0, ideaFailures = 0, skipped = 0;
+        var changedLinkedPoints = new List<CompanionDataPoint>();
+        var conn = await ConnectionAsync();
+
+        foreach (var change in changes)
+        {
+            if (!allowed.Contains(change.PointId) ||
+                !byId.TryGetValue(change.PointId, out var point) ||
+                string.IsNullOrWhiteSpace(change.NewText))
+            {
+                skipped++;
+                continue;
+            }
+
+            string newText = change.NewText.Trim();
+            if (string.Equals(point.Text, newText, StringComparison.Ordinal))
+            {
+                skipped++;
+                continue;
+            }
+
+            // This path intentionally bypasses SavePointAsync: rephrasing changes only Text,
+            // including preserving UpdatedAt and every classification/source field.
+            point.Text = newText;
+            await conn.UpdateAsync(point);
+            updated++;
+            if (point.IdeaId.HasValue) changedLinkedPoints.Add(point);
+        }
+
+        foreach (var point in changedLinkedPoints)
+        {
+            try
+            {
+                string sourceLine = await GetContextPointSourceLineAsync(point);
+                await _ideaLogger.UpdateIdeaAsync(
+                    point.IdeaId!.Value,
+                    BuildContextPointIdeaRequest(username, companion, scopeLabel, point, sourceLine, includeCreatedAt: false));
+            }
+            catch (Exception ex)
+            {
+                ideaFailures++;
+                System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Rephrased point {point.Id}, but its linked idea could not be updated: {ex}");
+            }
+        }
+
+        return new(updated, ideaFailures, skipped);
     }
 
     private async Task<int> LogNewContextPointsAsync(
