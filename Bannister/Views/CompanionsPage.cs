@@ -159,7 +159,10 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         addPoint.Clicked += async (_, _) => await AddPointAsync(companion, scopeLabel, games, allCategories);
         var archived = Button(_showArchived ? "Hide Archived" : "Show Archived", ThemeKey.NeutralButtonBackground, ThemeKey.CardText2);
         archived.Clicked += async (_, _) => { _showArchived = !_showArchived; await RefreshAsync(); };
-        pointActions.Children.Add(addPoint); pointActions.Children.Add(archived); _content.Children.Add(pointActions);
+        var rewrite = Button("Rewrite to first person", ThemeKey.SecondaryButtonBackground, ThemeKey.ButtonPrimaryText);
+        rewrite.Clicked += async (_, _) => await RewritePointsToFirstPersonAsync(
+            companion, scopeLabel, allGames, gamesById, displayMode);
+        pointActions.Children.Add(addPoint); pointActions.Children.Add(archived); pointActions.Children.Add(rewrite); _content.Children.Add(pointActions);
         var modeVisiblePoints = allPoints.Where(x => CompanionService.IsVisibleInDisplayMode(x, gamesById, displayMode)).ToList();
         if (modeVisiblePoints.Count != allPoints.Count)
             _content.Children.Add((new Label
@@ -437,40 +440,100 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         {
             var response = await CompanionTextInputPage.ShowAsync(Navigation, "Paste Extraction Result", "", "Paste the structured extraction result...");
             if (string.IsNullOrWhiteSpace(response)) return;
-            var extraction = CompanionService.ParseExtraction(response);
-            CompanionService.ResolveExtractionGames(extraction, games);
-            int recognizedCount = extraction.Adds.Count + extraction.Priorities.Count + extraction.Archives.Count + extraction.Updates.Count;
-            if (recognizedCount == 0)
-            {
-                string details = string.Join("\n", extraction.SkippedLines.Concat(extraction.Warnings));
-                string message = "Nothing recognized in the pasted result";
-                if (!string.IsNullOrWhiteSpace(details)) message += $"\n\n{details}";
-                await DisplayAlert("Nothing Recognized", message, "OK");
-                return;
-            }
-
-            var applied = await CompanionExtractionReviewPage.ShowAsync(Navigation, extraction, async (adds, priorities, archives, updates) =>
-            {
-                var result = await _service.ApplyExtractionAsync(_auth.CurrentUsername, companion, interview, scopeLabel, adds, priorities, archives, updates);
-                await TrySaveInterviewIdeaAsync(companion, interview, scopeLabel);
-                return result;
-            });
-            if (applied == null) return;
-
-            string loggingNote = applied.IdeaLoggingFailures > 0
-                ? $" ({applied.IdeaLoggingFailures} not logged to Ideas)"
-                : "";
-            await DisplayAlert(
-                "Extraction Applied",
-                $"Added {applied.Added}{loggingNote}, reprioritized {applied.Reprioritized}, archived {applied.Archived}, updated {applied.Updated}",
-                "OK");
-            await RefreshAsync();
+            await ReviewAndApplyExtractionAsync(companion, interview, scopeLabel, games, response);
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Extraction import failed: {ex}");
             await DisplayAlert("Extraction Import Failed", ex.Message, "OK");
         }
+    }
+
+    private async Task RewritePointsToFirstPersonAsync(
+        Companion companion,
+        string scopeLabel,
+        List<Game> games,
+        IReadOnlyDictionary<string, Game> gamesById,
+        ActivityDisplayMode displayMode)
+    {
+        try
+        {
+            var allActivePoints = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id);
+            var points = allActivePoints
+                .Where(x => CompanionService.IsVisibleInDisplayMode(x, gamesById, displayMode))
+                .ToList();
+            await Clipboard.SetTextAsync(CompanionService.BuildFirstPersonRewritePrompt(companion, points));
+            await DisplayAlert(
+                "Rewrite Prompt Copied",
+                "Run the copied prompt in your LLM, then return here and paste the result." +
+                OmittedPointsNote(allActivePoints.Count - points.Count),
+                "OK");
+
+            var response = await CompanionTextInputPage.ShowAsync(
+                Navigation,
+                "Paste Extraction Result",
+                "",
+                "Paste the updatePoint result...");
+            if (string.IsNullOrWhiteSpace(response)) return;
+            await ReviewAndApplyExtractionAsync(companion, null, scopeLabel, games, response, updatesOnly: true);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[COMPANIONS] First-person rewrite import failed: {ex}");
+            await DisplayAlert("Extraction Import Failed", ex.Message, "OK");
+        }
+    }
+
+    private async Task ReviewAndApplyExtractionAsync(
+        Companion companion,
+        CompanionInterview? interview,
+        string scopeLabel,
+        List<Game> games,
+        string response,
+        bool updatesOnly = false)
+    {
+        var extraction = CompanionService.ParseExtraction(response);
+        CompanionService.ResolveExtractionGames(extraction, games);
+        if (updatesOnly)
+        {
+            if (extraction.Adds.Count > 0)
+                extraction.Warnings.Add($"Ignored {extraction.Adds.Count} added point(s); first-person rewriting can only update existing text");
+            if (extraction.Priorities.Count > 0)
+                extraction.Warnings.Add($"Ignored {extraction.Priorities.Count} priority change(s); first-person rewriting keeps priorities unchanged");
+            if (extraction.Archives.Count > 0)
+                extraction.Warnings.Add($"Ignored {extraction.Archives.Count} archive action(s); first-person rewriting keeps point status unchanged");
+            extraction.Adds.Clear();
+            extraction.Priorities.Clear();
+            extraction.Archives.Clear();
+        }
+        int recognizedCount = extraction.Adds.Count + extraction.Priorities.Count + extraction.Archives.Count + extraction.Updates.Count;
+        if (recognizedCount == 0)
+        {
+            string details = string.Join("\n", extraction.SkippedLines.Concat(extraction.Warnings));
+            string message = "Nothing recognized in the pasted result";
+            if (!string.IsNullOrWhiteSpace(details)) message += $"\n\n{details}";
+            await DisplayAlert("Nothing Recognized", message, "OK");
+            return;
+        }
+
+        var applied = await CompanionExtractionReviewPage.ShowAsync(Navigation, extraction, async (adds, priorities, archives, updates) =>
+        {
+            var result = await _service.ApplyExtractionAsync(
+                _auth.CurrentUsername, companion, interview, scopeLabel, adds, priorities, archives, updates);
+            if (interview != null)
+                await TrySaveInterviewIdeaAsync(companion, interview, scopeLabel);
+            return result;
+        });
+        if (applied == null) return;
+
+        string loggingNote = applied.IdeaLoggingFailures > 0
+            ? $" ({applied.IdeaLoggingFailures} not logged to Ideas)"
+            : "";
+        await DisplayAlert(
+            "Extraction Applied",
+            $"Added {applied.Added}{loggingNote}, reprioritized {applied.Reprioritized}, archived {applied.Archived}, updated {applied.Updated}",
+            "OK");
+        await RefreshAsync();
     }
 
     private async Task SaveConversationAsync(Companion companion, CompanionInterview interview, string scopeLabel, List<Game> games)

@@ -314,7 +314,7 @@ public class CompanionService
         sb.AppendLine($"After I answer Question {questionCount}, do not ask anything else. End the interview in character with a short summary of what you learned about me, and the line \"Interview complete.\"");
         sb.AppendLine("If I say \"stop\" at any point, end the same way immediately.");
         sb.AppendLine();
-        sb.AppendLine("WHAT YOU ALREADY KNOW ABOUT THE USER:");
+        sb.AppendLine("WHAT THE USER HAS TOLD YOU ABOUT THEMSELVES (in their own words):");
         if (companion.Scope == "meta")
         {
             var companions = await GetCompanionsAsync(username);
@@ -354,6 +354,12 @@ public class CompanionService
         sb.AppendLine($"You are extracting durable knowledge for the companion {companion.Nickname} from an interview transcript.");
         sb.AppendLine("Extract only useful facts, preferences, motivations, constraints, patterns, goals, or corrections. Avoid duplicates and temporary conversational details.");
         sb.AppendLine();
+        sb.AppendLine("FIRST-PERSON WRITING RULES:");
+        sb.AppendLine("Write every addPoint and updatePoint text in the first person, as the user would say it about themselves (for example, \"I want...\", \"I go to Tel Aviv on Sundays...\", or \"I feel a gap between how I see myself and how others treat me\").");
+        sb.AppendLine("Never use \"he\", \"she\", \"the user\", or the user's name in a point.");
+        sb.AppendLine("Keep each point a single, self-contained statement.");
+        sb.AppendLine("Rewrite example: \"He wants to become more confident in social situations.\" becomes \"I want to become more confident in social situations.\"");
+        sb.AppendLine();
         sb.AppendLine("CURRENT DATA POINTS:");
         if (points.Count == 0) sb.AppendLine("- None.");
         var gamesById = games.ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
@@ -381,6 +387,28 @@ public class CompanionService
         sb.AppendLine("archivePoint[<existing id>] = \"reason\";");
         sb.AppendLine("updatePoint[<existing id>] = \"corrected text\";");
         sb.AppendLine("addGame and addCategory are optional and use the same index as addPoint. Use priorities 1-5, where 5 is most important. Number added points consecutively from 1. Do not include explanations or Markdown.");
+        return sb.ToString();
+    }
+
+    public static string BuildFirstPersonRewritePrompt(
+        Companion companion,
+        IReadOnlyList<CompanionDataPoint> activePoints)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"Rewrite the active context points for the companion {companion.Nickname} that are not already written in the first person.");
+        sb.AppendLine("Write each rewritten point as I would say it about myself, using first-person language such as \"I want...\", \"I go...\", or \"I feel...\".");
+        sb.AppendLine("Never use \"he\", \"she\", \"the user\", or my name.");
+        sb.AppendLine("Change the wording only. Keep the original meaning, facts, specificity, and scope unchanged.");
+        sb.AppendLine("Keep each point a single, self-contained statement.");
+        sb.AppendLine("Return a line only for a point that is currently not first person.");
+        sb.AppendLine();
+        sb.AppendLine("ACTIVE POINTS:");
+        if (activePoints.Count == 0) sb.AppendLine("- None.");
+        foreach (var point in activePoints)
+            sb.AppendLine($"[ID:{point.Id}] {point.Text}");
+        sb.AppendLine();
+        sb.AppendLine("Return ONLY lines in exactly this format, with no explanations or Markdown:");
+        sb.AppendLine("updatePoint[<id>] = \"first-person text\";");
         return sb.ToString();
     }
 
@@ -510,7 +538,7 @@ public class CompanionService
         }
     }
 
-    public async Task<CompanionApplyResult> ApplyExtractionAsync(string username, Companion companion, CompanionInterview interview,
+    public async Task<CompanionApplyResult> ApplyExtractionAsync(string username, Companion companion, CompanionInterview? interview,
         string scopeLabel,
         IEnumerable<CompanionAddProposal> adds, IEnumerable<CompanionPriorityProposal> priorities,
         IEnumerable<CompanionArchiveProposal> archives, IEnumerable<CompanionUpdateProposal> updates)
@@ -528,8 +556,8 @@ public class CompanionService
                 CompanionId = companion.Id,
                 Text = proposal.Text.Trim(),
                 Priority = proposal.Priority,
-                Source = "interview",
-                InterviewId = interview.Id,
+                Source = interview == null ? "manual" : "interview",
+                InterviewId = interview?.Id,
                 GameId = proposal.GameId,
                 Category = string.IsNullOrWhiteSpace(proposal.Category) ? null : proposal.Category.Trim()
             };
@@ -554,11 +582,14 @@ public class CompanionService
             point.Text = proposal.Text.Trim(); await SavePointAsync(point); updated++;
             if (point.IdeaId.HasValue) changedLinkedPoints[point.Id] = point;
         }
-        interview.PointsAdded += added;
-        interview.PointsReprioritized += reprioritized;
-        interview.PointsArchived += archived;
-        interview.Notes = $"Extraction applied {DateTime.Now:yyyy-MM-dd HH:mm}";
-        await SaveInterviewAsync(interview);
+        if (interview != null)
+        {
+            interview.PointsAdded += added;
+            interview.PointsReprioritized += reprioritized;
+            interview.PointsArchived += archived;
+            interview.Notes = $"Extraction applied {DateTime.Now:yyyy-MM-dd HH:mm}";
+            await SaveInterviewAsync(interview);
+        }
 
         int ideaLoggingFailures = 0;
         try
