@@ -813,34 +813,64 @@ internal sealed record CompanionDataPointEditResult(
     }
 }
 
-internal sealed class CompanionDataPointEditPage : ContentPage
+internal sealed class CompanionDataPointEditPage : ModeThemedPage
 {
     private readonly TaskCompletionSource<CompanionDataPointEditResult?> _completion = new();
 
     private CompanionDataPointEditPage(CompanionDataPoint? point, List<Game> games, List<string> categories)
     {
         Title = point == null ? "Add Data Point" : "Edit Data Point";
-        var text = new Editor
+        var titleLabel = (new Label
+        {
+            Text = Title,
+            FontSize = 22,
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1);
+        var textLabel = (new Label
+        {
+            Text = "Text",
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1);
+        var text = (new Editor
         {
             Placeholder = "Write a durable fact or observation...",
             Text = point?.Text ?? "",
             HeightRequest = 150,
             AutoSize = EditorAutoSizeOption.TextChanges
-        };
-        var priority = new Entry
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground)
+            .ThemeColor(InputView.TextColorProperty, ThemeKey.InputText)
+            .ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
+        var priorityLabel = (new Label
         {
-            Placeholder = "Priority (1-5)",
+            Text = "Priority",
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1);
+        var priorityHint = (new Label
+        {
+            Text = "1 = low, 5 = top priority",
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText3);
+        var priority = (new Entry
+        {
             Text = (point?.Priority ?? 3).ToString(),
             Keyboard = Keyboard.Numeric
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground)
+            .ThemeColor(InputView.TextColorProperty, ThemeKey.InputText)
+            .ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
         var classificationOptions = CompanionDataPointEditorOptions.BuildClassifications(
             games, categories, point?.Category);
-        var classification = new Picker
+        var classificationLabel = (new Label
         {
-            Title = "Game or category",
+            Text = "Game or category",
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1);
+        var classification = (new Picker
+        {
             ItemsSource = classificationOptions,
             ItemDisplayBinding = new Binding(nameof(CompanionPointClassificationOption.Label))
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground)
+            .ThemeColor(Picker.TextColorProperty, ThemeKey.InputText);
+        SemanticProperties.SetDescription(classification, "Game or category");
         var lastClassification = CompanionDataPointEditorOptions.CurrentClassification(
             classificationOptions, point?.GameId, point?.Category);
         classification.SelectedItem = lastClassification;
@@ -879,7 +909,15 @@ internal sealed class CompanionDataPointEditPage : ContentPage
             changingClassification = false;
         };
 
-        var visibility = new Picker { Title = "Visibility", ItemsSource = CompanionDataPointEditorOptions.Visibility };
+        var visibilityLabel = (new Label
+        {
+            Text = "Visibility",
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.PageText1);
+        var visibility = (new Picker { ItemsSource = CompanionDataPointEditorOptions.Visibility })
+            .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground)
+            .ThemeColor(Picker.TextColorProperty, ThemeKey.InputText);
+        SemanticProperties.SetDescription(visibility, "Visibility");
         visibility.SelectedItem = CompanionDataPointEditorOptions.Visibility[
             CompanionDataPointEditorOptions.VisibilityIndex(point?.VisibilityOverride)];
 
@@ -907,7 +945,9 @@ internal sealed class CompanionDataPointEditPage : ContentPage
             await CloseAsync(new CompanionDataPointEditResult(
                 text.Text.Trim(), priorityValue, gameId, category, visibilityOverride));
         };
-        var cancel = new Button { Text = "Cancel" };
+        var cancel = (new Button { Text = "Cancel" })
+            .ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground)
+            .ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         cancel.Clicked += async (_, _) => await CloseAsync(null);
 
         Content = new ScrollView
@@ -918,8 +958,11 @@ internal sealed class CompanionDataPointEditPage : ContentPage
                 Spacing = 9,
                 Children =
                 {
-                    new Label { Text = Title, FontSize = 22, FontAttributes = FontAttributes.Bold },
-                    text, priority, classification, visibility,
+                    titleLabel,
+                    textLabel, text,
+                    priorityLabel, priorityHint, priority,
+                    classificationLabel, classification,
+                    visibilityLabel, visibility,
                     new HorizontalStackLayout { Spacing = 8, Children = { save, cancel } }
                 }
             }
